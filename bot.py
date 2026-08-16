@@ -84,6 +84,19 @@ ITEM_LOOKUP = {item.lower(): item for item in ITEMS}
 ITEM_CATEGORY = {item: cat for cat, items in CATEGORIES for item in items}
 ITEM_SORT_INDEX = {item: i for i, item in enumerate(ITEMS)}
 
+CATEGORY_EMOJI = {
+    "Resonators": "🔵",
+    "XMP Bursters": "💥",
+    "Ultra Strikes": "⚡",
+    "Portal Shields": "🛡️",
+    "Mods": "🔧",
+    "Power Cubes": "🔋",
+    "Heat Sinks": "❄️",
+    "Multi-Hacks": "🔓",
+    "Link Amps": "📡",
+    "Ops & Keys": "🔑",
+}
+
 (
     MENU,
     CHOOSING_CATEGORY,
@@ -210,23 +223,23 @@ def main_menu_keyboard():
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("+ New Account", callback_data="menu:new"),
-                InlineKeyboardButton("Switch Account", callback_data="menu:use"),
+                InlineKeyboardButton("➕ New Account", callback_data="menu:new"),
+                InlineKeyboardButton("🔄 Switch Account", callback_data="menu:use"),
             ],
             [
-                InlineKeyboardButton("Add Items", callback_data="menu:additems"),
-                InlineKeyboardButton("Remove Items", callback_data="menu:removeitems"),
+                InlineKeyboardButton("📥 Add Items", callback_data="menu:additems"),
+                InlineKeyboardButton("📤 Remove Items", callback_data="menu:removeitems"),
             ],
             [
-                InlineKeyboardButton("My Accounts", callback_data="menu:accounts"),
-                InlineKeyboardButton("Item Catalog", callback_data="menu:items"),
+                InlineKeyboardButton("👤 My Accounts", callback_data="menu:accounts"),
+                InlineKeyboardButton("📋 Item Catalog", callback_data="menu:items"),
             ],
             [
-                InlineKeyboardButton("View Current", callback_data="menu:view"),
-                InlineKeyboardButton("View All", callback_data="menu:viewall"),
+                InlineKeyboardButton("👁️ View Current", callback_data="menu:view"),
+                InlineKeyboardButton("📦 View All", callback_data="menu:viewall"),
             ],
-            [InlineKeyboardButton("Delete Account", callback_data="menu:delete")],
-            [InlineKeyboardButton("Close", callback_data="menu:close")],
+            [InlineKeyboardButton("🗑️ Delete Account", callback_data="menu:delete")],
+            [InlineKeyboardButton("❌ Close", callback_data="menu:close")],
         ]
     )
 
@@ -530,21 +543,29 @@ async def items_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _category_keyboard():
     buttons = [
-        [InlineKeyboardButton(cat_name, callback_data=f"cat:{i}")]
+        [
+            InlineKeyboardButton(
+                f"{CATEGORY_EMOJI.get(cat_name, '')} {cat_name}".strip(),
+                callback_data=f"cat:{i}",
+            )
+        ]
         for i, (cat_name, _) in enumerate(CATEGORIES)
     ]
-    buttons.append([InlineKeyboardButton("Done", callback_data="done")])
+    buttons.append([InlineKeyboardButton("✅ Done", callback_data="done")])
     return InlineKeyboardMarkup(buttons)
 
 
 def _item_keyboard(conn, account_id: int, cat_idx: int):
     cat_name, cat_items = CATEGORIES[cat_idx]
+    emoji = CATEGORY_EMOJI.get(cat_name, "")
     buttons = []
     row = []
     for item_name in cat_items:
         qty = get_item_qty(conn, account_id, item_name)
         row.append(
-            InlineKeyboardButton(f"{item_name} ({qty})", callback_data=f"item:{item_name}")
+            InlineKeyboardButton(
+                f"{emoji} {item_name} ({qty})".strip(), callback_data=f"item:{item_name}"
+            )
         )
         if len(row) == 2:
             buttons.append(row)
@@ -553,8 +574,8 @@ def _item_keyboard(conn, account_id: int, cat_idx: int):
         buttons.append(row)
     buttons.append(
         [
-            InlineKeyboardButton("<- Categories", callback_data="back:cat"),
-            InlineKeyboardButton("Done", callback_data="done"),
+            InlineKeyboardButton("⬅️ Categories", callback_data="back:cat"),
+            InlineKeyboardButton("✅ Done", callback_data="done"),
         ]
     )
     return cat_name, InlineKeyboardMarkup(buttons)
@@ -720,9 +741,10 @@ async def cancel_conv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _account_keyboard(accounts):
     buttons = [
-        [InlineKeyboardButton(a["name"], callback_data=f"acc:{a['id']}")] for a in accounts
+        [InlineKeyboardButton(f"👤 {a['name']}", callback_data=f"acc:{a['id']}")]
+        for a in accounts
     ]
-    buttons.append([InlineKeyboardButton("<- Menu", callback_data="menu:back")])
+    buttons.append([InlineKeyboardButton("⬅️ Menu", callback_data="menu:back")])
     return InlineKeyboardMarkup(buttons)
 
 
@@ -756,8 +778,8 @@ async def account_picked(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data["delete_account_name"] = account["name"]
             kb = InlineKeyboardMarkup(
                 [
-                    [InlineKeyboardButton(f"Yes, delete '{account['name']}'", callback_data="delconfirm:yes")],
-                    [InlineKeyboardButton("Cancel", callback_data="menu:back")],
+                    [InlineKeyboardButton(f"🗑️ Yes, delete '{account['name']}'", callback_data="delconfirm:yes")],
+                    [InlineKeyboardButton("🚫 Cancel", callback_data="menu:back")],
                 ]
             )
             await query.edit_message_text(
