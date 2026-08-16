@@ -76,7 +76,6 @@ CATEGORIES = [
         ["Common Multi-Hack", "Rare Multi-Hack", "Very Rare Multi-Hack"],
     ),
     ("Link Amps", ["Common Link Amp", "Rare Link Amp", "Soft Bank Ultra Link"]),
-    ("Power Cubes", ["Power Cube", "Hyper Cube"]),
     ("Ops & Keys", ["ITO +", "ITO -", "Keys"]),
 ]
 
