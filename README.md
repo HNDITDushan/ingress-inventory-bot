@@ -41,6 +41,7 @@ Items are a fixed whitelist (not free text), grouped into categories:
 - **Ultra Strikes**: U1–U8
 - **Portal Shields**: Common / Rare / Very Rare / Aegis
 - **Mods**: Force Amp, Turret
+- **Power Cubes**: P1–P8, Hyper Cube
 - **Heat Sinks**: Common / Rare / Very Rare
 - **Multi-Hacks**: Common / Rare / Very Rare
 - **Link Amps**: Common / Rare / Soft Bank Ultra Link
