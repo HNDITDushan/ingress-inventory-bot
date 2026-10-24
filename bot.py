@@ -52,7 +52,7 @@ STATE_PATH = os.path.join(BASE_DIR, "bot_state.pickle")
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-MAX_ACCOUNT_NAME = 32
+MAX_ACCOUNT_NAME = 64
 MAX_MESSAGE_LEN = 4000  # Telegram's hard limit is 4096
 
 
@@ -519,7 +519,11 @@ def welcome_screen():
         "resonators, bursters, cubes, keys and more.\n\n"
         "Let's start by creating your first account. Your agent name works great."
     )
-    return text, keyboard([("➕ Create my first account", "new")], [("❓ How it works", "help")])
+    return text, keyboard(
+        [("➕ Create my first account", "new")],
+        [("📥 Import all accounts", "import")],
+        [("❓ How it works", "help")],
+    )
 
 
 def menu_screen(conn, uid: int):
@@ -541,7 +545,7 @@ def menu_screen(conn, uid: int):
     markup = keyboard(
         [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
         [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
-        [("🧾 Sync full inventory", "sync")],
+        [("🧾 Sync this account", "sync"), ("📥 Import all accounts", "import")],
         [("🔄 Switch account", "switch"), ("➕ New account", "new")],
         [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
     )
@@ -750,6 +754,8 @@ def help_screen():
         "Tap 🧾 Sync full inventory and send your complete list (one item per line). "
         "The account is set to match it exactly — items you leave out become 0. "
         "You see a preview first.\n\n"
+        "Got several accounts? Tap 📥 Import all accounts and paste them all in one "
+        "message, each starting with <code>[Account name]</code>.\n\n"
         "<b>5. Checking your gear</b>\n"
         "📦 My inventory shows the active account. 🗂 All accounts shows every "
         "account plus combined totals.\n\n"
@@ -760,6 +766,7 @@ def help_screen():
         "/list – active account's items\n"
         "/listall – all accounts\n"
         "/sync – replace the whole inventory with a pasted list\n"
+        "/import – import many accounts at once\n"
         "/use <i>name</i> – switch account\n"
         "/newaccount <i>name</i> – create an account\n"
         "/items – item names and shortcuts\n"
@@ -876,6 +883,120 @@ def sync_preview_screen(conn, account, new_counts: dict, bad):
 
     rows = [[("✅ Apply sync", f"syncok:{account['id']}")]] if changes else []
     return text, keyboard(*rows, [("✖️ Cancel", f"inv:{account['id']}")])
+
+
+IMPORT_HEADER_RE = re.compile(r"^\s*\[(.+)\]\s*$")
+
+
+def looks_like_import(text: str) -> bool:
+    return any(IMPORT_HEADER_RE.match(line) for line in text.splitlines())
+
+
+def parse_import_text(text: str):
+    """Parse several accounts, each "[Name]" followed by "- Item: qty" lines.
+
+    Returns ([(name, {item: qty})], [unreadable lines]).
+    """
+    accounts, bad = [], []
+    for line in (l.strip() for l in text.splitlines()):
+        if not line:
+            continue
+        header = IMPORT_HEADER_RE.match(line)
+        if header:
+            accounts.append((" ".join(header.group(1).split()), {}))
+            continue
+        line = line.lstrip("-•*· ").strip()
+        if line.lower() in ("(empty)", "empty"):
+            continue
+        parsed = parse_line(line, "set") if accounts else None
+        if parsed is None:
+            bad.append(line)
+            continue
+        item, _, amount = parsed
+        counts = accounts[-1][1]
+        counts[item] = counts.get(item, 0) + amount
+    return accounts, bad
+
+
+def find_import_account(conn, owner_id: int, name: str):
+    """Match by exact name, else by the agent name before "(" (e.g. "Agent (email)")."""
+    account = get_account_by_name(conn, owner_id, name)
+    if account:
+        return account
+    agent = name.split("(")[0].strip().lower()
+    matches = [a for a in list_accounts(conn, owner_id) if a["name"].split("(")[0].strip().lower() == agent]
+    return matches[0] if len(matches) == 1 else None
+
+
+def import_prompt_screen():
+    example = "[AgentOne]\n  - R8: 120\n  - X8: 300\n\n[AgentTwo]\n  - Hyper Cube: 14\n  - VRPS: 12"
+    text = (
+        "📥 <b>Import all accounts</b>\n\n"
+        "Paste the inventory of all your accounts in one message. Start each account "
+        "with its name in square brackets, then one item per line:\n"
+        f"<pre>{esc(example)}</pre>\n"
+        "Accounts that don't exist yet are created. Each listed account is set to match "
+        "your list exactly (items left out become 0). Accounts you don't list are not "
+        "touched. You'll see a preview first."
+    )
+    return text, keyboard([("✖️ Cancel", "menu")])
+
+
+def import_preview_screen(conn, uid: int, parsed, bad):
+    lines = []
+    for name, counts in parsed:
+        total = sum(counts.values())
+        account = find_import_account(conn, uid, name)
+        if account is None:
+            lines.append(f"🆕 <b>{esc(name)}</b> — new account, {plural(total)}")
+            continue
+        old = get_counts(conn, account["id"])
+        changed = sum(1 for n in set(old) | set(counts) if old.get(n, 0) != counts.get(n, 0))
+        label = esc(account["name"])
+        if account["name"].lower() != name.lower():
+            label += f" <i>(matched “{esc(name)}”)</i>"
+        if changed:
+            lines.append(
+                f"♻️ <b>{label}</b> — {sum(old.values())} → <b>{total}</b> items, {plural(changed, 'change')}"
+            )
+        else:
+            lines.append(f"✔️ <b>{label}</b> — already up to date ({plural(total)})")
+
+    grand = sum(sum(c.values()) for _, c in parsed)
+    text = (
+        f"📥 <b>Import preview</b> — {plural(len(parsed), 'account')}, {plural(grand)}\n\n"
+        + "\n".join(lines)
+    )
+    if bad:
+        text += "\n\n⚠️ I couldn't read these lines (they'll be ignored):\n"
+        text += "\n".join(f"• <code>{esc(b)}</code>" for b in bad[:20])
+        if len(bad) > 20:
+            text += f"\n…and {len(bad) - 20} more"
+    text += "\n\nApply this? You can also send a corrected list instead."
+    return text, keyboard([("✅ Apply import", "importok")], [("✖️ Cancel", "menu")])
+
+
+def apply_import(conn, uid: int, parsed):
+    """Create/replace each account. Returns (created, updated) counts."""
+    created = updated = 0
+    for name, counts in parsed:
+        account = find_import_account(conn, uid, name)
+        if account is None:
+            clean, error = clean_account_name(name)
+            if error:
+                continue
+            cur = conn.execute("INSERT INTO accounts (owner_id, name) VALUES (?, ?)", (uid, clean))
+            account_id = cur.lastrowid
+            created += 1
+        else:
+            account_id = account["id"]
+            updated += 1
+        replace_inventory(conn, account_id, counts)
+    if get_current_account(conn, uid) is None:
+        remaining = list_accounts(conn, uid)
+        if remaining:
+            set_active(conn, uid, remaining[0]["id"])
+    return created, updated
 
 
 def after_change_keyboard(account):
@@ -1037,6 +1158,21 @@ def btn_sync_ok(conn, uid, ud, args):
     return (*inventory_screen(conn, uid, account), "Inventory synced ✅")
 
 
+def btn_import(conn, uid, ud, args):
+    ud.pop("pending_import", None)
+    ud["awaiting"] = {"kind": "import"}
+    return (*import_prompt_screen(), None)
+
+
+def btn_import_ok(conn, uid, ud, args):
+    pending = ud.pop("pending_import", None)
+    if not pending:
+        raise StaleButton
+    created, updated = apply_import(conn, uid, pending)
+    toast = f"Imported: {created} new, {updated} updated"
+    return (*all_accounts_screen(conn, uid), toast)
+
+
 def btn_help(conn, uid, ud, args):
     return (*help_screen(), None)
 
@@ -1063,6 +1199,8 @@ BUTTONS = {
     "delok": btn_delete_ok,
     "sync": btn_sync,
     "syncok": btn_sync_ok,
+    "import": btn_import,
+    "importok": btn_import_ok,
     "help": btn_help,
     "catalog": btn_catalog,
 }
@@ -1141,6 +1279,22 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
                 await respond(update, *reply)
                 return
+
+        if kind == "import" or looks_like_import(text):
+            parsed, bad = parse_import_text(text)
+            if not parsed:
+                await respond(
+                    update,
+                    "🤔 I couldn't find any accounts in that. Start each account with its "
+                    "name in square brackets, like <code>[AgentOne]</code>, or tap Cancel.",
+                    keyboard([("✖️ Cancel", "menu")]),
+                )
+                return
+            # Keep "awaiting" so a corrected paste can be sent instead.
+            context.user_data["awaiting"] = {"kind": "import"}
+            context.user_data["pending_import"] = parsed
+            await respond(update, *import_preview_screen(conn, uid, parsed, bad))
+            return
 
         if kind == "sync":
             account = get_owned_account(conn, uid, awaiting["account_id"])
@@ -1289,6 +1443,23 @@ async def remove_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _items_cmd(update, context, "r")
 
 
+async def import_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/import opens the import prompt; /import with a paste on the next lines previews it."""
+    uid = update.effective_user.id
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    context.user_data.pop("pending_import", None)
+    context.user_data["awaiting"] = {"kind": "import"}
+    parsed, bad = parse_import_text(raw) if raw else ([], [])
+    if not parsed:
+        await respond(update, *import_prompt_screen())
+        return
+    context.user_data["pending_import"] = parsed
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        text, markup = import_preview_screen(conn, uid, parsed, bad)
+    await respond(update, text, markup)
+
+
 async def sync_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/sync opens the sync prompt; /sync with a list on the next lines previews it directly."""
     uid = update.effective_user.id
@@ -1395,6 +1566,7 @@ BOT_COMMANDS = [
     ("list", "📦 Active account's inventory"),
     ("listall", "🗂 All accounts + totals"),
     ("sync", "🧾 Replace inventory with a full list"),
+    ("import", "📥 Import all accounts at once"),
     ("use", "🔄 Switch account"),
     ("newaccount", "➕ Create an account"),
     ("accounts", "⚙️ Manage accounts"),
@@ -1439,6 +1611,7 @@ def main():
         "remove": remove_cmd,
         "removeitems": remove_cmd,
         "sync": sync_cmd,
+        "import": import_cmd,
         "newaccount": newaccount_cmd,
         "use": use_cmd,
         "delaccount": delaccount_cmd,

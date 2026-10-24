@@ -67,6 +67,23 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
   before applying it. `/sync` does the same; `/sync` followed by a list on the
   next lines goes straight to the preview.
 
+- **📥 Import all accounts**: paste every account in one message. Each account
+  starts with its name in square brackets, followed by one item per line:
+
+  ```
+  [AgentOne]
+    - R8: 120
+    - X8: 300
+
+  [AgentTwo]
+    - Hyper Cube: 14
+  ```
+
+  Missing accounts are created. Existing ones are matched by name (or by the agent
+  name before a `(`) and set to match the list exactly. Accounts you don't list
+  are left alone. A preview shows what will be created or changed. Pasting text
+  in this format at any time opens the preview; so does `/import`.
+
 Buttons never expire. Old menus keep working, even after the bot restarts.
 
 ### Typing shortcuts
@@ -96,6 +113,7 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/list [name]` | Show the active (or named) account |
 | `/listall` | Show every account plus combined totals |
 | `/sync [list]` | Replace the active account's inventory with a full list (preview first) |
+| `/import [paste]` | Create/update many accounts at once from `[Name]` blocks (preview first) |
 | `/items` | Item names and shortcuts |
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |
