@@ -1087,7 +1087,12 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text, markup = menu_screen(conn, uid)
         toast = "That button is out of date — here's the menu."
 
-    await query.answer(toast)
+    try:
+        await query.answer(toast)
+    except BadRequest:
+        # Taps made while the bot was offline arrive too late to acknowledge;
+        # still update the message so the tap isn't lost.
+        logger.info("Callback query expired; updating the message anyway")
     await respond(update, text, markup)
 
 
