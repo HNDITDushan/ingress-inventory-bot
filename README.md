@@ -51,40 +51,55 @@ Send `/items` any time to see the full list from the bot itself.
 
 ## Usage (in Telegram, talk to your bot)
 
+Send `/start` (or `/menu`). Everything can be done with buttons:
+
+- **📥 Add items / 📤 Remove items**: pick a category, then an item, then tap
+  `+1 +5 +10 +25 +50 +100` (or `−…`, `🗑 All`), or type a number. Type `=20` to
+  set an exact count.
+- **📦 My inventory / 🗂 All accounts**: grouped by category, with combined
+  totals across accounts.
+- **🔄 Switch account / ➕ New account / ⚙️ Manage accounts**: view, rename or
+  delete accounts.
+
+Buttons never expire. Old menus keep working, even after the bot restarts.
+
+### Typing shortcuts
+
+Just send a message to change the active account. Several lines at once work too:
+
+```
+R8 10        -> add 10 R8
+-3 VRPS      -> remove 3 Very Rare Portal Shields
+Keys =120    -> set Keys to exactly 120
+```
+
+Common abbreviations are understood (`res8`, `xmp8`, `us8`, `pc8`, `CPS`, `RPS`,
+`VRPS`, `Aegis`, `FA`, `HC`, `VRHS`, `VRMH`, `SBUL`, `ITO+`, `key`…), in any case.
+Sending just an item name (e.g. `R8`) opens its +/− screen.
+
+### Commands
+
 | Command | Effect |
 |---|---|
-| `/newaccount <name>` | Create an inventory account (auto-selected if it's your first) |
-| `/use <name>` | Switch the active account |
-| `/accounts` | List your accounts, marks the active one |
-| `/additems` | Tap-to-add menu: pick a category, pick an item, type a quantity, repeat |
-| `/add <qty> <item>` | Quick one-off add, e.g. `/add 5 U3` (item must match the catalog) |
-| `/remove <qty> <item>` | Remove items from the active account |
-| `/list` | Show items in the active account |
-| `/list <name>` | Show items in a specific account (without switching to it) |
-| `/listall` | Show items across every account you own |
-| `/items` | Show the full recognized item catalog |
-| `/delaccount <name>` | Delete an account and all its items |
-
-### Example flow
-
-```
-/newaccount MainAccount
-/additems             -> tap "Resonators" -> tap "R1" -> type 8 -> tap "Done"
-/newaccount AltAccount
-/use AltAccount
-/add 3 Keys
-/list                  -> shows AltAccount's items
-/use MainAccount
-/list                  -> shows MainAccount's items
-/listall               -> shows both accounts, all items
-```
+| `/menu` | Main menu |
+| `/newaccount [name]` | Create an account (it becomes the active one) |
+| `/use [name]` | Switch the active account (no name → pick from a list) |
+| `/accounts` | Manage accounts (view, rename, delete) |
+| `/add [qty item]` | Quick add, e.g. `/add 5 U3`; no args → tap menu |
+| `/remove [qty item]` | Quick remove; no args → tap menu |
+| `/list [name]` | Show the active (or named) account |
+| `/listall` | Show every account plus combined totals |
+| `/items` | Item names and shortcuts |
+| `/delaccount [name]` | Delete an account (asks for confirmation) |
+| `/cancel` | Stop what you're doing |
 
 ## Notes
 
 - Quantities accumulate: adding U3 twice (5, then 3) results in 8.
-- `/remove` past zero deletes the item row.
-- `/add`/`/remove` only accept items from the catalog (case-insensitive);
-  unrecognized names are rejected with a pointer to `/items`.
+- Removing more than you have stops at zero.
+- Only items from the catalog are accepted; unrecognized names are listed back
+  to you with a pointer to `/items`.
+- Button/typing state is kept in `bot_state.pickle` next to `bot.py`.
 - All data is per Telegram user ID — if multiple people use the same bot,
   they won't see each other's accounts/items.
 - To run this continuously, use a process manager (systemd, pm2, NSSM on

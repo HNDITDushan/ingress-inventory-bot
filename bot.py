@@ -1,13 +1,13 @@
 """
 Telegram bot for managing inventory across multiple Ingress Prime accounts.
 
-Flow:
-  1. /newaccount <name>   - register an inventory account
-  2. /use <name>          - select which account is "active" for you
-  3. /add <qty> <item>    - add items to the active account's inventory
-  4. switch with /use <other name>, then /add more items there
-  5. /list [name]         - view items for the active (or named) account
-  6. /listall             - view items across every account you own
+Everything can be done with buttons from /menu:
+  - create accounts (one per agent you play) and switch the "active" one
+  - add / remove gear with tap-to-pick menus and +1/+5/+10... buttons
+  - view the active account, or every account plus combined totals
+
+Power users can also just type lines like "R8 10", "-3 VRPS" or "Keys =120"
+to change the active account's inventory directly.
 
 Data is stored per Telegram user, so each person who talks to the bot
 has their own set of accounts/items (isolated by telegram_id).
@@ -18,34 +18,42 @@ Setup:
   python bot.py
 """
 
+import html
 import logging
 import os
+import re
 import sqlite3
 from contextlib import closing
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
-    ConversationHandler,
     MessageHandler,
+    PicklePersistence,
     filters,
 )
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "inventory.db")
+STATE_PATH = os.path.join(BASE_DIR, "bot_state.pickle")
 
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+MAX_ACCOUNT_NAME = 32
+MAX_MESSAGE_LEN = 4000  # Telegram's hard limit is 4096
 
 
 # ---------------------------------------------------------------------------
@@ -80,9 +88,9 @@ CATEGORIES = [
 ]
 
 ITEMS = [item for _, items in CATEGORIES for item in items]
-ITEM_LOOKUP = {item.lower(): item for item in ITEMS}
+ITEM_INDEX = {item: i for i, item in enumerate(ITEMS)}
 ITEM_CATEGORY = {item: cat for cat, items in CATEGORIES for item in items}
-ITEM_SORT_INDEX = {item: i for i, item in enumerate(ITEMS)}
+CATEGORY_INDEX = {cat: i for i, (cat, _) in enumerate(CATEGORIES)}
 
 CATEGORY_EMOJI = {
     "Resonators": "🔵",
@@ -97,15 +105,109 @@ CATEGORY_EMOJI = {
     "Ops & Keys": "🔑",
 }
 
-(
-    MENU,
-    CHOOSING_CATEGORY,
-    CHOOSING_ITEM,
-    ENTERING_QTY,
-    AWAIT_NEW_NAME,
-    PICK_ACCOUNT,
-    CONFIRM_DELETE,
-) = range(7)
+# Shorter labels used where the category is already shown (buttons, lists).
+SHORT_NAME = {
+    "Common Portal Shield": "Common",
+    "Rare Portal Shield": "Rare",
+    "Very Rare Portal Shield": "Very Rare",
+    "Aegis Portal Shield": "Aegis",
+    "Common Heat Sink": "Common",
+    "Rare Heat Sink": "Rare",
+    "Very Rare Heat Sink": "Very Rare",
+    "Common Multi-Hack": "Common",
+    "Rare Multi-Hack": "Rare",
+    "Very Rare Multi-Hack": "Very Rare",
+    "Common Link Amp": "Common",
+    "Rare Link Amp": "Rare",
+    "Soft Bank Ultra Link": "SBUL",
+}
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[\s_]+", "", name.lower())
+
+
+# Common Ingress abbreviations, so people can type "VRPS 3" instead of
+# "Very Rare Portal Shield 3". Keys are already normalized.
+ALIASES = {
+    "cps": "Common Portal Shield",
+    "commonshield": "Common Portal Shield",
+    "rps": "Rare Portal Shield",
+    "rareshield": "Rare Portal Shield",
+    "vrps": "Very Rare Portal Shield",
+    "vrshield": "Very Rare Portal Shield",
+    "veryrareshield": "Very Rare Portal Shield",
+    "aegis": "Aegis Portal Shield",
+    "axa": "Aegis Portal Shield",
+    "aegisshield": "Aegis Portal Shield",
+    "fa": "Force Amp",
+    "hc": "Hyper Cube",
+    "hyper": "Hyper Cube",
+    "chs": "Common Heat Sink",
+    "rhs": "Rare Heat Sink",
+    "vrhs": "Very Rare Heat Sink",
+    "cmh": "Common Multi-Hack",
+    "rmh": "Rare Multi-Hack",
+    "vrmh": "Very Rare Multi-Hack",
+    "cla": "Common Link Amp",
+    "rla": "Rare Link Amp",
+    "sbul": "Soft Bank Ultra Link",
+    "softbank": "Soft Bank Ultra Link",
+    "softbankultralink": "Soft Bank Ultra Link",
+    "itoplus": "ITO +",
+    "itominus": "ITO -",
+    "key": "Keys",
+    "portalkey": "Keys",
+    "portalkeys": "Keys",
+}
+for _lvl in range(1, 9):
+    for _prefix, _letter in (
+        ("res", "R"), ("reso", "R"), ("resonator", "R"),
+        ("xmp", "X"), ("burster", "X"),
+        ("us", "U"), ("ultra", "U"), ("ultrastrike", "U"),
+        ("pc", "P"), ("cube", "P"), ("powercube", "P"),
+    ):
+        ALIASES[f"{_prefix}{_lvl}"] = f"{_letter}{_lvl}"
+
+ITEM_LOOKUP = {}
+for _item in ITEMS:
+    ITEM_LOOKUP[_norm(_item)] = _item
+    if not _item.endswith("-"):
+        ITEM_LOOKUP[_norm(_item).replace("-", "")] = _item
+ITEM_LOOKUP.update(ALIASES)
+
+
+def lookup_item(raw: str):
+    return ITEM_LOOKUP.get(_norm(raw))
+
+
+# Quantity tokens: "5", "+5", "-5", "=20", "5x", "x5".
+QTY_RE = re.compile(r"^([+\-=]?)x?(\d{1,6})x?$", re.IGNORECASE)
+
+
+def parse_qty(token: str, default_op: str = "add"):
+    """Return (op, amount) where op is "add", "remove" or "set", or None."""
+    m = QTY_RE.match(token.strip())
+    if not m:
+        return None
+    sign, amount = m.group(1), int(m.group(2))
+    op = {"+": "add", "-": "remove", "=": "set"}.get(sign, default_op)
+    return op, amount
+
+
+def parse_line(line: str, default_op: str = "add"):
+    """Parse "R8 10", "10 R8", "-3 VRPS", "Keys =120" -> (item, op, amount)."""
+    tokens = line.replace(",", " ").replace(":", " ").split()
+    if len(tokens) < 2:
+        return None
+    for qty_token, rest in ((tokens[-1], tokens[:-1]), (tokens[0], tokens[1:])):
+        qty = parse_qty(qty_token, default_op)
+        if qty is None:
+            continue
+        item = lookup_item(" ".join(rest))
+        if item:
+            return item, qty[0], qty[1]
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +269,13 @@ def ensure_user(conn, telegram_id: int):
     return row
 
 
+def list_accounts(conn, owner_id: int):
+    return conn.execute(
+        "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
+        (owner_id,),
+    ).fetchall()
+
+
 def get_account_by_name(conn, owner_id: int, name: str):
     return conn.execute(
         "SELECT * FROM accounts WHERE owner_id = ? AND name = ? COLLATE NOCASE",
@@ -174,13 +283,79 @@ def get_account_by_name(conn, owner_id: int, name: str):
     ).fetchone()
 
 
+def get_owned_account(conn, owner_id: int, account_id: int):
+    return conn.execute(
+        "SELECT * FROM accounts WHERE id = ? AND owner_id = ?", (account_id, owner_id)
+    ).fetchone()
+
+
 def get_current_account(conn, telegram_id: int):
     user = ensure_user(conn, telegram_id)
     if user["current_account_id"] is None:
         return None
-    return conn.execute(
-        "SELECT * FROM accounts WHERE id = ?", (user["current_account_id"],)
-    ).fetchone()
+    return get_owned_account(conn, telegram_id, user["current_account_id"])
+
+
+def set_active(conn, telegram_id: int, account_id):
+    conn.execute(
+        "UPDATE users SET current_account_id = ? WHERE telegram_id = ?",
+        (account_id, telegram_id),
+    )
+
+
+def clean_account_name(raw: str):
+    """Return (name, error)."""
+    name = " ".join(raw.split())
+    if not name:
+        return None, "The name can't be empty."
+    if name.startswith("/"):
+        return None, "The name can't start with /."
+    if len(name) > MAX_ACCOUNT_NAME:
+        return None, f"Please keep the name under {MAX_ACCOUNT_NAME} characters."
+    return name, None
+
+
+def create_account(conn, owner_id: int, raw_name: str):
+    """Create an account and make it active. Returns (account, error)."""
+    name, error = clean_account_name(raw_name)
+    if error:
+        return None, error
+    if get_account_by_name(conn, owner_id, name):
+        return None, f"You already have an account called <b>{esc(name)}</b>."
+    cur = conn.execute(
+        "INSERT INTO accounts (owner_id, name) VALUES (?, ?)", (owner_id, name)
+    )
+    set_active(conn, owner_id, cur.lastrowid)
+    return get_owned_account(conn, owner_id, cur.lastrowid), None
+
+
+def rename_account(conn, owner_id: int, account, raw_name: str):
+    """Returns (new_name, error)."""
+    name, error = clean_account_name(raw_name)
+    if error:
+        return None, error
+    existing = get_account_by_name(conn, owner_id, name)
+    if existing and existing["id"] != account["id"]:
+        return None, f"You already have an account called <b>{esc(name)}</b>."
+    conn.execute("UPDATE accounts SET name = ? WHERE id = ?", (name, account["id"]))
+    return name, None
+
+
+def delete_account(conn, owner_id: int, account):
+    """Delete an account; if it was active, fall back to another account."""
+    conn.execute("DELETE FROM accounts WHERE id = ?", (account["id"],))
+    user = ensure_user(conn, owner_id)
+    if user["current_account_id"] == account["id"]:
+        remaining = list_accounts(conn, owner_id)
+        set_active(conn, owner_id, remaining[0]["id"] if remaining else None)
+
+
+def get_counts(conn, account_id: int) -> dict:
+    rows = conn.execute(
+        "SELECT name, quantity FROM items WHERE account_id = ? AND quantity > 0",
+        (account_id,),
+    ).fetchall()
+    return {r["name"]: r["quantity"] for r in rows}
 
 
 def get_item_qty(conn, account_id: int, item_name: str) -> int:
@@ -191,777 +366,901 @@ def get_item_qty(conn, account_id: int, item_name: str) -> int:
     return row["quantity"] if row else 0
 
 
-def add_item_qty(conn, account_id: int, item_name: str, qty: int) -> int:
-    existing = conn.execute(
-        "SELECT * FROM items WHERE account_id = ? AND name = ?",
-        (account_id, item_name),
-    ).fetchone()
-    if existing:
-        new_qty = existing["quantity"] + qty
-        conn.execute("UPDATE items SET quantity = ? WHERE id = ?", (new_qty, existing["id"]))
+def apply_change(conn, account_id: int, item_name: str, op: str, amount: int):
+    """Apply add/remove/set to one item, never going below zero. Returns (old, new)."""
+    old = get_item_qty(conn, account_id, item_name)
+    if op == "add":
+        new = old + amount
+    elif op == "remove":
+        new = max(old - amount, 0)
     else:
-        new_qty = qty
+        new = amount
+    if new <= 0:
         conn.execute(
-            "INSERT INTO items (account_id, name, quantity) VALUES (?, ?, ?)",
-            (account_id, item_name, qty),
+            "DELETE FROM items WHERE account_id = ? AND name = ?", (account_id, item_name)
         )
-    return new_qty
-
-
-def sorted_items(rows):
-    """Sort item rows by the catalog order, unknown items last (alphabetically)."""
-    return sorted(
-        rows, key=lambda r: (ITEM_SORT_INDEX.get(r["name"], len(ITEMS)), r["name"])
-    )
-
-
-# ---------------------------------------------------------------------------
-# Command handlers
-# ---------------------------------------------------------------------------
-
-def main_menu_keyboard():
-    return InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("➕ New Account", callback_data="menu:new"),
-                InlineKeyboardButton("🔄 Switch Account", callback_data="menu:use"),
-            ],
-            [
-                InlineKeyboardButton("📥 Add Items", callback_data="menu:additems"),
-                InlineKeyboardButton("📤 Remove Items", callback_data="menu:removeitems"),
-            ],
-            [
-                InlineKeyboardButton("👤 My Accounts", callback_data="menu:accounts"),
-                InlineKeyboardButton("📋 Item Catalog", callback_data="menu:items"),
-            ],
-            [
-                InlineKeyboardButton("👁️ View Current", callback_data="menu:view"),
-                InlineKeyboardButton("📦 View All", callback_data="menu:viewall"),
-            ],
-            [InlineKeyboardButton("🗑️ Delete Account", callback_data="menu:delete")],
-            [InlineKeyboardButton("❌ Close", callback_data="menu:close")],
-        ]
-    )
-
-
-async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        account = get_current_account(conn, telegram_id)
-
-    active_line = (
-        f"Active account: {account['name']}"
-        if account
-        else "No active account yet - start with 'New Account'."
-    )
-    text = f"Ingress Prime inventory manager.\n{active_line}\n\nChoose an action:"
-
-    if update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=main_menu_keyboard())
+    elif old == 0:
+        conn.execute(
+            "INSERT OR REPLACE INTO items (account_id, name, quantity) VALUES (?, ?, ?)",
+            (account_id, item_name, new),
+        )
     else:
-        await update.message.reply_text(text, reply_markup=main_menu_keyboard())
-    return MENU
+        conn.execute(
+            "UPDATE items SET quantity = ? WHERE account_id = ? AND name = ?",
+            (new, account_id, item_name),
+        )
+    return old, new
+
+
+# ---------------------------------------------------------------------------
+# Formatting helpers
+# ---------------------------------------------------------------------------
+
+def esc(text) -> str:
+    return html.escape(str(text), quote=False)
+
+
+def plural(n: int, word: str = "item") -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
+def keyboard(*rows):
+    """keyboard([("Label", "data"), ...], ...) -> InlineKeyboardMarkup; empty rows skipped."""
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton(label, callback_data=data) for label, data in row] for row in rows if row]
+    )
+
+
+def chunked(buttons, per_row):
+    return [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
+
+
+HOME = ("🏠 Menu", "menu")
+
+
+def inventory_lines(counts: dict):
+    lines = []
+    for cat, cat_items in CATEGORIES:
+        present = [(it, counts[it]) for it in cat_items if counts.get(it)]
+        if not present:
+            continue
+        total = sum(q for _, q in present)
+        lines.append(f"{CATEGORY_EMOJI[cat]} <b>{esc(cat)}</b> ({total})")
+        lines.append(
+            "└ " + "  ·  ".join(f"{esc(SHORT_NAME.get(it, it))}: <b>{q}</b>" for it, q in present)
+        )
+    extras = sorted((n, q) for n, q in counts.items() if n not in ITEM_CATEGORY)
+    if extras:
+        lines.append("❔ <b>Other</b>")
+        lines.append("└ " + "  ·  ".join(f"{esc(n)}: <b>{q}</b>" for n, q in extras))
+    return lines
+
+
+def account_block(conn, account, active: bool) -> str:
+    counts = get_counts(conn, account["id"])
+    total = sum(counts.values())
+    header = f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if active else ''}\n📦 {plural(total)}"
+    if not counts:
+        return header + "\n<i>Empty — tap 📥 Add items to fill it.</i>"
+    return header + "\n\n" + "\n".join(inventory_lines(counts))
+
+
+def change_note(item: str, op: str, amount: int, old: int, new: int) -> str:
+    if new == old:
+        return f"ℹ️ No change — {esc(item)} is still <b>{new}</b>."
+    diff = new - old
+    sign = "+" if diff > 0 else "−"
+    note = f"✅ {sign}{abs(diff)} {esc(item)} → now <b>{new}</b>"
+    if op == "remove" and amount > old:
+        note += f" (you only had {old})"
+    return note
+
+
+def split_message(text: str):
+    if len(text) <= MAX_MESSAGE_LEN:
+        return [text]
+    chunks, current = [], ""
+    for part in text.split("\n"):
+        if current and len(current) + len(part) + 1 > MAX_MESSAGE_LEN:
+            chunks.append(current)
+            current = part
+        else:
+            current = f"{current}\n{part}" if current else part
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+async def respond(update: Update, text: str, markup=None):
+    """Edit the tapped message (for buttons) or reply (for typed messages)."""
+    chunks = split_message(text)
+    query = update.callback_query
+    if query:
+        first_markup = markup if len(chunks) == 1 else None
+        try:
+            await query.edit_message_text(
+                chunks[0], parse_mode=ParseMode.HTML, reply_markup=first_markup
+            )
+        except BadRequest as e:
+            if "not modified" not in str(e).lower():
+                await query.message.reply_text(
+                    chunks[0], parse_mode=ParseMode.HTML, reply_markup=first_markup
+                )
+        rest = chunks[1:]
+        message = query.message
+    else:
+        rest = chunks
+        message = update.effective_message
+    for i, chunk in enumerate(rest):
+        await message.reply_text(
+            chunk,
+            parse_mode=ParseMode.HTML,
+            reply_markup=markup if i == len(rest) - 1 else None,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Screens: each returns (text, keyboard)
+# ---------------------------------------------------------------------------
+
+def welcome_screen():
+    text = (
+        "👋 <b>Welcome, Agent!</b>\n\n"
+        "I keep track of the gear in each of your Ingress accounts — "
+        "resonators, bursters, cubes, keys and more.\n\n"
+        "Let's start by creating your first account. Your agent name works great."
+    )
+    return text, keyboard([("➕ Create my first account", "new")], [("❓ How it works", "help")])
+
+
+def menu_screen(conn, uid: int):
+    accounts = list_accounts(conn, uid)
+    if not accounts:
+        return welcome_screen()
+    active = get_current_account(conn, uid)
+    if active:
+        total = sum(get_counts(conn, active["id"]).values())
+        active_line = f"👤 Active account: <b>{esc(active['name'])}</b> · {plural(total)}"
+    else:
+        active_line = "👤 No active account — tap 🔄 Switch account to pick one."
+    text = (
+        "🏠 <b>Ingress Inventory</b>\n\n"
+        f"{active_line}\n"
+        f"🗂 You have {plural(len(accounts), 'account')}\n\n"
+        "💡 <i>Tip: just send me</i> <code>R8 10</code> <i>to add 10 R8 to the active account.</i>"
+    )
+    markup = keyboard(
+        [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
+        [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
+        [("🔄 Switch account", "switch"), ("➕ New account", "new")],
+        [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
+    )
+    return text, markup
+
+
+def no_active_screen(conn, uid: int):
+    if not list_accounts(conn, uid):
+        return welcome_screen()
+    return (
+        "👤 You don't have an active account right now. Pick the one you're playing:",
+        keyboard([("🔄 Pick an account", "switch")], [HOME]),
+    )
+
+
+def categories_screen(conn, account, mode: str):
+    counts = get_counts(conn, account["id"])
+    name = esc(account["name"])
+    if mode == "a":
+        header = f"📥 <b>Add items</b> to {name}"
+    else:
+        header = f"📤 <b>Remove items</b> from {name}"
+        if not counts:
+            return (
+                f"{header}\n\nThis account is empty — nothing to remove yet.",
+                keyboard([("📥 Add items instead", f"cats:a:{account['id']}")], [HOME]),
+            )
+
+    buttons = []
+    for i, (cat, cat_items) in enumerate(CATEGORIES):
+        total = sum(counts.get(it, 0) for it in cat_items)
+        if mode == "r" and total == 0:
+            continue
+        label = f"{CATEGORY_EMOJI[cat]} {cat}" + (f" · {total}" if total else "")
+        buttons.append((label, f"cat:{mode}:{account['id']}:{i}"))
+
+    other_mode, other_label = ("r", "🔁 Switch to Remove") if mode == "a" else ("a", "🔁 Switch to Add")
+    return (
+        f"{header}\n\nPick a category:",
+        keyboard(
+            *chunked(buttons, 2),
+            [(other_label, f"cats:{other_mode}:{account['id']}"), ("✅ Done", f"inv:{account['id']}")],
+        ),
+    )
+
+
+def items_screen(conn, account, mode: str, cat_idx: int):
+    cat, cat_items = CATEGORIES[cat_idx]
+    counts = get_counts(conn, account["id"])
+    shown = cat_items if mode == "a" else [it for it in cat_items if counts.get(it)]
+    back_row = [("⬅️ Categories", f"cats:{mode}:{account['id']}"), ("✅ Done", f"inv:{account['id']}")]
+    if not shown:
+        return (
+            f"{CATEGORY_EMOJI[cat]} No {esc(cat)} left in {esc(account['name'])}.",
+            keyboard(back_row),
+        )
+
+    buttons = []
+    for it in shown:
+        short = SHORT_NAME.get(it, it)
+        qty = counts.get(it, 0)
+        buttons.append((f"{short} · {qty}" if qty else short, f"it:{mode}:{account['id']}:{ITEM_INDEX[it]}"))
+    per_row = 4 if all(len(SHORT_NAME.get(it, it)) <= 3 for it in shown) else 2
+    verb = "add" if mode == "a" else "remove"
+    return (
+        f"{CATEGORY_EMOJI[cat]} <b>{esc(cat)}</b> · {esc(account['name'])}\n\nTap an item to {verb}:",
+        keyboard(*chunked(buttons, per_row), back_row),
+    )
+
+
+QUICK_STEPS = [1, 5, 10, 25, 50, 100]
+
+
+def quantity_screen(conn, account, mode: str, item: str, note: str = ""):
+    have = get_item_qty(conn, account["id"], item)
+    cat = ITEM_CATEGORY[item]
+    base = f"q:{mode}:{account['id']}:{ITEM_INDEX[item]}"
+
+    plus = [(f"+{n}", f"{base}:{n}") for n in QUICK_STEPS]
+    plus_rows = chunked(plus, 3)
+    minus_rows = []
+    if have > 0:
+        minus = [(f"−{n}", f"{base}:-{n}") for n in QUICK_STEPS[:5]] + [("🗑 All", f"{base}:all")]
+        minus_rows = chunked(minus, 3)
+    rows = plus_rows + minus_rows if mode == "a" else minus_rows + plus_rows
+
+    verb = "add" if mode == "a" else "remove"
+    text = (
+        f"{CATEGORY_EMOJI[cat]} <b>{esc(item)}</b> · {esc(account['name'])}\n\n"
+        f"You have: <b>{have}</b>\n"
+        + (f"\n{note}\n" if note else "")
+        + f"\nTap a button, or type a number to {verb}.\n"
+        "<i>Type</i> <code>=20</code> <i>to set the exact count.</i>"
+    )
+    nav = [("⬅️ Back", f"cat:{mode}:{account['id']}:{CATEGORY_INDEX[cat]}"), ("✅ Done", f"inv:{account['id']}")]
+    return text, keyboard(*rows, nav)
+
+
+def inventory_screen(conn, uid: int, account):
+    active = get_current_account(conn, uid)
+    is_active = active is not None and active["id"] == account["id"]
+    return (
+        account_block(conn, account, is_active),
+        keyboard(
+            [] if is_active else [("✅ Make this account active", f"use:{account['id']}")],
+            [("📥 Add", f"cats:a:{account['id']}"), ("📤 Remove", f"cats:r:{account['id']}")],
+            [("🔄 Switch account", "switch"), HOME],
+        ),
+    )
+
+
+def all_accounts_screen(conn, uid: int):
+    accounts = list_accounts(conn, uid)
+    if not accounts:
+        return welcome_screen()
+    active = get_current_account(conn, uid)
+    active_id = active["id"] if active else None
+    blocks = [account_block(conn, a, a["id"] == active_id) for a in accounts]
+
+    if len(accounts) > 1:
+        combined = {}
+        for a in accounts:
+            for name, qty in get_counts(conn, a["id"]).items():
+                combined[name] = combined.get(name, 0) + qty
+        total_block = f"Σ <b>All accounts combined</b>\n📦 {plural(sum(combined.values()))}"
+        if combined:
+            total_block += "\n\n" + "\n".join(inventory_lines(combined))
+        blocks.append(total_block)
+
+    return "\n\n━━━━━━━━━━\n\n".join(blocks), keyboard([("🔄 Switch account", "switch"), HOME])
+
+
+def switch_screen(conn, uid: int):
+    accounts = list_accounts(conn, uid)
+    if not accounts:
+        return welcome_screen()
+    active = get_current_account(conn, uid)
+    active_id = active["id"] if active else None
+    rows = []
+    for a in accounts:
+        total = sum(get_counts(conn, a["id"]).values())
+        mark = "✅" if a["id"] == active_id else "👤"
+        rows.append([(f"{mark} {a['name']} · {total}", f"use:{a['id']}")])
+    return (
+        "🔄 <b>Switch account</b>\n\nWhich account are you playing now?",
+        keyboard(*rows, [("➕ New account", "new"), HOME]),
+    )
+
+
+def manage_screen(conn, uid: int):
+    accounts = list_accounts(conn, uid)
+    if not accounts:
+        return welcome_screen()
+    rows = [[(f"👤 {a['name']}", f"acct:{a['id']}")] for a in accounts]
+    return (
+        "⚙️ <b>Manage accounts</b>\n\nTap an account to view, rename or delete it.",
+        keyboard(*rows, [("➕ New account", "new"), HOME]),
+    )
+
+
+def account_screen(conn, uid: int, account):
+    active = get_current_account(conn, uid)
+    is_active = active is not None and active["id"] == account["id"]
+    total = sum(get_counts(conn, account["id"]).values())
+    text = (
+        f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if is_active else ''}\n"
+        f"📦 {plural(total)}\n\nWhat would you like to do?"
+    )
+    return text, keyboard(
+        [] if is_active else [("✅ Make active", f"use:{account['id']}")],
+        [("📦 View items", f"inv:{account['id']}")],
+        [("✏️ Rename", f"ren:{account['id']}"), ("🗑 Delete", f"del:{account['id']}")],
+        [("⬅️ Accounts", "manage"), HOME],
+    )
+
+
+def delete_confirm_screen(conn, account):
+    total = sum(get_counts(conn, account["id"]).values())
+    return (
+        f"⚠️ Delete <b>{esc(account['name'])}</b> and all its {plural(total)}?\n\n"
+        "This can't be undone.",
+        keyboard(
+            [("🗑 Yes, delete it", f"delok:{account['id']}")],
+            [("✖️ No, keep it", f"acct:{account['id']}")],
+        ),
+    )
+
+
+def help_screen():
+    text = (
+        "❓ <b>How it works</b>\n\n"
+        "<b>1. Accounts</b>\n"
+        "Make one account for each Ingress agent you play. New items go into the "
+        "<i>active</i> account. Change it any time with 🔄 Switch account.\n\n"
+        "<b>2. Adding gear with buttons</b>\n"
+        "Tap 📥 Add items → pick a category → pick an item → tap +1, +5, +10… "
+        "or type a number.\n\n"
+        "<b>3. Typing is even faster</b>\n"
+        "Just send me a message like:\n"
+        "<code>R8 10</code>  → add 10 R8\n"
+        "<code>-3 VRPS</code>  → remove 3 Very Rare Shields\n"
+        "<code>Keys =120</code>  → set Keys to exactly 120\n"
+        "Send several lines at once to update many items.\n\n"
+        "<b>4. Checking your gear</b>\n"
+        "📦 My inventory shows the active account. 🗂 All accounts shows every "
+        "account plus combined totals.\n\n"
+        "<b>Commands</b>\n"
+        "/menu – main menu\n"
+        "/add 5 U3 – quick add\n"
+        "/remove 2 R8 – quick remove\n"
+        "/list – active account's items\n"
+        "/listall – all accounts\n"
+        "/use <i>name</i> – switch account\n"
+        "/newaccount <i>name</i> – create an account\n"
+        "/items – item names and shortcuts\n"
+        "/cancel – stop what you're doing"
+    )
+    return text, keyboard([("📋 Item names & shortcuts", "catalog")], [HOME])
+
+
+def catalog_screen():
+    lines = ["📋 <b>Item names</b>\n"]
+    for cat, cat_items in CATEGORIES:
+        lines.append(f"{CATEGORY_EMOJI[cat]} <b>{esc(cat)}</b>: " + ", ".join(esc(i) for i in cat_items))
+    lines.append(
+        "\n⌨️ <b>Shortcuts you can type</b>\n"
+        "res8 · xmp8 · us8 · pc8\n"
+        "CPS · RPS · VRPS · Aegis\n"
+        "FA · HC (Hyper Cube)\n"
+        "CHS · RHS · VRHS (Heat Sinks)\n"
+        "CMH · RMH · VRMH (Multi-Hacks)\n"
+        "CLA · RLA · SBUL (Link Amps)\n"
+        "ITO+ · ITO- · key\n\n"
+        "<i>Upper or lower case doesn't matter.</i>"
+    )
+    return "\n".join(lines), keyboard([("❓ Help", "help"), HOME])
+
+
+def new_account_prompt():
+    return (
+        "➕ <b>New account</b>\n\nSend me a name for it (your agent name works great).",
+        keyboard([("✖️ Cancel", "menu")]),
+    )
+
+
+def apply_text_changes(conn, account, text: str, default_op: str = "add"):
+    """Apply one change per line. Returns a report, or None if nothing was understood."""
+    done, bad = [], []
+    for line in (l.strip() for l in text.splitlines()):
+        if not line:
+            continue
+        parsed = parse_line(line, default_op)
+        if parsed is None:
+            bad.append(line)
+            continue
+        item, op, amount = parsed
+        old, new = apply_change(conn, account["id"], item, op, amount)
+        done.append(f"{CATEGORY_EMOJI[ITEM_CATEGORY[item]]} {esc(item)}: {old} → <b>{new}</b>")
+    if not done:
+        return None
+    report = f"✅ <b>{esc(account['name'])}</b> updated:\n\n" + "\n".join(done)
+    if bad:
+        report += "\n\n⚠️ I couldn't read:\n" + "\n".join(f"• <code>{esc(b)}</code>" for b in bad)
+        report += "\nSee /items for item names."
+    return report
+
+
+def after_change_keyboard(account):
+    return keyboard([("📦 View inventory", f"inv:{account['id']}"), HOME])
+
+
+DIDNT_UNDERSTAND = (
+    "🤔 Sorry, I didn't catch that.\n\n"
+    "To change items, send something like:\n"
+    "<code>R8 10</code>  or  <code>-3 VRPS</code>  or  <code>Keys =120</code>\n\n"
+    "Or open the menu and use the buttons."
+)
+
+
+# ---------------------------------------------------------------------------
+# Button router
+# ---------------------------------------------------------------------------
+
+class StaleButton(Exception):
+    """Raised when a button refers to something that no longer exists."""
+
+
+def _mode(value: str) -> str:
+    if value not in ("a", "r"):
+        raise StaleButton
+    return value
+
+
+def _owned(conn, uid: int, account_id: str):
+    account = get_owned_account(conn, uid, int(account_id))
+    if account is None:
+        raise StaleButton
+    return account
+
+
+def _item(index: str) -> str:
+    i = int(index)
+    if not 0 <= i < len(ITEMS):
+        raise StaleButton
+    return ITEMS[i]
+
+
+def _account_or_active(conn, uid: int, args, i: int = 0):
+    if len(args) > i and args[i]:
+        return _owned(conn, uid, args[i])
+    return get_current_account(conn, uid)
+
+
+def btn_menu(conn, uid, ud, args):
+    return (*menu_screen(conn, uid), None)
+
+
+def btn_categories(conn, uid, ud, args):
+    mode = _mode(args[0])
+    account = _account_or_active(conn, uid, args, 1)
+    if account is None:
+        return (*no_active_screen(conn, uid), None)
+    return (*categories_screen(conn, account, mode), None)
+
+
+def btn_category(conn, uid, ud, args):
+    mode, account = _mode(args[0]), _owned(conn, uid, args[1])
+    cat_idx = int(args[2])
+    if not 0 <= cat_idx < len(CATEGORIES):
+        raise StaleButton
+    return (*items_screen(conn, account, mode, cat_idx), None)
+
+
+def btn_item(conn, uid, ud, args):
+    mode, account = _mode(args[0]), _owned(conn, uid, args[1])
+    item = _item(args[2])
+    ud["awaiting"] = {"kind": "qty", "account_id": account["id"], "item": item, "mode": mode}
+    return (*quantity_screen(conn, account, mode, item), None)
+
+
+def btn_quantity(conn, uid, ud, args):
+    mode, account = _mode(args[0]), _owned(conn, uid, args[1])
+    item = _item(args[2])
+    if args[3] == "all":
+        op, amount = "set", 0
+    else:
+        delta = int(args[3])
+        op, amount = ("add", delta) if delta > 0 else ("remove", -delta)
+    old, new = apply_change(conn, account["id"], item, op, amount)
+    ud["awaiting"] = {"kind": "qty", "account_id": account["id"], "item": item, "mode": mode}
+    note = change_note(item, op, amount, old, new)
+    return (*quantity_screen(conn, account, mode, item, note), f"{item}: {old} → {new}")
+
+
+def btn_inventory(conn, uid, ud, args):
+    account = _account_or_active(conn, uid, args)
+    if account is None:
+        return (*no_active_screen(conn, uid), None)
+    return (*inventory_screen(conn, uid, account), None)
+
+
+def btn_all(conn, uid, ud, args):
+    return (*all_accounts_screen(conn, uid), None)
+
+
+def btn_switch(conn, uid, ud, args):
+    return (*switch_screen(conn, uid), None)
+
+
+def btn_use(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    set_active(conn, uid, account["id"])
+    return (*menu_screen(conn, uid), f"Now using {account['name']}")
+
+
+def btn_new(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "new_account"}
+    return (*new_account_prompt(), None)
+
+
+def btn_manage(conn, uid, ud, args):
+    return (*manage_screen(conn, uid), None)
+
+
+def btn_account(conn, uid, ud, args):
+    return (*account_screen(conn, uid, _owned(conn, uid, args[0])), None)
+
+
+def btn_rename(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "rename", "account_id": account["id"]}
+    return (
+        f"✏️ Send me the new name for <b>{esc(account['name'])}</b>.",
+        keyboard([("✖️ Cancel", f"acct:{account['id']}")]),
+        None,
+    )
+
+
+def btn_delete(conn, uid, ud, args):
+    return (*delete_confirm_screen(conn, _owned(conn, uid, args[0])), None)
+
+
+def btn_delete_ok(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    delete_account(conn, uid, account)
+    return (*manage_screen(conn, uid), f"Deleted {account['name']}")
+
+
+def btn_help(conn, uid, ud, args):
+    return (*help_screen(), None)
+
+
+def btn_catalog(conn, uid, ud, args):
+    return (*catalog_screen(), None)
+
+
+BUTTONS = {
+    "menu": btn_menu,
+    "cats": btn_categories,
+    "cat": btn_category,
+    "it": btn_item,
+    "q": btn_quantity,
+    "inv": btn_inventory,
+    "all": btn_all,
+    "switch": btn_switch,
+    "use": btn_use,
+    "new": btn_new,
+    "manage": btn_manage,
+    "acct": btn_account,
+    "ren": btn_rename,
+    "del": btn_delete,
+    "delok": btn_delete_ok,
+    "help": btn_help,
+    "catalog": btn_catalog,
+}
+
+
+async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Every button carries all the info it needs, so old buttons keep working."""
+    query = update.callback_query
+    uid = update.effective_user.id
+    context.user_data.pop("awaiting", None)
+    action, *args = (query.data or "").split(":")
+    handler = BUTTONS.get(action)
+
+    try:
+        if handler is None:
+            raise StaleButton
+        with closing(get_conn()) as conn, conn:
+            ensure_user(conn, uid)
+            text, markup, toast = handler(conn, uid, context.user_data, args)
+    except (StaleButton, ValueError, IndexError):
+        with closing(get_conn()) as conn, conn:
+            text, markup = menu_screen(conn, uid)
+        toast = "That button is out of date — here's the menu."
+
+    await query.answer(toast)
+    await respond(update, text, markup)
+
+
+# ---------------------------------------------------------------------------
+# Typed messages
+# ---------------------------------------------------------------------------
+
+async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    text = update.message.text.strip()
+    awaiting = context.user_data.get("awaiting") or {}
+    kind = awaiting.get("kind")
+
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+
+        if kind == "new_account":
+            account, error = create_account(conn, uid, text)
+            if error:
+                reply = (f"⚠️ {error}\n\nSend another name, or tap Cancel.", keyboard([("✖️ Cancel", "menu")]))
+            else:
+                context.user_data.pop("awaiting", None)
+                reply = (
+                    f"🎉 Account <b>{esc(account['name'])}</b> created — it's now your active account.",
+                    keyboard([("📥 Add items now", f"cats:a:{account['id']}")], [HOME]),
+                )
+            await respond(update, *reply)
+            return
+
+        if kind == "rename":
+            account = get_owned_account(conn, uid, awaiting["account_id"])
+            if account is None:
+                context.user_data.pop("awaiting", None)
+            else:
+                new_name, error = rename_account(conn, uid, account, text)
+                if error:
+                    reply = (
+                        f"⚠️ {error}\n\nSend another name, or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"acct:{account['id']}")]),
+                    )
+                else:
+                    context.user_data.pop("awaiting", None)
+                    reply = (
+                        f"✏️ Renamed to <b>{esc(new_name)}</b>.",
+                        keyboard([("⬅️ Accounts", "manage"), HOME]),
+                    )
+                await respond(update, *reply)
+                return
+
+        if kind == "qty":
+            account = get_owned_account(conn, uid, awaiting["account_id"])
+            default_op = "add" if awaiting["mode"] == "a" else "remove"
+            qty = parse_qty(text.replace(" ", ""), default_op)
+            if account is not None and qty is not None:
+                op, amount = qty
+                item = awaiting["item"]
+                old, new = apply_change(conn, account["id"], item, op, amount)
+                note = change_note(item, op, amount, old, new)
+                await respond(update, *quantity_screen(conn, account, awaiting["mode"], item, note))
+                return
+
+        # Free text: try "R8 10" style lines against the active account.
+        if any(parse_line(line) for line in text.splitlines()):
+            account = get_current_account(conn, uid)
+            if account is None:
+                await respond(update, *no_active_screen(conn, uid))
+                return
+            report = apply_text_changes(conn, account, text)
+            await respond(update, report, after_change_keyboard(account))
+            return
+
+        # Just an item name: open its +/- screen.
+        item = lookup_item(text)
+        account = get_current_account(conn, uid)
+        if item and account:
+            context.user_data["awaiting"] = {
+                "kind": "qty", "account_id": account["id"], "item": item, "mode": "a",
+            }
+            await respond(update, *quantity_screen(conn, account, "a", item))
+            return
+
+        if not list_accounts(conn, uid):
+            await respond(update, *welcome_screen())
+            return
+
+    await respond(update, DIDNT_UNDERSTAND, keyboard([HOME, ("📋 Item names", "catalog")]))
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def _args_text(context) -> str:
+    return " ".join(context.args).strip()
+
+
+async def _show(update: Update, screen_fn, *extra):
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, update.effective_user.id)
+        text, markup = screen_fn(conn, update.effective_user.id, *extra)
+    await respond(update, text, markup)
+
+
+async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("awaiting", None)
+    await _show(update, menu_screen)
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Ingress Prime inventory manager.\n\n"
-        "Send /menu for tappable buttons, or use these commands directly:\n\n"
-        "1. /newaccount <name> - add an inventory account\n"
-        "2. /use <name> - select the active account\n"
-        "3. /additems - tap menu to add from the fixed item list\n"
-        "   (or /add <qty> <item name> for a quick one-off, e.g. /add 5 U3)\n"
-        "4. /removeitems - tap menu to remove items\n"
-        "   (or /remove <qty> <item name>)\n"
-        "5. /list [name] - show items for the active (or named) account\n"
-        "6. /listall - show items across all your accounts\n"
-        "7. /accounts - list your accounts\n"
-        "8. /items - show the full recognized item list\n"
-        "9. /delaccount <name> - delete an account and its items"
-    )
-
-
-async def newaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    if not context.args:
-        await update.message.reply_text("Usage: /newaccount <account name>")
-        return
-    name = " ".join(context.args).strip()
-
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        if get_account_by_name(conn, telegram_id, name):
-            await update.message.reply_text(f"Account '{name}' already exists.")
-            return
-        cur = conn.execute(
-            "INSERT INTO accounts (owner_id, name) VALUES (?, ?)",
-            (telegram_id, name),
-        )
-        # first account created becomes the active one automatically
-        user = ensure_user(conn, telegram_id)
-        if user["current_account_id"] is None:
-            conn.execute(
-                "UPDATE users SET current_account_id = ? WHERE telegram_id = ?",
-                (cur.lastrowid, telegram_id),
-            )
-
-    await update.message.reply_text(f"Account '{name}' created and selected.")
-
-
-async def use_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    if not context.args:
-        await update.message.reply_text("Usage: /use <account name>")
-        return
-    name = " ".join(context.args).strip()
-
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        account = get_account_by_name(conn, telegram_id, name)
-        if account is None:
-            await update.message.reply_text(
-                f"No account named '{name}'. Use /accounts to see your accounts."
-            )
-            return
-        conn.execute(
-            "UPDATE users SET current_account_id = ? WHERE telegram_id = ?",
-            (account["id"], telegram_id),
-        )
-
-    await update.message.reply_text(f"Active account switched to '{account['name']}'.")
-
-
-async def accounts_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    with closing(get_conn()) as conn, conn:
-        user = ensure_user(conn, telegram_id)
-        rows = conn.execute(
-            "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
-            (telegram_id,),
-        ).fetchall()
-
-    if not rows:
-        await update.message.reply_text("You have no accounts yet. Use /newaccount <name>.")
-        return
-
-    lines = ["Your accounts:"]
-    for r in rows:
-        marker = " (active)" if r["id"] == user["current_account_id"] else ""
-        lines.append(f"- {r['name']}{marker}")
-    await update.message.reply_text("\n".join(lines))
-
-
-async def delaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    if not context.args:
-        await update.message.reply_text("Usage: /delaccount <account name>")
-        return
-    name = " ".join(context.args).strip()
-
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        account = get_account_by_name(conn, telegram_id, name)
-        if account is None:
-            await update.message.reply_text(f"No account named '{name}'.")
-            return
-        conn.execute("DELETE FROM accounts WHERE id = ?", (account["id"],))
-        user = ensure_user(conn, telegram_id)
-        if user["current_account_id"] == account["id"]:
-            conn.execute(
-                "UPDATE users SET current_account_id = NULL WHERE telegram_id = ?",
-                (telegram_id,),
-            )
-
-    await update.message.reply_text(f"Account '{name}' and its items were deleted.")
-
-
-def _parse_qty_and_item(args):
-    """First arg must be an integer quantity, the rest is the item name."""
-    if len(args) < 2:
-        return None, None
-    try:
-        qty = int(args[0])
-    except ValueError:
-        return None, None
-    item_name = " ".join(args[1:]).strip()
-    if not item_name:
-        return None, None
-    return qty, item_name
-
-
-async def add_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    qty, raw_name = _parse_qty_and_item(context.args)
-    if qty is None:
-        await update.message.reply_text(
-            "Usage: /add <quantity> <item name>\nExample: /add 5 U3\n"
-            "See /items for the full list, or use /additems for a tap menu."
-        )
-        return
-    if qty <= 0:
-        await update.message.reply_text("Quantity must be a positive number.")
-        return
-
-    item_name = ITEM_LOOKUP.get(raw_name.lower())
-    if item_name is None:
-        await update.message.reply_text(
-            f"'{raw_name}' is not a recognized item. See /items for the full list, "
-            "or use /additems for a tap menu."
-        )
-        return
-
-    with closing(get_conn()) as conn, conn:
-        account = get_current_account(conn, telegram_id)
-        if account is None:
-            await update.message.reply_text(
-                "No active account. Use /newaccount <name> or /use <name> first."
-            )
-            return
-        new_qty = add_item_qty(conn, account["id"], item_name, qty)
-
-    await update.message.reply_text(
-        f"[{account['name']}] {item_name}: {new_qty} (added {qty})"
-    )
-
-
-async def remove_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    qty, raw_name = _parse_qty_and_item(context.args)
-    if qty is None:
-        await update.message.reply_text("Usage: /remove <quantity> <item name>")
-        return
-    if qty <= 0:
-        await update.message.reply_text("Quantity must be a positive number.")
-        return
-
-    item_name = ITEM_LOOKUP.get(raw_name.lower())
-    if item_name is None:
-        await update.message.reply_text(
-            f"'{raw_name}' is not a recognized item. See /items for the full list."
-        )
-        return
-
-    with closing(get_conn()) as conn, conn:
-        account = get_current_account(conn, telegram_id)
-        if account is None:
-            await update.message.reply_text("No active account. Use /use <name> first.")
-            return
-        existing = conn.execute(
-            "SELECT * FROM items WHERE account_id = ? AND name = ?",
-            (account["id"], item_name),
-        ).fetchone()
-        if existing is None:
-            await update.message.reply_text(f"'{item_name}' is not in [{account['name']}].")
-            return
-        new_qty = existing["quantity"] - qty
-        if new_qty <= 0:
-            conn.execute("DELETE FROM items WHERE id = ?", (existing["id"],))
-            new_qty = 0
-        else:
-            conn.execute("UPDATE items SET quantity = ? WHERE id = ?", (new_qty, existing["id"]))
-
-    await update.message.reply_text(f"[{account['name']}] {item_name}: {new_qty}")
-
-
-async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        if context.args:
-            name = " ".join(context.args).strip()
-            account = get_account_by_name(conn, telegram_id, name)
-            if account is None:
-                await update.message.reply_text(f"No account named '{name}'.")
-                return
-        else:
-            account = get_current_account(conn, telegram_id)
-            if account is None:
-                await update.message.reply_text(
-                    "No active account. Use /newaccount <name> or /use <name>, "
-                    "or pass a name: /list <account name>"
-                )
-                return
-
-        items = conn.execute(
-            "SELECT name, quantity FROM items WHERE account_id = ?",
-            (account["id"],),
-        ).fetchall()
-
-    if not items:
-        await update.message.reply_text(f"[{account['name']}] has no items yet.")
-        return
-
-    lines = [f"Inventory for [{account['name']}]:"]
-    for it in sorted_items(items):
-        lines.append(f"- {it['name']}: {it['quantity']}")
-    await update.message.reply_text("\n".join(lines))
-
-
-async def listall_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        accounts = conn.execute(
-            "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
-            (telegram_id,),
-        ).fetchall()
-
-        if not accounts:
-            await update.message.reply_text("You have no accounts yet. Use /newaccount <name>.")
-            return
-
-        blocks = []
-        for account in accounts:
-            items = conn.execute(
-                "SELECT name, quantity FROM items WHERE account_id = ?",
-                (account["id"],),
-            ).fetchall()
-            block_lines = [f"[{account['name']}]"]
-            if items:
-                for it in sorted_items(items):
-                    block_lines.append(f"  - {it['name']}: {it['quantity']}")
-            else:
-                block_lines.append("  (empty)")
-            blocks.append("\n".join(block_lines))
-
-    await update.message.reply_text("\n\n".join(blocks))
+    await respond(update, *help_screen())
 
 
 async def items_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["Recognized items:"]
-    for cat_name, cat_items in CATEGORIES:
-        lines.append(f"\n{cat_name}: " + ", ".join(cat_items))
-    await update.message.reply_text("\n".join(lines))
+    await respond(update, *catalog_screen())
 
 
-# ---------------------------------------------------------------------------
-# Add/remove items - tap-to-pick menu (category -> item -> quantity)
-# Shared by /additems, /removeitems and their menu-button equivalents;
-# context.user_data["mode"] is "add" or "remove".
-# ---------------------------------------------------------------------------
-
-def _category_keyboard():
-    buttons = [
-        [
-            InlineKeyboardButton(
-                f"{CATEGORY_EMOJI.get(cat_name, '')} {cat_name}".strip(),
-                callback_data=f"cat:{i}",
-            )
-        ]
-        for i, (cat_name, _) in enumerate(CATEGORIES)
-    ]
-    buttons.append([InlineKeyboardButton("✅ Done", callback_data="done")])
-    return InlineKeyboardMarkup(buttons)
+async def accounts_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _show(update, manage_screen)
 
 
-def _item_keyboard(conn, account_id: int, cat_idx: int):
-    cat_name, cat_items = CATEGORIES[cat_idx]
-    emoji = CATEGORY_EMOJI.get(cat_name, "")
-    buttons = []
-    row = []
-    for item_name in cat_items:
-        qty = get_item_qty(conn, account_id, item_name)
-        row.append(
-            InlineKeyboardButton(
-                f"{emoji} {item_name} ({qty})".strip(), callback_data=f"item:{item_name}"
-            )
-        )
-        if len(row) == 2:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-    buttons.append(
-        [
-            InlineKeyboardButton("⬅️ Categories", callback_data="back:cat"),
-            InlineKeyboardButton("✅ Done", callback_data="done"),
-        ]
-    )
-    return cat_name, InlineKeyboardMarkup(buttons)
+async def listall_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _show(update, all_accounts_screen)
 
 
-async def _begin_items_flow(update: Update, context: ContextTypes.DEFAULT_TYPE, mode: str):
-    """Shared entry logic for the add/remove tap flow, from a command or a menu button."""
-    query = update.callback_query
-    telegram_id = update.effective_user.id
-
+async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    name = _args_text(context)
     with closing(get_conn()) as conn, conn:
-        account = get_current_account(conn, telegram_id)
-
-    if account is None:
-        text = (
-            "No active account. Use 'New Account' / 'Switch Account' first "
-            "(or /newaccount, /use)."
-        )
-        if query:
-            await query.edit_message_text(text, reply_markup=main_menu_keyboard())
-            return MENU
-        await update.message.reply_text(text)
-        return ConversationHandler.END
-
-    context.user_data["mode"] = mode
-    context.user_data["additems_account_id"] = account["id"]
-    context.user_data["additems_account_name"] = account["name"]
-
-    verb_label = "Adding items to" if mode == "add" else "Removing items from"
-    text = f"{verb_label} [{account['name']}]. Pick a category:"
-    if query:
-        await query.edit_message_text(text, reply_markup=_category_keyboard())
-    else:
-        await update.message.reply_text(text, reply_markup=_category_keyboard())
-    return CHOOSING_CATEGORY
-
-
-async def additems_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await _begin_items_flow(update, context, "add")
-
-
-async def removeitems_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await _begin_items_flow(update, context, "remove")
-
-
-async def category_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    cat_idx = int(query.data.split(":", 1)[1])
-    context.user_data["cat_idx"] = cat_idx
-    mode = context.user_data.get("mode", "add")
-    verb = "add" if mode == "add" else "remove"
-
-    account_id = context.user_data["additems_account_id"]
-    with closing(get_conn()) as conn, conn:
-        cat_name, keyboard = _item_keyboard(conn, account_id, cat_idx)
-
-    await query.edit_message_text(
-        f"Category: {cat_name}\nTap an item to {verb}:", reply_markup=keyboard
-    )
-    return CHOOSING_ITEM
-
-
-async def back_to_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    account_name = context.user_data.get("additems_account_name", "")
-    mode = context.user_data.get("mode", "add")
-    verb_label = "Adding items to" if mode == "add" else "Removing items from"
-    await query.edit_message_text(
-        f"{verb_label} [{account_name}]. Pick a category:",
-        reply_markup=_category_keyboard(),
-    )
-    return CHOOSING_CATEGORY
-
-
-async def item_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    item_name = query.data.split(":", 1)[1]
-    context.user_data["pending_item"] = item_name
-    mode = context.user_data.get("mode", "add")
-    verb = "add" if mode == "add" else "remove"
-    await query.edit_message_text(f"Enter quantity to {verb} for '{item_name}' (number, /cancel to stop):")
-    return ENTERING_QTY
-
-
-async def qty_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
-    try:
-        qty = int(text)
-    except ValueError:
-        await update.message.reply_text("Please send a whole number (e.g. 5), or /cancel.")
-        return ENTERING_QTY
-    if qty < 0:
-        await update.message.reply_text("Quantity can't be negative. Send a number >= 0, or /cancel.")
-        return ENTERING_QTY
-
-    mode = context.user_data.get("mode", "add")
-    item_name = context.user_data["pending_item"]
-    account_id = context.user_data["additems_account_id"]
-    account_name = context.user_data["additems_account_name"]
-    cat_idx = context.user_data["cat_idx"]
-
-    with closing(get_conn()) as conn, conn:
-        if mode == "add":
-            new_qty = add_item_qty(conn, account_id, item_name, qty) if qty > 0 else get_item_qty(
-                conn, account_id, item_name
-            )
-        else:
-            existing_qty = get_item_qty(conn, account_id, item_name)
-            if qty > 0:
-                new_qty = max(existing_qty - qty, 0)
-                if new_qty == 0:
-                    conn.execute(
-                        "DELETE FROM items WHERE account_id = ? AND name = ?",
-                        (account_id, item_name),
-                    )
-                else:
-                    conn.execute(
-                        "UPDATE items SET quantity = ? WHERE account_id = ? AND name = ?",
-                        (new_qty, account_id, item_name),
-                    )
-            else:
-                new_qty = existing_qty
-        cat_name, keyboard = _item_keyboard(conn, account_id, cat_idx)
-
-    verb_label = "add" if mode == "add" else "remove"
-    if qty > 0:
-        verb_past = "added" if mode == "add" else "removed"
-        prefix = f"[{account_name}] {item_name}: {new_qty} ({verb_past} {qty})\n\n"
-    else:
-        prefix = ""
-    await update.message.reply_text(
-        f"{prefix}Category: {cat_name}\nTap an item to {verb_label}:", reply_markup=keyboard
-    )
-    return CHOOSING_ITEM
-
-
-async def finish_items(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    account_name = context.user_data.get("additems_account_name", "")
-    mode = context.user_data.pop("mode", "add")
-    for key in ("additems_account_id", "additems_account_name", "cat_idx", "pending_item"):
-        context.user_data.pop(key, None)
-    verb_label = "adding items to" if mode == "add" else "removing items from"
-    await query.edit_message_text(
-        f"Done {verb_label} [{account_name}].", reply_markup=main_menu_keyboard()
-    )
-    return MENU
-
-
-async def cancel_conv(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Cancelled. Send /menu to reopen.")
-    context.user_data.clear()
-    return ConversationHandler.END
-
-
-# ---------------------------------------------------------------------------
-# Account picker (Switch Account / Delete Account menu buttons)
-# ---------------------------------------------------------------------------
-
-def _account_keyboard(accounts):
-    buttons = [
-        [InlineKeyboardButton(f"👤 {a['name']}", callback_data=f"acc:{a['id']}")]
-        for a in accounts
-    ]
-    buttons.append([InlineKeyboardButton("⬅️ Menu", callback_data="menu:back")])
-    return InlineKeyboardMarkup(buttons)
-
-
-async def account_picked(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    account_id = int(query.data.split(":", 1)[1])
-    pick_action = context.user_data.get("pick_action")
-    telegram_id = update.effective_user.id
-
-    with closing(get_conn()) as conn, conn:
-        account = conn.execute(
-            "SELECT * FROM accounts WHERE id = ? AND owner_id = ?", (account_id, telegram_id)
-        ).fetchone()
-        if account is None:
-            await query.edit_message_text("That account no longer exists.", reply_markup=main_menu_keyboard())
-            return MENU
-
-        if pick_action == "use":
-            conn.execute(
-                "UPDATE users SET current_account_id = ? WHERE telegram_id = ?",
-                (account_id, telegram_id),
-            )
-            await query.edit_message_text(
-                f"Active account switched to '{account['name']}'.", reply_markup=main_menu_keyboard()
-            )
-            return MENU
-
-        if pick_action == "delete":
-            context.user_data["delete_account_id"] = account_id
-            context.user_data["delete_account_name"] = account["name"]
-            kb = InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton(f"🗑️ Yes, delete '{account['name']}'", callback_data="delconfirm:yes")],
-                    [InlineKeyboardButton("🚫 Cancel", callback_data="menu:back")],
-                ]
-            )
-            await query.edit_message_text(
-                f"Delete account '{account['name']}' and ALL its items? This can't be undone.",
-                reply_markup=kb,
-            )
-            return CONFIRM_DELETE
-
-    await query.edit_message_text("Choose an action:", reply_markup=main_menu_keyboard())
-    return MENU
-
-
-async def delete_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    telegram_id = update.effective_user.id
-    account_id = context.user_data.pop("delete_account_id", None)
-    account_name = context.user_data.pop("delete_account_name", "")
-
-    with closing(get_conn()) as conn, conn:
-        conn.execute(
-            "DELETE FROM accounts WHERE id = ? AND owner_id = ?", (account_id, telegram_id)
-        )
-        user = ensure_user(conn, telegram_id)
-        if user["current_account_id"] == account_id:
-            conn.execute(
-                "UPDATE users SET current_account_id = NULL WHERE telegram_id = ?", (telegram_id,)
-            )
-
-    await query.edit_message_text(f"Account '{account_name}' deleted.", reply_markup=main_menu_keyboard())
-    return MENU
-
-
-async def new_account_name_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    telegram_id = update.effective_user.id
-    name = update.message.text.strip()
-    if not name:
-        await update.message.reply_text("Please send a non-empty account name, or /cancel.")
-        return AWAIT_NEW_NAME
-
-    with closing(get_conn()) as conn, conn:
-        ensure_user(conn, telegram_id)
-        if get_account_by_name(conn, telegram_id, name):
-            await update.message.reply_text(
-                f"Account '{name}' already exists. Send a different name, or /cancel."
-            )
-            return AWAIT_NEW_NAME
-        cur = conn.execute(
-            "INSERT INTO accounts (owner_id, name) VALUES (?, ?)", (telegram_id, name)
-        )
-        user = ensure_user(conn, telegram_id)
-        if user["current_account_id"] is None:
-            conn.execute(
-                "UPDATE users SET current_account_id = ? WHERE telegram_id = ?",
-                (cur.lastrowid, telegram_id),
-            )
-
-    await update.message.reply_text(
-        f"Account '{name}' created and selected.", reply_markup=main_menu_keyboard()
-    )
-    return MENU
-
-
-# ---------------------------------------------------------------------------
-# Main menu dispatcher
-# ---------------------------------------------------------------------------
-
-async def menu_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    action = query.data.split(":", 1)[1]
-    telegram_id = update.effective_user.id
-
-    if action == "back":
-        return await show_menu(update, context)
-
-    if action == "close":
-        await query.edit_message_text("Closed. Send /menu to reopen.")
-        context.user_data.clear()
-        return ConversationHandler.END
-
-    if action == "new":
-        await query.edit_message_text("Send the new account name as a message (or /cancel):")
-        return AWAIT_NEW_NAME
-
-    if action in ("use", "delete"):
-        with closing(get_conn()) as conn, conn:
-            accounts = conn.execute(
-                "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
-                (telegram_id,),
-            ).fetchall()
-        if not accounts:
-            await query.edit_message_text(
-                "You have no accounts yet. Tap 'New Account' first.",
-                reply_markup=main_menu_keyboard(),
-            )
-            return MENU
-        context.user_data["pick_action"] = action
-        prompt = "Pick an account to switch to:" if action == "use" else "Pick an account to DELETE:"
-        await query.edit_message_text(prompt, reply_markup=_account_keyboard(accounts))
-        return PICK_ACCOUNT
-
-    if action == "accounts":
-        with closing(get_conn()) as conn, conn:
-            user = ensure_user(conn, telegram_id)
-            rows = conn.execute(
-                "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
-                (telegram_id,),
-            ).fetchall()
-        if not rows:
-            text = "You have no accounts yet."
-        else:
-            lines = ["Your accounts:"]
-            for r in rows:
-                marker = " (active)" if r["id"] == user["current_account_id"] else ""
-                lines.append(f"- {r['name']}{marker}")
-            text = "\n".join(lines)
-        await query.edit_message_text(text, reply_markup=main_menu_keyboard())
-        return MENU
-
-    if action == "items":
-        lines = ["Recognized items:"]
-        for cat_name, cat_items in CATEGORIES:
-            lines.append(f"\n{cat_name}: " + ", ".join(cat_items))
-        await query.edit_message_text("\n".join(lines), reply_markup=main_menu_keyboard())
-        return MENU
-
-    if action == "view":
-        with closing(get_conn()) as conn, conn:
-            account = get_current_account(conn, telegram_id)
+        ensure_user(conn, uid)
+        if name:
+            account = get_account_by_name(conn, uid, name)
             if account is None:
-                await query.edit_message_text("No active account yet.", reply_markup=main_menu_keyboard())
-                return MENU
-            items = conn.execute(
-                "SELECT name, quantity FROM items WHERE account_id = ?", (account["id"],)
-            ).fetchall()
-        if not items:
-            text = f"[{account['name']}] has no items yet."
-        else:
-            lines = [f"Inventory for [{account['name']}]:"]
-            for it in sorted_items(items):
-                lines.append(f"- {it['name']}: {it['quantity']}")
-            text = "\n".join(lines)
-        await query.edit_message_text(text, reply_markup=main_menu_keyboard())
-        return MENU
-
-    if action == "viewall":
-        with closing(get_conn()) as conn, conn:
-            accounts = conn.execute(
-                "SELECT * FROM accounts WHERE owner_id = ? ORDER BY name COLLATE NOCASE",
-                (telegram_id,),
-            ).fetchall()
-            if not accounts:
-                await query.edit_message_text(
-                    "You have no accounts yet.", reply_markup=main_menu_keyboard()
+                text, markup = (
+                    f"🤔 No account called <b>{esc(name)}</b>.",
+                    keyboard([("🔄 See my accounts", "switch"), HOME]),
                 )
-                return MENU
-            blocks = []
-            for account in accounts:
-                items = conn.execute(
-                    "SELECT name, quantity FROM items WHERE account_id = ?", (account["id"],)
-                ).fetchall()
-                block_lines = [f"[{account['name']}]"]
-                if items:
-                    for it in sorted_items(items):
-                        block_lines.append(f"  - {it['name']}: {it['quantity']}")
-                else:
-                    block_lines.append("  (empty)")
-                blocks.append("\n".join(block_lines))
-        await query.edit_message_text("\n\n".join(blocks), reply_markup=main_menu_keyboard())
-        return MENU
+            else:
+                text, markup = inventory_screen(conn, uid, account)
+        else:
+            account = get_current_account(conn, uid)
+            text, markup = inventory_screen(conn, uid, account) if account else no_active_screen(conn, uid)
+    await respond(update, text, markup)
 
-    if action in ("additems", "removeitems"):
-        mode = "add" if action == "additems" else "remove"
-        return await _begin_items_flow(update, context, mode)
 
-    await query.edit_message_text("Choose an action:", reply_markup=main_menu_keyboard())
-    return MENU
+async def _items_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, mode: str):
+    uid = update.effective_user.id
+    raw = _args_text(context)
+    default_op = "add" if mode == "a" else "remove"
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account = get_current_account(conn, uid)
+        if account is None:
+            text, markup = no_active_screen(conn, uid)
+        elif not raw:
+            text, markup = categories_screen(conn, account, mode)
+        else:
+            report = apply_text_changes(conn, account, raw, default_op)
+            if report:
+                text, markup = report, after_change_keyboard(account)
+            else:
+                cmd = "/add" if mode == "a" else "/remove"
+                text = (
+                    f"🤔 I couldn't read <code>{esc(raw)}</code>.\n\n"
+                    f"Try <code>{cmd} 5 U3</code>, or just {cmd} for the tap menu."
+                )
+                markup = keyboard([("📋 Item names", "catalog"), HOME])
+    await respond(update, text, markup)
+
+
+async def add_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _items_cmd(update, context, "a")
+
+
+async def remove_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _items_cmd(update, context, "r")
+
+
+async def newaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    name = _args_text(context)
+    if not name:
+        context.user_data["awaiting"] = {"kind": "new_account"}
+        await respond(update, *new_account_prompt())
+        return
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account, error = create_account(conn, uid, name)
+    if error:
+        await respond(update, f"⚠️ {error}", keyboard([HOME]))
+        return
+    await respond(
+        update,
+        f"🎉 Account <b>{esc(account['name'])}</b> created — it's now your active account.",
+        keyboard([("📥 Add items now", f"cats:a:{account['id']}")], [HOME]),
+    )
+
+
+async def use_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    name = _args_text(context)
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account = get_account_by_name(conn, uid, name) if name else None
+        if account:
+            set_active(conn, uid, account["id"])
+            text = f"🔄 Now using <b>{esc(account['name'])}</b>."
+            markup = keyboard([("📥 Add items", f"cats:a:{account['id']}"), HOME])
+        else:
+            text, markup = switch_screen(conn, uid)
+            if name:
+                text = f"🤔 No account called <b>{esc(name)}</b>.\n\n" + text
+    await respond(update, text, markup)
+
+
+async def delaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    name = _args_text(context)
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account = get_account_by_name(conn, uid, name) if name else None
+        if account:
+            text, markup = delete_confirm_screen(conn, account)
+        else:
+            text, markup = manage_screen(conn, uid)
+            if name:
+                text = f"🤔 No account called <b>{esc(name)}</b>.\n\n" + text
+    await respond(update, text, markup)
+
+
+async def cancel_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.pop("awaiting", None)
+    with closing(get_conn()) as conn, conn:
+        text, markup = menu_screen(conn, update.effective_user.id)
+    await respond(update, "👌 Cancelled.\n\n" + text, markup)
 
 
 async def unknown_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Unknown command. Send /help to see available commands.")
+    await respond(
+        update,
+        "🤔 I don't know that command. Here's what I can do:",
+        keyboard([HOME, ("❓ Help", "help")]),
+    )
+
+
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.exception("Error while handling an update", exc_info=context.error)
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "😬 Something went wrong on my side. Please try again, or send /menu."
+            )
+        except Exception:  # noqa: BLE001 - best effort only
+            pass
+
+
+BOT_COMMANDS = [
+    ("menu", "🏠 Main menu"),
+    ("add", "📥 Add items (e.g. /add 5 U3)"),
+    ("remove", "📤 Remove items (e.g. /remove 2 R8)"),
+    ("list", "📦 Active account's inventory"),
+    ("listall", "🗂 All accounts + totals"),
+    ("use", "🔄 Switch account"),
+    ("newaccount", "➕ Create an account"),
+    ("accounts", "⚙️ Manage accounts"),
+    ("items", "📋 Item names & shortcuts"),
+    ("help", "❓ How it works"),
+    ("cancel", "✖️ Cancel what you're doing"),
+]
+
+
+async def post_init(app: Application):
+    await app.bot.set_my_commands([BotCommand(c, d) for c, d in BOT_COMMANDS])
 
 
 def main():
@@ -973,55 +1272,38 @@ def main():
 
     init_db()
 
-    app = Application.builder().token(TOKEN).build()
-
-    # Plain-text commands, always available regardless of menu state.
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("newaccount", newaccount_cmd))
-    app.add_handler(CommandHandler("use", use_cmd))
-    app.add_handler(CommandHandler("accounts", accounts_cmd))
-    app.add_handler(CommandHandler("delaccount", delaccount_cmd))
-    app.add_handler(CommandHandler("add", add_cmd))
-    app.add_handler(CommandHandler("remove", remove_cmd))
-    app.add_handler(CommandHandler("list", list_cmd))
-    app.add_handler(CommandHandler("listall", listall_cmd))
-    app.add_handler(CommandHandler("listAll", listall_cmd))
-    app.add_handler(CommandHandler("items", items_cmd))
-
-    # Button-driven menu: /start or /menu opens it; /additems and /removeitems
-    # jump straight into the tap-to-pick item flow.
-    main_conv = ConversationHandler(
-        entry_points=[
-            CommandHandler("start", show_menu),
-            CommandHandler("menu", show_menu),
-            CommandHandler("additems", additems_entry),
-            CommandHandler("removeitems", removeitems_entry),
-        ],
-        states={
-            MENU: [CallbackQueryHandler(menu_button, pattern=r"^menu:")],
-            CHOOSING_CATEGORY: [CallbackQueryHandler(category_chosen, pattern=r"^cat:")],
-            CHOOSING_ITEM: [
-                CallbackQueryHandler(item_chosen, pattern=r"^item:"),
-                CallbackQueryHandler(back_to_categories, pattern=r"^back:cat$"),
-            ],
-            ENTERING_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, qty_entered)],
-            AWAIT_NEW_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, new_account_name_entered)],
-            PICK_ACCOUNT: [
-                CallbackQueryHandler(account_picked, pattern=r"^acc:"),
-                CallbackQueryHandler(menu_button, pattern=r"^menu:"),
-            ],
-            CONFIRM_DELETE: [
-                CallbackQueryHandler(delete_confirmed, pattern=r"^delconfirm:"),
-                CallbackQueryHandler(menu_button, pattern=r"^menu:"),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("cancel", cancel_conv),
-            CommandHandler("menu", show_menu),
-            CallbackQueryHandler(finish_items, pattern=r"^done$"),
-        ],
+    app = (
+        Application.builder()
+        .token(TOKEN)
+        .persistence(PicklePersistence(filepath=STATE_PATH))
+        .post_init(post_init)
+        .build()
     )
-    app.add_handler(main_conv)
+
+    commands = {
+        "start": start_cmd,
+        "menu": start_cmd,
+        "help": help_cmd,
+        "items": items_cmd,
+        "accounts": accounts_cmd,
+        "list": list_cmd,
+        "listall": listall_cmd,
+        "listAll": listall_cmd,
+        "add": add_cmd,
+        "additems": add_cmd,
+        "remove": remove_cmd,
+        "removeitems": remove_cmd,
+        "newaccount": newaccount_cmd,
+        "use": use_cmd,
+        "delaccount": delaccount_cmd,
+        "cancel": cancel_cmd,
+    }
+    for name, handler in commands.items():
+        app.add_handler(CommandHandler(name, handler))
+    app.add_handler(CallbackQueryHandler(on_button))
+    app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_handler(MessageHandler(filters.COMMAND, unknown_cmd))
+    app.add_error_handler(on_error)
 
     logger.info("Bot starting (polling)...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

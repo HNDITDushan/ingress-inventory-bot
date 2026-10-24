@@ -2,3 +2,6 @@
 inventory.db
 __pycache__/
 *.pyc
+.venv/
+bot_state.pickle
+bot.log
