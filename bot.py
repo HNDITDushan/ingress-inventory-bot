@@ -392,6 +392,15 @@ def apply_change(conn, account_id: int, item_name: str, op: str, amount: int):
     return old, new
 
 
+def replace_inventory(conn, account_id: int, counts: dict):
+    """Make the account hold exactly `counts`; anything not listed becomes 0."""
+    conn.execute("DELETE FROM items WHERE account_id = ?", (account_id,))
+    conn.executemany(
+        "INSERT INTO items (account_id, name, quantity) VALUES (?, ?, ?)",
+        [(account_id, name, qty) for name, qty in counts.items() if qty > 0],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
@@ -532,6 +541,7 @@ def menu_screen(conn, uid: int):
     markup = keyboard(
         [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
         [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
+        [("🧾 Sync full inventory", "sync")],
         [("🔄 Switch account", "switch"), ("➕ New account", "new")],
         [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
     )
@@ -638,6 +648,7 @@ def inventory_screen(conn, uid: int, account):
         keyboard(
             [] if is_active else [("✅ Make this account active", f"use:{account['id']}")],
             [("📥 Add", f"cats:a:{account['id']}"), ("📤 Remove", f"cats:r:{account['id']}")],
+            [("🧾 Sync full inventory", f"sync:{account['id']}")],
             [("🔄 Switch account", "switch"), HOME],
         ),
     )
@@ -735,7 +746,11 @@ def help_screen():
         "<code>-3 VRPS</code>  → remove 3 Very Rare Shields\n"
         "<code>Keys =120</code>  → set Keys to exactly 120\n"
         "Send several lines at once to update many items.\n\n"
-        "<b>4. Checking your gear</b>\n"
+        "<b>4. Syncing everything at once</b>\n"
+        "Tap 🧾 Sync full inventory and send your complete list (one item per line). "
+        "The account is set to match it exactly — items you leave out become 0. "
+        "You see a preview first.\n\n"
+        "<b>5. Checking your gear</b>\n"
         "📦 My inventory shows the active account. 🗂 All accounts shows every "
         "account plus combined totals.\n\n"
         "<b>Commands</b>\n"
@@ -744,6 +759,7 @@ def help_screen():
         "/remove 2 R8 – quick remove\n"
         "/list – active account's items\n"
         "/listall – all accounts\n"
+        "/sync – replace the whole inventory with a pasted list\n"
         "/use <i>name</i> – switch account\n"
         "/newaccount <i>name</i> – create an account\n"
         "/items – item names and shortcuts\n"
@@ -797,6 +813,69 @@ def apply_text_changes(conn, account, text: str, default_op: str = "add"):
         report += "\n\n⚠️ I couldn't read:\n" + "\n".join(f"• <code>{esc(b)}</code>" for b in bad)
         report += "\nSee /items for item names."
     return report
+
+
+def parse_sync_text(text: str):
+    """Parse a full inventory list. Returns ({item: qty}, [unreadable lines])."""
+    counts, bad = {}, []
+    for line in (l.strip() for l in text.splitlines()):
+        if not line:
+            continue
+        parsed = parse_line(line, "set")
+        if parsed is None:
+            bad.append(line)
+            continue
+        item, _, amount = parsed
+        counts[item] = counts.get(item, 0) + amount
+    return counts, bad
+
+
+def sync_prompt_screen(conn, account):
+    counts = get_counts(conn, account["id"])
+    ordered = sorted(counts.items(), key=lambda kv: ITEM_INDEX.get(kv[0], len(ITEMS)))
+    template = "\n".join(f"{name} {qty}" for name, qty in ordered) or "R8 120\nX8 300\nVRPS 12\nKeys 450"
+    text = (
+        f"🧾 <b>Sync full inventory</b> · {esc(account['name'])}\n\n"
+        "Send me <b>everything</b> you have in this account, one item per line. "
+        "I'll make the account match your list exactly — <b>items you leave out "
+        "become 0</b>. You'll see a preview before anything changes.\n\n"
+        + ("Your current list (tap to copy, edit the numbers, send it back):"
+           if counts else "Example:")
+        + f"\n<pre>{esc(template)}</pre>\n"
+        "<i>Shortcuts like res8, xmp8, VRPS, HC, SBUL work too — see /items.</i>"
+    )
+    return text, keyboard([("✖️ Cancel", f"inv:{account['id']}")])
+
+
+def sync_preview_screen(conn, account, new_counts: dict, bad):
+    old_counts = get_counts(conn, account["id"])
+    names = sorted(set(old_counts) | set(new_counts), key=lambda n: (ITEM_INDEX.get(n, len(ITEMS)), n))
+    changes, unchanged = [], 0
+    for name in names:
+        old, new = old_counts.get(name, 0), new_counts.get(name, 0)
+        if old == new:
+            unchanged += 1
+            continue
+        emoji = CATEGORY_EMOJI.get(ITEM_CATEGORY.get(name), "❔")
+        suffix = "  <i>(not in your list)</i>" if name not in new_counts else ""
+        changes.append(f"{emoji} {esc(name)}: {old} → <b>{new}</b>{suffix}")
+
+    old_total, new_total = sum(old_counts.values()), sum(new_counts.values())
+    text = f"🧾 <b>Sync preview</b> · {esc(account['name'])}\n\n"
+    if changes:
+        text += "\n".join(changes)
+    else:
+        text += "Nothing would change — your list matches the account already."
+    if unchanged:
+        text += f"\n\n<i>{plural(unchanged)} unchanged.</i>"
+    text += f"\n\n📦 Total: {old_total} → <b>{new_total}</b>"
+    if bad:
+        text += "\n\n⚠️ I couldn't read these lines (they'll be ignored):\n"
+        text += "\n".join(f"• <code>{esc(b)}</code>" for b in bad)
+    text += "\n\nApply this? You can also send a corrected list instead."
+
+    rows = [[("✅ Apply sync", f"syncok:{account['id']}")]] if changes else []
+    return text, keyboard(*rows, [("✖️ Cancel", f"inv:{account['id']}")])
 
 
 def after_change_keyboard(account):
@@ -940,6 +1019,24 @@ def btn_delete_ok(conn, uid, ud, args):
     return (*manage_screen(conn, uid), f"Deleted {account['name']}")
 
 
+def btn_sync(conn, uid, ud, args):
+    account = _account_or_active(conn, uid, args)
+    if account is None:
+        return (*no_active_screen(conn, uid), None)
+    ud.pop("pending_sync", None)
+    ud["awaiting"] = {"kind": "sync", "account_id": account["id"]}
+    return (*sync_prompt_screen(conn, account), None)
+
+
+def btn_sync_ok(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    pending = ud.pop("pending_sync", None)
+    if not pending or pending["account_id"] != account["id"]:
+        raise StaleButton
+    replace_inventory(conn, account["id"], pending["counts"])
+    return (*inventory_screen(conn, uid, account), "Inventory synced ✅")
+
+
 def btn_help(conn, uid, ud, args):
     return (*help_screen(), None)
 
@@ -964,6 +1061,8 @@ BUTTONS = {
     "ren": btn_rename,
     "del": btn_delete,
     "delok": btn_delete_ok,
+    "sync": btn_sync,
+    "syncok": btn_sync_ok,
     "help": btn_help,
     "catalog": btn_catalog,
 }
@@ -1036,6 +1135,25 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         keyboard([("⬅️ Accounts", "manage"), HOME]),
                     )
                 await respond(update, *reply)
+                return
+
+        if kind == "sync":
+            account = get_owned_account(conn, uid, awaiting["account_id"])
+            if account is None:
+                context.user_data.pop("awaiting", None)
+            else:
+                counts, bad = parse_sync_text(text)
+                if not counts:
+                    await respond(
+                        update,
+                        "🤔 I couldn't find any items in that. Send one item per line, "
+                        "like <code>R8 120</code>, or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"inv:{account['id']}")]),
+                    )
+                    return
+                # Keep "awaiting" so a corrected list can be sent instead.
+                context.user_data["pending_sync"] = {"account_id": account["id"], "counts": counts}
+                await respond(update, *sync_preview_screen(conn, account, counts, bad))
                 return
 
         if kind == "qty":
@@ -1166,6 +1284,27 @@ async def remove_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _items_cmd(update, context, "r")
 
 
+async def sync_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/sync opens the sync prompt; /sync with a list on the next lines previews it directly."""
+    uid = update.effective_user.id
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account = get_current_account(conn, uid)
+        if account is None:
+            text, markup = no_active_screen(conn, uid)
+        else:
+            context.user_data.pop("pending_sync", None)
+            context.user_data["awaiting"] = {"kind": "sync", "account_id": account["id"]}
+            counts, bad = parse_sync_text(raw) if raw else ({}, [])
+            if counts:
+                context.user_data["pending_sync"] = {"account_id": account["id"], "counts": counts}
+                text, markup = sync_preview_screen(conn, account, counts, bad)
+            else:
+                text, markup = sync_prompt_screen(conn, account)
+    await respond(update, text, markup)
+
+
 async def newaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     name = _args_text(context)
@@ -1250,6 +1389,7 @@ BOT_COMMANDS = [
     ("remove", "📤 Remove items (e.g. /remove 2 R8)"),
     ("list", "📦 Active account's inventory"),
     ("listall", "🗂 All accounts + totals"),
+    ("sync", "🧾 Replace inventory with a full list"),
     ("use", "🔄 Switch account"),
     ("newaccount", "➕ Create an account"),
     ("accounts", "⚙️ Manage accounts"),
@@ -1293,6 +1433,7 @@ def main():
         "additems": add_cmd,
         "remove": remove_cmd,
         "removeitems": remove_cmd,
+        "sync": sync_cmd,
         "newaccount": newaccount_cmd,
         "use": use_cmd,
         "delaccount": delaccount_cmd,

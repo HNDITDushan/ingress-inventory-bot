@@ -61,6 +61,12 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
 - **🔄 Switch account / ➕ New account / ⚙️ Manage accounts**: view, rename or
   delete accounts.
 
+- **🧾 Sync full inventory**: send your complete list (one item per line) and the
+  account is set to match it exactly. Items you leave out become 0. The bot
+  shows your current list ready to copy and edit, and previews every change
+  before applying it. `/sync` does the same; `/sync` followed by a list on the
+  next lines goes straight to the preview.
+
 Buttons never expire. Old menus keep working, even after the bot restarts.
 
 ### Typing shortcuts
@@ -89,6 +95,7 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/remove [qty item]` | Quick remove; no args → tap menu |
 | `/list [name]` | Show the active (or named) account |
 | `/listall` | Show every account plus combined totals |
+| `/sync [list]` | Replace the active account's inventory with a full list (preview first) |
 | `/items` | Item names and shortcuts |
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |
