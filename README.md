@@ -46,6 +46,7 @@ Items are a fixed whitelist (not free text), grouped into categories:
 - **Multi-Hacks**: Common / Rare / Very Rare
 - **Link Amps**: Common / Rare / Soft Bank Ultra Link
 - **Ops & Keys**: ITO +, ITO -, Keys
+- **Viruses**: ADA Refactor, JARVIS Virus
 
 Send `/items` any time to see the full list from the bot itself.
 
@@ -58,8 +59,13 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
   set an exact count.
 - **📦 My inventory / 🗂 All accounts**: grouped by category, with combined
   totals across accounts.
-- **🔄 Switch account / ➕ New account / ⚙️ Manage accounts**: view, rename or
-  delete accounts.
+- **🔄 Switch account / ➕ New account / ⚙️ Manage accounts**: view, rename,
+  describe or delete accounts. A description is a short note such as
+  "Ambalangoda keys" and shows on the account and inventory screens.
+- **🔍 Search all accounts**: send an item (`R8`) to see which accounts hold it,
+  how many each, and the total. A wider word (`shield`, `res`) covers a whole
+  family, with totals per account and per item. Account names and descriptions
+  are searched too. `/search R8` does the same.
 
 - **🧾 Sync full inventory**: send your complete list (one item per line) and the
   account is set to match it exactly. Items you leave out become 0. The bot
@@ -114,6 +120,8 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/listall` | Show every account plus combined totals |
 | `/sync [list]` | Replace the active account's inventory with a full list (preview first) |
 | `/import [paste]` | Create/update many accounts at once from `[Name]` blocks (preview first) |
+| `/search [text]` | Find an item, family, account name or description across all accounts |
+| `/describe [text]` | Set the active account's description |
 | `/items` | Item names and shortcuts |
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |

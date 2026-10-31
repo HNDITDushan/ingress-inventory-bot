@@ -53,6 +53,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 MAX_ACCOUNT_NAME = 64
+MAX_DESCRIPTION = 500
 MAX_MESSAGE_LEN = 4000  # Telegram's hard limit is 4096
 
 
@@ -85,6 +86,8 @@ CATEGORIES = [
     ),
     ("Link Amps", ["Common Link Amp", "Rare Link Amp", "Soft Bank Ultra Link"]),
     ("Ops & Keys", ["ITO +", "ITO -", "Keys"]),
+    # Keep new categories last: buttons refer to items by their position.
+    ("Viruses", ["ADA Refactor", "JARVIS Virus"]),
 ]
 
 ITEMS = [item for _, items in CATEGORIES for item in items]
@@ -103,6 +106,7 @@ CATEGORY_EMOJI = {
     "Multi-Hacks": "🔓",
     "Link Amps": "📡",
     "Ops & Keys": "🔑",
+    "Viruses": "🦠",
 }
 
 # Shorter labels used where the category is already shown (buttons, lists).
@@ -120,6 +124,8 @@ SHORT_NAME = {
     "Common Link Amp": "Common",
     "Rare Link Amp": "Rare",
     "Soft Bank Ultra Link": "SBUL",
+    "ADA Refactor": "ADA",
+    "JARVIS Virus": "JARVIS",
 }
 
 
@@ -159,6 +165,10 @@ ALIASES = {
     "key": "Keys",
     "portalkey": "Keys",
     "portalkeys": "Keys",
+    "ada": "ADA Refactor",
+    "jarvis": "JARVIS Virus",
+    "javis": "JARVIS Virus",
+    "javisvirus": "JARVIS Virus",
 }
 for _lvl in range(1, 9):
     for _prefix, _letter in (
@@ -179,6 +189,33 @@ ITEM_LOOKUP.update(ALIASES)
 
 def lookup_item(raw: str):
     return ITEM_LOOKUP.get(_norm(raw))
+
+
+# Short words that mean a whole family of items when searching.
+SEARCH_FAMILIES = {
+    "r": "Resonators", "res": "Resonators", "reso": "Resonators",
+    "x": "XMP Bursters", "xmp": "XMP Bursters", "burster": "XMP Bursters",
+    "u": "Ultra Strikes", "us": "Ultra Strikes", "ultra": "Ultra Strikes",
+    "p": "Power Cubes", "pc": "Power Cubes", "cube": "Power Cubes",
+}
+
+
+def search_items(query: str):
+    """Items a search means: one exact item, a family, or every name containing the text."""
+    exact = lookup_item(query)
+    if exact:
+        return [exact]
+    q = _norm(query).replace("-", "")
+    family = SEARCH_FAMILIES.get(q)
+    if family:
+        return list(dict(CATEGORIES)[family])
+    if len(q) < 2:
+        return []
+    return [
+        item
+        for item in ITEMS
+        if q in _norm(item).replace("-", "") or q in _norm(ITEM_CATEGORY[item]).replace("-", "")
+    ]
 
 
 # Quantity tokens: "5", "+5", "-5", "=20", "5x", "x5".
@@ -252,6 +289,9 @@ def init_db():
             )
             """
         )
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(accounts)")}
+        if "description" not in columns:
+            conn.execute("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
 
 
 def ensure_user(conn, telegram_id: int):
@@ -448,7 +488,10 @@ def inventory_lines(counts: dict):
 def account_block(conn, account, active: bool) -> str:
     counts = get_counts(conn, account["id"])
     total = sum(counts.values())
-    header = f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if active else ''}\n📦 {plural(total)}"
+    header = f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if active else ''}"
+    if account["description"]:
+        header += f"\n📝 {esc(account['description'])}"
+    header += f"\n📦 {plural(total)}"
     if not counts:
         return header + "\n<i>Empty — tap 📥 Add items to fill it.</i>"
     return header + "\n\n" + "\n".join(inventory_lines(counts))
@@ -545,6 +588,7 @@ def menu_screen(conn, uid: int):
     markup = keyboard(
         [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
         [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
+        [("🔍 Search all accounts", "search")],
         [("🧾 Sync this account", "sync"), ("📥 Import all accounts", "import")],
         [("🔄 Switch account", "switch"), ("➕ New account", "new")],
         [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
@@ -711,13 +755,15 @@ def account_screen(conn, uid: int, account):
     active = get_current_account(conn, uid)
     is_active = active is not None and active["id"] == account["id"]
     total = sum(get_counts(conn, account["id"]).values())
+    description = f"📝 {esc(account['description'])}\n" if account["description"] else ""
     text = (
         f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if is_active else ''}\n"
-        f"📦 {plural(total)}\n\nWhat would you like to do?"
+        f"{description}📦 {plural(total)}\n\nWhat would you like to do?"
     )
     return text, keyboard(
         [] if is_active else [("✅ Make active", f"use:{account['id']}")],
         [("📦 View items", f"inv:{account['id']}")],
+        [("📝 Edit description" if account["description"] else "📝 Add description", f"desc:{account['id']}")],
         [("✏️ Rename", f"ren:{account['id']}"), ("🗑 Delete", f"del:{account['id']}")],
         [("⬅️ Accounts", "manage"), HOME],
     )
@@ -756,7 +802,14 @@ def help_screen():
         "You see a preview first.\n\n"
         "Got several accounts? Tap 📥 Import all accounts and paste them all in one "
         "message, each starting with <code>[Account name]</code>.\n\n"
-        "<b>5. Checking your gear</b>\n"
+        "<b>5. Finding gear</b>\n"
+        "Tap 🔍 Search all accounts and send an item (<code>R8</code>) to see which accounts "
+        "hold it and the total, or a wider word (<code>shield</code>, <code>res</code>) for a "
+        "whole family. It also searches account names and descriptions.\n\n"
+        "<b>6. Describing accounts</b>\n"
+        "In ⚙️ Manage accounts, pick an account and tap 📝 Add description to note things "
+        "like which area's keys it holds.\n\n"
+        "<b>7. Checking your gear</b>\n"
         "📦 My inventory shows the active account. 🗂 All accounts shows every "
         "account plus combined totals.\n\n"
         "<b>Commands</b>\n"
@@ -767,6 +820,8 @@ def help_screen():
         "/listall – all accounts\n"
         "/sync – replace the whole inventory with a pasted list\n"
         "/import – import many accounts at once\n"
+        "/search <i>item</i> – find an item across all accounts\n"
+        "/describe <i>text</i> – describe the active account\n"
         "/use <i>name</i> – switch account\n"
         "/newaccount <i>name</i> – create an account\n"
         "/items – item names and shortcuts\n"
@@ -787,7 +842,8 @@ def catalog_screen():
         "CHS · RHS · VRHS (Heat Sinks)\n"
         "CMH · RMH · VRMH (Multi-Hacks)\n"
         "CLA · RLA · SBUL (Link Amps)\n"
-        "ITO+ · ITO- · key\n\n"
+        "ITO+ · ITO- · key\n"
+        "ADA · JARVIS\n\n"
         "<i>Upper or lower case doesn't matter.</i>"
     )
     return "\n".join(lines), keyboard([("❓ Help", "help"), HOME])
@@ -999,6 +1055,116 @@ def apply_import(conn, uid: int, parsed):
     return created, updated
 
 
+def description_prompt_screen(account):
+    current = account["description"]
+    text = f"📝 <b>Description</b> · {esc(account['name'])}\n\n"
+    if current:
+        text += f"Now: {esc(current)}\n\nSend a new description to replace it."
+    else:
+        text += "Send a short note about this account, e.g. <i>Ambalangoda keys, 120 portal keys</i>."
+    return text, keyboard(
+        [("🗑 Remove description", f"descdel:{account['id']}")] if current else [],
+        [("✖️ Cancel", f"acct:{account['id']}")],
+    )
+
+
+def save_description(conn, account, raw: str):
+    """Returns (description, error)."""
+    description = raw.strip()
+    if not description:
+        return None, "The description can't be empty."
+    if len(description) > MAX_DESCRIPTION:
+        return None, f"Please keep the description under {MAX_DESCRIPTION} characters."
+    conn.execute("UPDATE accounts SET description = ? WHERE id = ?", (description, account["id"]))
+    return description, None
+
+
+def search_prompt_screen():
+    return (
+        "🔍 <b>Search all accounts</b>\n\n"
+        "What are you looking for? For example:\n"
+        "<code>R8</code>  → one item\n"
+        "<code>shield</code> or <code>res</code>  → a whole family\n"
+        "<code>Ambalangoda</code>  → account names and descriptions",
+        keyboard([("✖️ Cancel", "menu")]),
+    )
+
+
+def _holders_text(rows) -> str:
+    return "\n".join(f"└ {esc(r['account'])}: <b>{r['quantity']}</b>" for r in rows)
+
+
+def search_results_screen(conn, uid: int, query: str):
+    items = search_items(query)
+    rows = []
+    if items:
+        marks = ",".join("?" * len(items))
+        rows = conn.execute(
+            f"""
+            SELECT i.name, i.quantity, a.id AS account_id, a.name AS account
+            FROM items i JOIN accounts a ON a.id = i.account_id
+            WHERE a.owner_id = ? AND i.quantity > 0 AND i.name IN ({marks})
+            ORDER BY i.quantity DESC, a.name COLLATE NOCASE
+            """,
+            (uid, *items),
+        ).fetchall()
+
+    needle = query.casefold()
+    noted = [
+        a for a in list_accounts(conn, uid)
+        if needle in a["name"].casefold() or needle in a["description"].casefold()
+    ]
+
+    blocks = []
+    if len(items) == 1:
+        item = items[0]
+        emoji = CATEGORY_EMOJI[ITEM_CATEGORY[item]]
+        if rows:
+            total = sum(r["quantity"] for r in rows)
+            blocks.append(
+                f"{emoji} <b>{esc(item)}</b>\n"
+                f"Total: <b>{total}</b> in {plural(len(rows), 'account')}\n\n{_holders_text(rows)}"
+            )
+        else:
+            blocks.append(f"{emoji} <b>{esc(item)}</b>\nNone in any of your accounts.")
+    elif rows:
+        total = sum(r["quantity"] for r in rows)
+        per_account = {}
+        for r in rows:
+            per_account[r["account"]] = per_account.get(r["account"], 0) + r["quantity"]
+        by_account = sorted(per_account.items(), key=lambda kv: (-kv[1], kv[0].lower()))
+        blocks.append(
+            f"📊 Total: <b>{total}</b> in {plural(len(by_account), 'account')}\n"
+            + "\n".join(f"└ {esc(name)}: <b>{qty}</b>" for name, qty in by_account)
+        )
+        for item in items:
+            held = [r for r in rows if r["name"] == item]
+            if held:
+                emoji = CATEGORY_EMOJI[ITEM_CATEGORY[item]]
+                subtotal = sum(r["quantity"] for r in held)
+                blocks.append(f"{emoji} <b>{esc(item)}</b>: <b>{subtotal}</b>\n{_holders_text(held)}")
+    elif items:
+        blocks.append(f"None of the matching items are in your accounts ({plural(len(items))} checked).")
+
+    if noted:
+        lines = []
+        for a in noted:
+            lines.append(f"👤 <b>{esc(a['name'])}</b>")
+            if a["description"]:
+                lines.append(f"└ 📝 {esc(a['description'])}")
+        blocks.append("🗂 <b>Matching accounts</b>\n" + "\n".join(lines))
+
+    if not blocks:
+        blocks.append("Nothing found. Try an item like <code>R8</code>, or see /items for all the names.")
+
+    header = f"🔍 <b>Search:</b> {esc(query)}"
+    account_rows = [[(f"👤 {a['name']}", f"acct:{a['id']}")] for a in noted[:10]]
+    return (
+        header + "\n\n" + "\n\n".join(blocks),
+        keyboard(*account_rows, [("🔍 Search again", "search"), HOME]),
+    )
+
+
 def after_change_keyboard(account):
     return keyboard([("📦 View inventory", f"inv:{account['id']}"), HOME])
 
@@ -1173,6 +1339,23 @@ def btn_import_ok(conn, uid, ud, args):
     return (*all_accounts_screen(conn, uid), toast)
 
 
+def btn_description(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "description", "account_id": account["id"]}
+    return (*description_prompt_screen(account), None)
+
+
+def btn_description_delete(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    conn.execute("UPDATE accounts SET description = '' WHERE id = ?", (account["id"],))
+    return (*account_screen(conn, uid, _owned(conn, uid, args[0])), "Description removed")
+
+
+def btn_search(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "search"}
+    return (*search_prompt_screen(), None)
+
+
 def btn_help(conn, uid, ud, args):
     return (*help_screen(), None)
 
@@ -1201,6 +1384,9 @@ BUTTONS = {
     "syncok": btn_sync_ok,
     "import": btn_import,
     "importok": btn_import_ok,
+    "desc": btn_description,
+    "descdel": btn_description_delete,
+    "search": btn_search,
     "help": btn_help,
     "catalog": btn_catalog,
 }
@@ -1279,6 +1465,28 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
                 await respond(update, *reply)
                 return
+
+        if kind == "description":
+            account = get_owned_account(conn, uid, awaiting["account_id"])
+            if account is None:
+                context.user_data.pop("awaiting", None)
+            else:
+                _, error = save_description(conn, account, text)
+                if error:
+                    await respond(
+                        update,
+                        f"⚠️ {error}\n\nSend it again, or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"acct:{account['id']}")]),
+                    )
+                    return
+                context.user_data.pop("awaiting", None)
+                await respond(update, *account_screen(conn, uid, get_owned_account(conn, uid, account["id"])))
+                return
+
+        if kind == "search":
+            context.user_data.pop("awaiting", None)
+            await respond(update, *search_results_screen(conn, uid, " ".join(text.split())))
+            return
 
         if kind == "import" or looks_like_import(text):
             parsed, bad = parse_import_text(text)
@@ -1443,6 +1651,40 @@ async def remove_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _items_cmd(update, context, "r")
 
 
+async def search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    query = _args_text(context)
+    if not query:
+        context.user_data["awaiting"] = {"kind": "search"}
+        await respond(update, *search_prompt_screen())
+        return
+    context.user_data.pop("awaiting", None)
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        text, markup = search_results_screen(conn, uid, query)
+    await respond(update, text, markup)
+
+
+async def describe_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        account = get_current_account(conn, uid)
+        if account is None:
+            text, markup = no_active_screen(conn, uid)
+        elif not raw:
+            context.user_data["awaiting"] = {"kind": "description", "account_id": account["id"]}
+            text, markup = description_prompt_screen(account)
+        else:
+            _, error = save_description(conn, account, raw)
+            if error:
+                text, markup = f"⚠️ {error}", keyboard([HOME])
+            else:
+                text, markup = account_screen(conn, uid, get_owned_account(conn, uid, account["id"]))
+    await respond(update, text, markup)
+
+
 async def import_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/import opens the import prompt; /import with a paste on the next lines previews it."""
     uid = update.effective_user.id
@@ -1567,6 +1809,8 @@ BOT_COMMANDS = [
     ("listall", "🗂 All accounts + totals"),
     ("sync", "🧾 Replace inventory with a full list"),
     ("import", "📥 Import all accounts at once"),
+    ("search", "🔍 Find an item across all accounts"),
+    ("describe", "📝 Describe the active account"),
     ("use", "🔄 Switch account"),
     ("newaccount", "➕ Create an account"),
     ("accounts", "⚙️ Manage accounts"),
@@ -1612,6 +1856,8 @@ def main():
         "removeitems": remove_cmd,
         "sync": sync_cmd,
         "import": import_cmd,
+        "search": search_cmd,
+        "describe": describe_cmd,
         "newaccount": newaccount_cmd,
         "use": use_cmd,
         "delaccount": delaccount_cmd,
