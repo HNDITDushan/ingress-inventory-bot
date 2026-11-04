@@ -18,17 +18,22 @@ Setup:
   python bot.py
 """
 
+import asyncio
 import html
 import logging
+import math
 import os
 import re
 import sqlite3
 from contextlib import closing
+from datetime import datetime
 
 from dotenv import load_dotenv
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
+
+import stats
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -292,6 +297,7 @@ def init_db():
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(accounts)")}
         if "description" not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+        stats.init_stats_db(conn)
 
 
 def ensure_user(conn, telegram_id: int):
@@ -589,6 +595,7 @@ def menu_screen(conn, uid: int):
         [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
         [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
         [("🔍 Search all accounts", "search")],
+        [("📊 Stats & goals", "stats")],
         [("🧾 Sync this account", "sync"), ("📥 Import all accounts", "import")],
         [("🔄 Switch account", "switch"), ("➕ New account", "new")],
         [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
@@ -812,6 +819,12 @@ def help_screen():
         "<b>7. Checking your gear</b>\n"
         "📦 My inventory shows the active account. 🗂 All accounts shows every "
         "account plus combined totals.\n\n"
+        "<b>8. Stats & goals</b>\n"
+        "In Ingress, copy your <b>ALL TIME</b> stats and paste them here any time. "
+        "Then tap 📊 Stats & goals → ➕ New goal to set daily, weekly, monthly, yearly or "
+        "lifetime targets. I'll tell you when you're close, and remind you when time is "
+        "running out. Paste stats often (at least at the start and end of each day or week) "
+        "so progress is accurate.\n\n"
         "<b>Commands</b>\n"
         "/menu – main menu\n"
         "/add 5 U3 – quick add\n"
@@ -822,6 +835,8 @@ def help_screen():
         "/import – import many accounts at once\n"
         "/search <i>item</i> – find an item across all accounts\n"
         "/describe <i>text</i> – describe the active account\n"
+        "/stats – your agent stats (or paste stats after it)\n"
+        "/goals – your goals and progress\n"
         "/use <i>name</i> – switch account\n"
         "/newaccount <i>name</i> – create an account\n"
         "/items – item names and shortcuts\n"
@@ -1165,6 +1180,342 @@ def search_results_screen(conn, uid: int, query: str):
     )
 
 
+# ---------------------------------------------------------------------------
+# Agent stats & goals screens
+# ---------------------------------------------------------------------------
+
+STATS_PER_PAGE = 16
+FACTION_EMOJI = {"Resistance": "🔵", "Enlightened": "🟢"}
+SUMMARY_STATS = [
+    "Level", "Lifetime AP", "Unique Portals Visited", "Unique Portals Captured", "Hacks",
+    "Links Created", "Control Fields Created", "Mind Units Captured", "Distance Walked",
+]
+
+
+def fmt_num(n: int) -> str:
+    return f"{n:,}"
+
+
+def fmt_stat(stat: str, n: int) -> str:
+    unit = stats.STAT_UNITS.get(stat)
+    return f"{n:,} {unit}" if unit else f"{n:,}"
+
+
+def fmt_duration(delta) -> str:
+    secs = int(delta.total_seconds())
+    if secs < 60:
+        return "under a minute"
+    days, rem = divmod(secs, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days >= 2:
+        return f"{days} days"
+    if days == 1:
+        return f"1 day {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def fmt_ago(when: datetime, now: datetime) -> str:
+    if (now - when).total_seconds() < 60:
+        return "just now"
+    return f"{fmt_duration(now - when)} ago"
+
+
+def progress_bar(pct: int, width: int = 10) -> str:
+    filled = max(0, min(width, pct * width // 100))
+    return "▰" * filled + "▱" * (width - filled)
+
+
+def pace_text(p, now: datetime) -> str:
+    """' (≈ 120/day)' when more than a day is left on an unfinished goal."""
+    if p["complete"] or p["end"] is None:
+        return ""
+    days_left = (p["end"] - now).total_seconds() / 86400
+    if days_left <= 1:
+        return ""
+    return f" (≈ {fmt_num(math.ceil(p['remaining'] / days_left))}/day)"
+
+
+def goal_label(goal) -> str:
+    return f"{stats.PERIOD_LABEL[goal['period']].lower()} {esc(goal['stat'])} goal"
+
+
+def goal_text(goal, p, now: datetime) -> str:
+    period = goal["period"]
+    status = f"{progress_bar(p['pct'])} {p['pct']}% · {fmt_num(p['done'])} / {fmt_num(p['target'])}"
+    if p["complete"]:
+        status += " 🏆"
+    elif p["end"]:
+        status += f" · {fmt_duration(p['end'] - now)} left"
+    return (
+        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]}</b> · {esc(goal['stat'])}\n"
+        f"└ {status}"
+    )
+
+
+def stats_prompt_screen(note: str = ""):
+    return (
+        f"{note}📊 <b>Agent stats</b>\n\n"
+        "In Ingress open your agent profile, choose <b>ALL TIME</b> and copy your stats. "
+        "Then paste them here as one message.\n\n"
+        "<i>It starts with</i> <code>Time Span  Agent Name  …</code>",
+        keyboard([("✖️ Cancel", "menu")]),
+    )
+
+
+def stats_screen(conn, uid: int, agent=None):
+    agents = stats.list_agents(conn, uid)
+    agent = agent or agents[0]
+    now = datetime.now()
+    snap = stats.latest_snapshot(conn, agent["id"])
+    values = snap["values"]
+    faction = agent["faction"]
+    lines = [
+        f"📊 <b>{esc(agent['name'])}</b> · {FACTION_EMOJI.get(faction, '⚪')} {esc(faction)}",
+        f"🕒 Stats from {fmt_ago(snap['taken_at'], now)} ({snap['taken_at']:%Y-%m-%d %H:%M})",
+        "",
+    ]
+    lines += [f"{esc(s)}: <b>{fmt_stat(s, values[s])}</b>" for s in SUMMARY_STATS if s in values]
+    lines += ["", "🎯 <b>Goals</b>"]
+    goals = stats.list_goals(conn, agent["id"])
+    if goals:
+        lines += [goal_text(g, stats.goal_progress(conn, g, now), now) for g in goals]
+    else:
+        lines.append("<i>No goals yet — tap ➕ New goal.</i>")
+    others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
+    return "\n".join(lines), keyboard(
+        [("📋 Paste new stats", "statsin")],
+        [("🎯 Goals", f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
+        [("📈 All stats", f"statsall:{agent['id']}")],
+        *others[:5],
+        [HOME],
+    )
+
+
+def all_stats_screen(conn, agent):
+    snap = stats.latest_snapshot(conn, agent["id"])
+    values = snap["values"]
+    order = stats.STAT_FIELDS + sorted(s for s in values if s not in stats.STAT_INDEX)
+    lines = [f"📈 <b>All stats</b> · {esc(agent['name'])}", f"🕒 {snap['taken_at']:%Y-%m-%d %H:%M}", ""]
+    lines += [f"{esc(s)}: <b>{fmt_stat(s, values[s])}</b>" for s in order if s in values]
+    return "\n".join(lines), keyboard([("⬅️ Stats", f"stats:{agent['id']}"), HOME])
+
+
+def stats_saved_screen(conn, uid: int, text: str):
+    try:
+        parsed = stats.parse_stats(text)
+    except stats.StatsError as e:
+        return f"⚠️ {e}", keyboard([("📋 Try again", "statsin"), HOME])
+    now = datetime.now()
+    agent, previous, is_new = stats.save_snapshot(conn, uid, parsed, now)
+    aid = agent["id"]
+    values = parsed["values"]
+
+    headline = f"✅ Stats saved for <b>{esc(agent['name'])}</b>"
+    if "Level" in values:
+        headline += f" · L{values['Level']}"
+    if "Lifetime AP" in values:
+        headline += f" · {fmt_num(values['Lifetime AP'])} AP"
+    lines = [headline]
+    if not is_new:
+        lines.append("ℹ️ I already had stats from that exact time, so nothing changed.")
+    elif previous and previous["taken_at"] > parsed["taken_at"]:
+        lines.append("ℹ️ These are older than your latest stats, so I kept them as history.")
+    elif previous:
+        gains = [
+            (s, values[s] - previous["values"][s])
+            for s in stats.PICK_ORDER
+            if s in values and s in previous["values"] and values[s] > previous["values"][s]
+        ]
+        if gains:
+            lines += ["", f"📈 <b>Since your last stats</b> ({fmt_ago(previous['taken_at'], now)})"]
+            lines += [f"└ {esc(s)}: +{fmt_stat(s, d)}" for s, d in gains[:12]]
+            if len(gains) > 12:
+                lines.append(f"└ …and {len(gains) - 12} more")
+
+    goals = stats.list_goals(conn, aid)
+    if goals:
+        cheers, goal_lines = [], []
+        for g in goals:
+            p = stats.goal_progress(conn, g, now)
+            goal_lines.append(goal_text(g, p, now))
+            if p["complete"]:
+                if stats.mark_alert(conn, g["id"], p["key"], "done", now):
+                    cheers.append(
+                        f"🏆 You hit your {goal_label(g)}! {fmt_num(p['done'])} / {fmt_num(p['target'])}"
+                    )
+            elif p["pct"] >= stats.NEAR_PCT and stats.mark_alert(conn, g["id"], p["key"], "near", now):
+                cheers.append(
+                    f"🔥 Almost there: {p['pct']}% of your {goal_label(g)} — "
+                    f"just {fmt_num(p['remaining'])} to go!"
+                )
+        if cheers:
+            lines += [""] + cheers
+        lines += ["", "🎯 <b>Goals</b>"] + goal_lines
+    else:
+        lines += ["", "💡 Tap ➕ New goal to set daily, weekly, monthly, yearly or lifetime targets."]
+
+    return "\n".join(lines), keyboard(
+        [("🎯 Goals", f"goals:{aid}"), ("➕ New goal", f"gnew:{aid}")],
+        [("📊 Stats", f"stats:{aid}"), HOME],
+    )
+
+
+def goals_screen(conn, uid: int, agent):
+    now = datetime.now()
+    goals = stats.list_goals(conn, agent["id"])
+    lines = [f"🎯 <b>Goals</b> · {esc(agent['name'])}", ""]
+    if goals:
+        lines.append("\n\n".join(goal_text(g, stats.goal_progress(conn, g, now), now) for g in goals))
+        latest = stats.latest_snapshot(conn, agent["id"])
+        lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
+                      "Paste fresh stats to update.</i>"]
+    else:
+        lines.append("No goals yet. Tap ➕ New goal to set one.")
+    goal_rows = [
+        [(f"{stats.PERIOD_EMOJI[g['period']]} {g['stat']}", f"goal:{g['id']}")] for g in goals
+    ]
+    return "\n".join(lines), keyboard(
+        *goal_rows,
+        [("➕ New goal", f"gnew:{agent['id']}")],
+        [("⬅️ Stats", f"stats:{agent['id']}"), HOME],
+    )
+
+
+def goal_screen(conn, uid: int, goal, note: str = ""):
+    now = datetime.now()
+    agent = stats.get_agent(conn, uid, goal["agent_id"])
+    period = goal["period"]
+    p = stats.goal_progress(conn, goal, now)
+    lines = [note] if note else []
+    lines += [
+        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b> · {esc(goal['stat'])}",
+        f"👤 {esc(agent['name'])}",
+        "",
+        f"{progress_bar(p['pct'])} {p['pct']}%",
+        f"{fmt_num(p['done'])} / {fmt_num(p['target'])}",
+    ]
+    if p["complete"]:
+        lines.append("🏆 Done!")
+    else:
+        lines.append(f"🎯 {fmt_num(p['remaining'])} to go{pace_text(p, now)}")
+    if period != "lifetime":
+        noun = stats.PERIOD_NOUN[period]
+        lines.append(f"⏳ Ends in {fmt_duration(p['end'] - now)} ({p['end']:%Y-%m-%d %H:%M})")
+        if p["base_at"]:
+            lines.append(f"📏 Counting from your stats at {p['base_at']:%Y-%m-%d %H:%M}")
+        else:
+            lines.append(f"📏 No stats pasted this {noun} yet — paste some to start counting.")
+        prev_start, prev_end, _ = stats.previous_window(period, now)
+        last = stats.gain_between(conn, goal["agent_id"], goal["stat"], prev_start, prev_end)
+        if last and last["measured"]:
+            lines.append(f"🔙 Last {noun}: {fmt_num(last['gain'])}")
+
+    change = []
+    if goal["stat"] in stats.STAT_INDEX:
+        change = [("✏️ Change target", f"gsel:{agent['id']}:{period}:{stats.STAT_INDEX[goal['stat']]}")]
+    return "\n".join(lines), keyboard(
+        change,
+        [("🗑 Delete goal", f"gdel:{goal['id']}")],
+        [("⬅️ Goals", f"goals:{agent['id']}"), HOME],
+    )
+
+
+def new_goal_screen(agent):
+    aid = agent["id"]
+    text = (
+        f"🎯 <b>New goal</b> · {esc(agent['name'])}\n\n"
+        "What kind of goal?\n\n"
+        "☀️ <b>Daily</b> — gain an amount every day\n"
+        "📅 <b>Weekly</b> — every week (Monday to Sunday)\n"
+        "🗓 <b>Monthly</b> — every month\n"
+        "🎆 <b>Yearly</b> — every year\n"
+        "🏔 <b>Lifetime</b> — reach a total, like 200M AP"
+    )
+    buttons = [(f"{stats.PERIOD_EMOJI[p]} {stats.PERIOD_LABEL[p]}", f"gper:{aid}:{p}") for p in stats.PERIODS]
+    return text, keyboard(*chunked(buttons, 2), [("✖️ Cancel", f"stats:{aid}")])
+
+
+def stat_pick_screen(conn, agent, period: str, page: int):
+    aid = agent["id"]
+    snap = stats.latest_snapshot(conn, aid)
+    choices = [s for s in stats.stat_choices(snap) if s in stats.STAT_INDEX]
+    pages = max(1, math.ceil(len(choices) / STATS_PER_PAGE))
+    page = max(0, min(page, pages - 1))
+    shown = choices[page * STATS_PER_PAGE:(page + 1) * STATS_PER_PAGE]
+    buttons = [(s, f"gsel:{aid}:{period}:{stats.STAT_INDEX[s]}") for s in shown]
+    nav = []
+    if page > 0:
+        nav.append(("◀️ Back", f"gper:{aid}:{period}:{page - 1}"))
+    if page < pages - 1:
+        nav.append(("More ▶️", f"gper:{aid}:{period}:{page + 1}"))
+    text = (
+        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b> · {esc(agent['name'])}\n\n"
+        "Which stat? Tap one, or type its name (e.g. <code>hacks</code>, <code>UPV</code>, "
+        f"<code>explorer</code>).\n<i>Page {page + 1} of {pages}</i>"
+    )
+    return text, keyboard(*chunked(buttons, 2), nav, [("✖️ Cancel", f"stats:{aid}")])
+
+
+def target_prompt_screen(conn, agent, period: str, stat: str):
+    aid = agent["id"]
+    now = datetime.now()
+    snap = stats.latest_snapshot(conn, aid)
+    lines = [f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b> · {esc(stat)}", ""]
+    existing = next((g for g in stats.list_goals(conn, aid) if g["stat"] == stat and g["period"] == period), None)
+    if existing:
+        lines += [f"Current target: <b>{fmt_num(existing['target'])}</b> — send a new one to change it.", ""]
+    if period == "lifetime":
+        current = snap["values"].get(stat, 0)
+        lines.append(f"You have <b>{fmt_stat(stat, current)}</b> now. What total do you want to reach?")
+    else:
+        noun = stats.PERIOD_NOUN[period]
+        lines.append(f"How much <b>{esc(stat)}</b> do you want to gain each {noun}?")
+        prev_start, prev_end, _ = stats.previous_window(period, now)
+        last = stats.gain_between(conn, aid, stat, prev_start, prev_end)
+        if last and last["measured"]:
+            lines.append(f"Last {noun} you gained <b>{fmt_num(last['gain'])}</b>.")
+        start, end, _ = stats.period_window(period, now)
+        so_far = stats.gain_between(conn, aid, stat, start, end)
+        if so_far:
+            lines.append(f"So far this {noun}: <b>{fmt_num(so_far['gain'])}</b>.")
+    lines += ["", "Send a number, like <code>500</code>, <code>2.5k</code> or <code>1M</code>."]
+    return "\n".join(lines), keyboard(
+        [("⬅️ Pick another stat", f"gper:{aid}:{period}:0")],
+        [("✖️ Cancel", f"stats:{aid}")],
+    )
+
+
+def save_goal_target(conn, agent, period: str, stat: str, raw: str):
+    """Returns (goal_id, error)."""
+    target = stats.parse_amount(raw)
+    if target is None:
+        return None, "Please send a whole number like <code>500</code>, <code>2.5k</code> or <code>1M</code>."
+    if period == "lifetime":
+        current = stats.latest_snapshot(conn, agent["id"])["values"].get(stat, 0)
+        if target <= current:
+            return None, f"You already have {fmt_num(current)}. Send a bigger total."
+    return stats.set_goal(conn, agent["id"], stat, period, target, datetime.now()), None
+
+
+def ending_reminder_text(goal, p, now: datetime) -> str:
+    noun = stats.PERIOD_NOUN[goal["period"]]
+    lines = [
+        f"⏰ <b>Your {stats.PERIOD_LABEL[goal['period']].lower()} goal ends in {fmt_duration(p['end'] - now)}</b>",
+        f"👤 {esc(goal['agent_name'])} · {esc(goal['stat'])}",
+        f"{progress_bar(p['pct'])} {p['pct']}% · {fmt_num(p['done'])} / {fmt_num(p['target'])}",
+        f"🎯 {fmt_num(p['remaining'])} to go{pace_text(p, now)}",
+        "",
+    ]
+    if p["latest_at"] and p["latest_at"] >= p["start"]:
+        lines.append(f"<i>Based on stats from {fmt_ago(p['latest_at'], now)}. Paste fresh stats to update.</i>")
+    else:
+        lines.append(f"<i>No stats pasted this {noun} yet — paste them so I can count your progress.</i>")
+    return "\n".join(lines)
+
+
 def after_change_keyboard(account):
     return keyboard([("📦 View inventory", f"inv:{account['id']}"), HOME])
 
@@ -1356,6 +1707,78 @@ def btn_search(conn, uid, ud, args):
     return (*search_prompt_screen(), None)
 
 
+def _agent(conn, uid: int, agent_id: str):
+    agent = stats.get_agent(conn, uid, int(agent_id))
+    if agent is None:
+        raise StaleButton
+    return agent
+
+
+def _period(value: str) -> str:
+    if value not in stats.PERIODS:
+        raise StaleButton
+    return value
+
+
+def _goal(conn, uid: int, goal_id: str):
+    goal = stats.get_goal(conn, uid, int(goal_id))
+    if goal is None:
+        raise StaleButton
+    return goal
+
+
+def btn_stats(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0]) if args and args[0] else None
+    if agent is None and not stats.list_agents(conn, uid):
+        ud["awaiting"] = {"kind": "stats"}
+        return (*stats_prompt_screen(), None)
+    return (*stats_screen(conn, uid, agent), None)
+
+
+def btn_stats_in(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "stats"}
+    return (*stats_prompt_screen(), None)
+
+
+def btn_stats_all(conn, uid, ud, args):
+    return (*all_stats_screen(conn, _agent(conn, uid, args[0])), None)
+
+
+def btn_goals(conn, uid, ud, args):
+    return (*goals_screen(conn, uid, _agent(conn, uid, args[0])), None)
+
+
+def btn_goal(conn, uid, ud, args):
+    return (*goal_screen(conn, uid, _goal(conn, uid, args[0])), None)
+
+
+def btn_goal_new(conn, uid, ud, args):
+    return (*new_goal_screen(_agent(conn, uid, args[0])), None)
+
+
+def btn_goal_period(conn, uid, ud, args):
+    agent, period = _agent(conn, uid, args[0]), _period(args[1])
+    page = int(args[2]) if len(args) > 2 else 0
+    ud["awaiting"] = {"kind": "goal_stat", "agent_id": agent["id"], "period": period}
+    return (*stat_pick_screen(conn, agent, period, page), None)
+
+
+def btn_goal_stat(conn, uid, ud, args):
+    agent, period = _agent(conn, uid, args[0]), _period(args[1])
+    i = int(args[2])
+    if not 0 <= i < len(stats.STAT_FIELDS):
+        raise StaleButton
+    stat = stats.STAT_FIELDS[i]
+    ud["awaiting"] = {"kind": "goal_target", "agent_id": agent["id"], "period": period, "stat": stat}
+    return (*target_prompt_screen(conn, agent, period, stat), None)
+
+
+def btn_goal_delete(conn, uid, ud, args):
+    goal = _goal(conn, uid, args[0])
+    stats.delete_goal(conn, goal["id"])
+    return (*goals_screen(conn, uid, _agent(conn, uid, goal["agent_id"])), "Goal deleted")
+
+
 def btn_help(conn, uid, ud, args):
     return (*help_screen(), None)
 
@@ -1387,6 +1810,15 @@ BUTTONS = {
     "desc": btn_description,
     "descdel": btn_description_delete,
     "search": btn_search,
+    "stats": btn_stats,
+    "statsin": btn_stats_in,
+    "statsall": btn_stats_all,
+    "goals": btn_goals,
+    "goal": btn_goal,
+    "gnew": btn_goal_new,
+    "gper": btn_goal_period,
+    "gsel": btn_goal_stat,
+    "gdel": btn_goal_delete,
     "help": btn_help,
     "catalog": btn_catalog,
 }
@@ -1432,6 +1864,55 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with closing(get_conn()) as conn, conn:
         ensure_user(conn, uid)
+
+        # Pasted stats are recognised whatever the bot was waiting for.
+        if stats.looks_like_stats(text):
+            context.user_data.pop("awaiting", None)
+            await respond(update, *stats_saved_screen(conn, uid, text))
+            return
+
+        if kind == "stats":
+            await respond(
+                update,
+                "🤔 That doesn't look like Ingress stats. Copy your <b>ALL TIME</b> stats in Ingress "
+                "and paste the whole thing — it starts with <code>Time Span</code>. Or tap Cancel.",
+                keyboard([("✖️ Cancel", "menu")]),
+            )
+            return
+
+        if kind in ("goal_stat", "goal_target"):
+            agent = stats.get_agent(conn, uid, awaiting["agent_id"])
+            period = awaiting["period"]
+            if agent is None:
+                context.user_data.pop("awaiting", None)
+            elif kind == "goal_stat":
+                snap = stats.latest_snapshot(conn, agent["id"])
+                stat = stats.lookup_stat(text, stats.stat_choices(snap))
+                if stat is None:
+                    await respond(
+                        update,
+                        f"🤔 I don't know a stat called <b>{esc(text)}</b>. Tap one of the buttons, "
+                        "or try another name.",
+                        keyboard([("📋 Show the stats", f"gper:{agent['id']}:{period}:0")],
+                                 [("✖️ Cancel", f"stats:{agent['id']}")]),
+                    )
+                    return
+                context.user_data["awaiting"] = {**awaiting, "kind": "goal_target", "stat": stat}
+                await respond(update, *target_prompt_screen(conn, agent, period, stat))
+                return
+            else:
+                goal_id, error = save_goal_target(conn, agent, period, awaiting["stat"], text)
+                if error:
+                    await respond(
+                        update,
+                        f"⚠️ {error}\n\nSend it again, or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"stats:{agent['id']}")]),
+                    )
+                    return
+                context.user_data.pop("awaiting", None)
+                goal = stats.get_goal(conn, uid, goal_id)
+                await respond(update, *goal_screen(conn, uid, goal, "✅ <b>Goal saved!</b>\n"))
+                return
 
         if kind == "new_account":
             account, error = create_account(conn, uid, text)
@@ -1723,6 +2204,36 @@ async def sync_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await respond(update, text, markup)
 
 
+async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/stats shows your stats; /stats with a paste after it saves them."""
+    uid = update.effective_user.id
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        if raw:
+            context.user_data.pop("awaiting", None)
+            text, markup = stats_saved_screen(conn, uid, raw)
+        elif stats.list_agents(conn, uid):
+            text, markup = stats_screen(conn, uid)
+        else:
+            context.user_data["awaiting"] = {"kind": "stats"}
+            text, markup = stats_prompt_screen()
+    await respond(update, text, markup)
+
+
+async def goals_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        agents = stats.list_agents(conn, uid)
+        if agents:
+            text, markup = goals_screen(conn, uid, agents[0])
+        else:
+            context.user_data["awaiting"] = {"kind": "stats"}
+            text, markup = stats_prompt_screen("🎯 Paste your stats first, then you can set goals.\n\n")
+    await respond(update, text, markup)
+
+
 async def newaccount_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     name = _args_text(context)
@@ -1811,6 +2322,8 @@ BOT_COMMANDS = [
     ("import", "📥 Import all accounts at once"),
     ("search", "🔍 Find an item across all accounts"),
     ("describe", "📝 Describe the active account"),
+    ("stats", "📊 Agent stats (paste stats to update)"),
+    ("goals", "🎯 Your goals and progress"),
     ("use", "🔄 Switch account"),
     ("newaccount", "➕ Create an account"),
     ("accounts", "⚙️ Manage accounts"),
@@ -1820,8 +2333,55 @@ BOT_COMMANDS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Goal reminders
+# ---------------------------------------------------------------------------
+
+REMINDER_CHECK_SECONDS = 600
+_reminder_task = None
+
+
+async def send_goal_reminders(bot):
+    """Remind once per period about unfinished goals whose time is nearly up."""
+    now = datetime.now()
+    due = []
+    with closing(get_conn()) as conn, conn:
+        for goal in stats.periodic_goals(conn):
+            p = stats.goal_progress(conn, goal, now)
+            if p["complete"] or p["end"] - now > stats.REMIND_BEFORE[goal["period"]]:
+                continue
+            if stats.mark_alert(conn, goal["id"], p["key"], "ending", now):
+                due.append((goal["owner_id"], goal["agent_id"], ending_reminder_text(goal, p, now)))
+    for chat_id, agent_id, text in due:
+        try:
+            await bot.send_message(
+                chat_id,
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard([("📊 Stats & goals", f"stats:{agent_id}")]),
+            )
+        except TelegramError as e:
+            logger.warning("Couldn't send a goal reminder to %s: %s", chat_id, e)
+
+
+async def goal_reminder_loop(bot):
+    while True:
+        try:
+            await send_goal_reminders(bot)
+        except Exception:  # noqa: BLE001 - keep the loop alive
+            logger.exception("Goal reminder check failed")
+        await asyncio.sleep(REMINDER_CHECK_SECONDS)
+
+
 async def post_init(app: Application):
+    global _reminder_task
     await app.bot.set_my_commands([BotCommand(c, d) for c, d in BOT_COMMANDS])
+    _reminder_task = asyncio.get_running_loop().create_task(goal_reminder_loop(app.bot))
+
+
+async def post_stop(app: Application):
+    if _reminder_task:
+        _reminder_task.cancel()
 
 
 def main():
@@ -1838,6 +2398,7 @@ def main():
         .token(TOKEN)
         .persistence(PicklePersistence(filepath=STATE_PATH))
         .post_init(post_init)
+        .post_stop(post_stop)
         .build()
     )
 
@@ -1858,6 +2419,8 @@ def main():
         "import": import_cmd,
         "search": search_cmd,
         "describe": describe_cmd,
+        "stats": stats_cmd,
+        "goals": goals_cmd,
         "newaccount": newaccount_cmd,
         "use": use_cmd,
         "delaccount": delaccount_cmd,

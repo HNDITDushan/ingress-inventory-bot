@@ -89,6 +89,20 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
   name before a `(`) and set to match the list exactly. Accounts you don't list
   are left alone. A preview shows what will be created or changed. Pasting text
   in this format at any time opens the preview; so does `/import`.
+- **📊 Stats & goals**: in Ingress, copy your **ALL TIME** agent stats and paste
+  them into the chat at any time (the paste starts with `Time Span`). Each paste
+  is saved, and the bot shows what grew since the last one. Tap ➕ New goal to
+  set a target for any stat:
+  - ☀️ Daily / 📅 Weekly (Mon–Sun) / 🗓 Monthly / 🎆 Yearly: gain an amount in
+    that period, e.g. 500 Hacks a day.
+  - 🏔 Lifetime: reach a total, e.g. 200M Lifetime AP.
+
+  When a paste puts a goal at 80% or more you get a 🔥 "almost there" note, and a
+  🏆 when it's done. Unfinished goals get one ⏰ reminder near the end of their
+  period (3 hours before the day ends, 1 day before the week ends, 3 days before
+  the month ends, 14 days before the year ends). Progress is measured from the
+  last stats pasted before the period started, so paste at least at the start
+  and end of each day or week for accurate numbers.
 
 Buttons never expire. Old menus keep working, even after the bot restarts.
 
@@ -122,6 +136,8 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/import [paste]` | Create/update many accounts at once from `[Name]` blocks (preview first) |
 | `/search [text]` | Find an item, family, account name or description across all accounts |
 | `/describe [text]` | Set the active account's description |
+| `/stats [paste]` | Show your agent stats, or save the stats pasted after it |
+| `/goals` | Show your goals and progress |
 | `/items` | Item names and shortcuts |
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |
