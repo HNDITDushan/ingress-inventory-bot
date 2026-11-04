@@ -1241,6 +1241,15 @@ def pace_text(p, now: datetime) -> str:
     return f" (≈ {fmt_num(math.ceil(p['remaining'] / days_left))}/day)"
 
 
+def goals_by_progress(conn, agent_id: int, now: datetime):
+    """[(goal, progress), ...] with the highest percentage first.
+
+    Ties (e.g. freshly set goals at 0%) go closest-to-target first.
+    """
+    pairs = [(g, stats.goal_progress(conn, g, now)) for g in stats.list_goals(conn, agent_id)]
+    return sorted(pairs, key=lambda gp: (-gp[1]["pct"], -gp[1]["done"] / max(1, gp[1]["target"])))
+
+
 def goal_label(goal) -> str:
     return f"{stats.PERIOD_LABEL[goal['period']].lower()} {esc(goal['stat'])} goal"
 
@@ -1283,9 +1292,9 @@ def stats_screen(conn, uid: int, agent=None):
     ]
     lines += [f"{esc(s)}: <b>{fmt_stat(s, values[s])}</b>" for s in SUMMARY_STATS if s in values]
     lines += ["", "🎯 <b>Goals</b>"]
-    goals = stats.list_goals(conn, agent["id"])
+    goals = goals_by_progress(conn, agent["id"], now)
     if goals:
-        lines += [goal_text(g, stats.goal_progress(conn, g, now), now) for g in goals]
+        lines += [goal_text(g, p, now) for g, p in goals]
     else:
         lines.append("<i>No goals yet — tap ➕ New goal.</i>")
     others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
@@ -1361,11 +1370,10 @@ def stats_saved_screen(conn, uid: int, text: str):
         if rival_lines:
             lines += [""] + rival_lines
 
-    goals = stats.list_goals(conn, aid)
+    goals = goals_by_progress(conn, aid, now)
     if goals:
         cheers, goal_lines = [], []
-        for g in goals:
-            p = stats.goal_progress(conn, g, now)
+        for g, p in goals:
             goal_lines.append(goal_text(g, p, now))
             if p["complete"]:
                 if stats.mark_alert(conn, g["id"], p["key"], "done", now):
@@ -1392,17 +1400,18 @@ def stats_saved_screen(conn, uid: int, text: str):
 
 def goals_screen(conn, uid: int, agent):
     now = datetime.now()
-    goals = stats.list_goals(conn, agent["id"])
+    goals = goals_by_progress(conn, agent["id"], now)
     lines = [f"🎯 <b>Goals</b> · {esc(agent['name'])}", ""]
     if goals:
-        lines.append("\n\n".join(goal_text(g, stats.goal_progress(conn, g, now), now) for g in goals))
+        lines.append("\n\n".join(goal_text(g, p, now) for g, p in goals))
         latest = stats.latest_snapshot(conn, agent["id"])
         lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
                       "Paste fresh stats to update.</i>"]
     else:
         lines.append("No goals yet. Tap ➕ New goal to set one.")
     goal_rows = [
-        [(f"{stats.PERIOD_EMOJI[g['period']]} {g['stat']}", f"goal:{g['id']}")] for g in goals
+        [(f"{stats.PERIOD_EMOJI[g['period']]} {g['stat']} · {p['pct']}%", f"goal:{g['id']}")]
+        for g, p in goals
     ]
     return "\n".join(lines), keyboard(
         *goal_rows,
