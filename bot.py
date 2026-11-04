@@ -825,6 +825,9 @@ def help_screen():
         "lifetime targets. I'll tell you when you're close, and remind you when time is "
         "running out. Paste stats often (at least at the start and end of each day or week) "
         "so progress is accurate.\n\n"
+        "Tap 🏁 Leaderboards to paste a leaderboard for a stat (one agent per line, like "
+        "<code>cristy92 163,477</code>). I'll show your rank and who's next, and can set a goal "
+        "to pass them.\n\n"
         "<b>Commands</b>\n"
         "/menu – main menu\n"
         "/add 5 U3 – quick add\n"
@@ -1249,8 +1252,9 @@ def goal_text(goal, p, now: datetime) -> str:
         status += " 🏆"
     elif p["end"]:
         status += f" · {fmt_duration(p['end'] - now)} left"
+    note = f" ({esc(goal['note'])})" if goal["note"] else ""
     return (
-        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]}</b> · {esc(goal['stat'])}\n"
+        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]}</b> · {esc(goal['stat'])}{note}\n"
         f"└ {status}"
     )
 
@@ -1288,7 +1292,7 @@ def stats_screen(conn, uid: int, agent=None):
     return "\n".join(lines), keyboard(
         [("📋 Paste new stats", "statsin")],
         [("🎯 Goals", f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
-        [("📈 All stats", f"statsall:{agent['id']}")],
+        [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
         *others[:5],
         [HOME],
     )
@@ -1335,6 +1339,28 @@ def stats_saved_screen(conn, uid: int, text: str):
             if len(gains) > 12:
                 lines.append(f"└ …and {len(gains) - 12} more")
 
+    chase_row = []
+    if is_new and previous and previous["taken_at"] < parsed["taken_at"]:
+        rival_lines = []
+        for board in stats.list_leaderboards(conn, aid):
+            stat = board["stat"]
+            if stat not in values or stat not in previous["values"]:
+                continue
+            mine = values[stat]
+            passed = stats.passed_rivals(board, agent["name"], previous["values"][stat], mine)
+            if not passed:
+                continue
+            names = ", ".join(esc(name) for name, _ in passed)
+            rank = stats.my_rank(board, agent["name"], mine)
+            rival_lines.append(f"🚀 You passed {names} in <b>{esc(stat)}</b> — now #{rank}!")
+            nxt = stats.next_rival(board, agent["name"], mine)
+            if nxt:
+                rival_lines.append(f"└ Next: {esc(nxt[0])}, {fmt_num(nxt[1] - mine + 1)} to go")
+                if not chase_row and stat in stats.STAT_INDEX:
+                    chase_row = [(f"🎯 Chase {nxt[0]}", f"lbgoal:{aid}:{stats.STAT_INDEX[stat]}")]
+        if rival_lines:
+            lines += [""] + rival_lines
+
     goals = stats.list_goals(conn, aid)
     if goals:
         cheers, goal_lines = [], []
@@ -1358,6 +1384,7 @@ def stats_saved_screen(conn, uid: int, text: str):
         lines += ["", "💡 Tap ➕ New goal to set daily, weekly, monthly, yearly or lifetime targets."]
 
     return "\n".join(lines), keyboard(
+        chase_row,
         [("🎯 Goals", f"goals:{aid}"), ("➕ New goal", f"gnew:{aid}")],
         [("📊 Stats", f"stats:{aid}"), HOME],
     )
@@ -1393,6 +1420,10 @@ def goal_screen(conn, uid: int, goal, note: str = ""):
     lines += [
         f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b> · {esc(goal['stat'])}",
         f"👤 {esc(agent['name'])}",
+    ]
+    if goal["note"]:
+        lines.append(f"🏁 {esc(goal['note'])}")
+    lines += [
         "",
         f"{progress_bar(p['pct'])} {p['pct']}%",
         f"{fmt_num(p['done'])} / {fmt_num(p['target'])}",
@@ -1438,25 +1469,145 @@ def new_goal_screen(agent):
     return text, keyboard(*chunked(buttons, 2), [("✖️ Cancel", f"stats:{aid}")])
 
 
-def stat_pick_screen(conn, agent, period: str, page: int):
+def _stat_picker(conn, agent, title: str, pick_data, page_data, page: int):
+    """A paged list of stat buttons; pick_data(index) / page_data(page) build callback data."""
     aid = agent["id"]
     snap = stats.latest_snapshot(conn, aid)
     choices = [s for s in stats.stat_choices(snap) if s in stats.STAT_INDEX]
     pages = max(1, math.ceil(len(choices) / STATS_PER_PAGE))
     page = max(0, min(page, pages - 1))
     shown = choices[page * STATS_PER_PAGE:(page + 1) * STATS_PER_PAGE]
-    buttons = [(s, f"gsel:{aid}:{period}:{stats.STAT_INDEX[s]}") for s in shown]
+    buttons = [(s, pick_data(stats.STAT_INDEX[s])) for s in shown]
     nav = []
     if page > 0:
-        nav.append(("◀️ Back", f"gper:{aid}:{period}:{page - 1}"))
+        nav.append(("◀️ Back", page_data(page - 1)))
     if page < pages - 1:
-        nav.append(("More ▶️", f"gper:{aid}:{period}:{page + 1}"))
+        nav.append(("More ▶️", page_data(page + 1)))
     text = (
-        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b> · {esc(agent['name'])}\n\n"
+        f"{title} · {esc(agent['name'])}\n\n"
         "Which stat? Tap one, or type its name (e.g. <code>hacks</code>, <code>UPV</code>, "
-        f"<code>explorer</code>).\n<i>Page {page + 1} of {pages}</i>"
+        f"<code>glyph</code>).\n<i>Page {page + 1} of {pages}</i>"
     )
     return text, keyboard(*chunked(buttons, 2), nav, [("✖️ Cancel", f"stats:{aid}")])
+
+
+def stat_pick_screen(conn, agent, period: str, page: int):
+    aid = agent["id"]
+    return _stat_picker(
+        conn, agent,
+        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]} goal</b>",
+        lambda i: f"gsel:{aid}:{period}:{i}",
+        lambda p: f"gper:{aid}:{period}:{p}",
+        page,
+    )
+
+
+def leaderboard_stat_screen(conn, agent, page: int):
+    aid = agent["id"]
+    return _stat_picker(
+        conn, agent, "🏁 <b>New leaderboard</b>",
+        lambda i: f"lbstat:{aid}:{i}",
+        lambda p: f"lbnew:{aid}:{p}",
+        page,
+    )
+
+
+def leaderboard_prompt_screen(conn, agent, stat: str):
+    aid = agent["id"]
+    lines = [f"🏁 <b>Leaderboard</b> · {esc(stat)}", ""]
+    if stats.get_leaderboard(conn, aid, stat):
+        lines += ["Send the new list to replace the one I have.", ""]
+    lines += [
+        "Paste the leaderboard, one agent per line with their score:",
+        "<code>mistybeast 391,642</code>",
+        "<code>JuGGmA 378,091</code>",
+        "<code>cristy92 163,477</code>",
+        "",
+        "Ranks (<code>#7</code>) and commas are fine, and so is text copied straight from "
+        "the leaderboard page. You can leave yourself out — I use your latest stats.",
+    ]
+    return "\n".join(lines), keyboard([("✖️ Cancel", f"lbs:{aid}")])
+
+
+def _my_value(conn, agent, stat: str) -> int:
+    snap = stats.latest_snapshot(conn, agent["id"])
+    return snap["values"].get(stat, 0)
+
+
+def leaderboards_screen(conn, agent):
+    aid = agent["id"]
+    now = datetime.now()
+    boards = stats.list_leaderboards(conn, aid)
+    lines = [f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}", ""]
+    rows = []
+    if not boards:
+        lines.append(
+            "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
+            "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard."
+        )
+    for board in boards:
+        stat = board["stat"]
+        mine = _my_value(conn, agent, stat)
+        rank = stats.my_rank(board, agent["name"], mine)
+        total = len(stats.rivals(board, agent["name"])) + 1
+        nxt = stats.next_rival(board, agent["name"], mine)
+        chase = f"next: {esc(nxt[0])}, {fmt_num(nxt[1] - mine + 1)} to go" if nxt else "you're top 🥇"
+        lines.append(f"🏁 <b>{esc(stat)}</b>: #{rank} of {total} · {chase}")
+        lines.append(f"└ <i>list from {fmt_ago(board['updated_at'], now)}</i>")
+        if stat in stats.STAT_INDEX:
+            rows.append([(f"🏁 {stat}", f"lb:{aid}:{stats.STAT_INDEX[stat]}")])
+    return "\n".join(lines), keyboard(
+        *rows,
+        [("➕ Add leaderboard", f"lbnew:{aid}")],
+        [("⬅️ Stats", f"stats:{aid}"), HOME],
+    )
+
+
+def leaderboard_screen(conn, agent, stat: str, note: str = ""):
+    aid = agent["id"]
+    idx = stats.STAT_INDEX[stat]
+    now = datetime.now()
+    board = stats.get_leaderboard(conn, aid, stat)
+    mine = _my_value(conn, agent, stat)
+    medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+    lines = [note] if note else []
+    lines += [f"🏁 <b>{esc(stat)}</b>", ""]
+    for rank, name, value, is_me in stats.ranking(board, agent["name"], mine):
+        place = medals.get(rank, f"#{rank}")
+        if is_me:
+            lines.append(f"<b>{place} ➤ {esc(name)} — {fmt_num(value)}</b>")
+        else:
+            lines.append(f"{place} {esc(name)} — {fmt_num(value)}")
+    nxt = stats.next_rival(board, agent["name"], mine)
+    goal_row = []
+    lines.append("")
+    if nxt:
+        lines.append(f"🎯 Next: pass <b>{esc(nxt[0])}</b> — {fmt_num(nxt[1] - mine + 1)} to go")
+        goal_row = [(f"🎯 Set goal to pass {nxt[0]}", f"lbgoal:{aid}:{idx}")]
+    else:
+        lines.append("🥇 You're at the top of this list!")
+    lines += [
+        "",
+        f"<i>List from {fmt_ago(board['updated_at'], now)}; your score is from your latest stats.</i>",
+    ]
+    return "\n".join(lines), keyboard(
+        goal_row,
+        [("📋 Update list", f"lbstat:{aid}:{idx}"), ("🗑 Delete", f"lbdel:{aid}:{idx}")],
+        [("⬅️ Leaderboards", f"lbs:{aid}"), HOME],
+    )
+
+
+def set_rival_goal(conn, agent, stat: str):
+    """Make a lifetime goal to pass the next agent up. Returns the goal id, or None if top."""
+    board = stats.get_leaderboard(conn, agent["id"], stat)
+    mine = _my_value(conn, agent, stat)
+    nxt = stats.next_rival(board, agent["name"], mine) if board else None
+    if nxt is None:
+        return None
+    return stats.set_goal(
+        conn, agent["id"], stat, "lifetime", nxt[1] + 1, datetime.now(),
+        note=f"pass {nxt[0]}", start_value=mine,
+    )
 
 
 def target_prompt_screen(conn, agent, period: str, stat: str):
@@ -1493,11 +1644,13 @@ def save_goal_target(conn, agent, period: str, stat: str, raw: str):
     target = stats.parse_amount(raw)
     if target is None:
         return None, "Please send a whole number like <code>500</code>, <code>2.5k</code> or <code>1M</code>."
+    start_value = None
     if period == "lifetime":
-        current = stats.latest_snapshot(conn, agent["id"])["values"].get(stat, 0)
-        if target <= current:
-            return None, f"You already have {fmt_num(current)}. Send a bigger total."
-    return stats.set_goal(conn, agent["id"], stat, period, target, datetime.now()), None
+        start_value = stats.latest_snapshot(conn, agent["id"])["values"].get(stat, 0)
+        if target <= start_value:
+            return None, f"You already have {fmt_num(start_value)}. Send a bigger total."
+    goal_id = stats.set_goal(conn, agent["id"], stat, period, target, datetime.now(), start_value=start_value)
+    return goal_id, None
 
 
 def ending_reminder_text(goal, p, now: datetime) -> str:
@@ -1773,6 +1926,56 @@ def btn_goal_stat(conn, uid, ud, args):
     return (*target_prompt_screen(conn, agent, period, stat), None)
 
 
+def _stat_arg(index: str) -> str:
+    i = int(index)
+    if not 0 <= i < len(stats.STAT_FIELDS):
+        raise StaleButton
+    return stats.STAT_FIELDS[i]
+
+
+def _board_args(conn, uid, args):
+    agent, stat = _agent(conn, uid, args[0]), _stat_arg(args[1])
+    if stats.get_leaderboard(conn, agent["id"], stat) is None:
+        raise StaleButton
+    return agent, stat
+
+
+def btn_leaderboards(conn, uid, ud, args):
+    return (*leaderboards_screen(conn, _agent(conn, uid, args[0])), None)
+
+
+def btn_leaderboard(conn, uid, ud, args):
+    return (*leaderboard_screen(conn, *_board_args(conn, uid, args)), None)
+
+
+def btn_leaderboard_new(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    page = int(args[1]) if len(args) > 1 else 0
+    ud["awaiting"] = {"kind": "lb_stat", "agent_id": agent["id"]}
+    return (*leaderboard_stat_screen(conn, agent, page), None)
+
+
+def btn_leaderboard_stat(conn, uid, ud, args):
+    agent, stat = _agent(conn, uid, args[0]), _stat_arg(args[1])
+    ud["awaiting"] = {"kind": "leaderboard", "agent_id": agent["id"], "stat": stat}
+    return (*leaderboard_prompt_screen(conn, agent, stat), None)
+
+
+def btn_leaderboard_goal(conn, uid, ud, args):
+    agent, stat = _board_args(conn, uid, args)
+    goal_id = set_rival_goal(conn, agent, stat)
+    if goal_id is None:
+        return (*leaderboard_screen(conn, agent, stat), "You're already at the top of this list")
+    goal = stats.get_goal(conn, uid, goal_id)
+    return (*goal_screen(conn, uid, goal, "✅ <b>Goal saved!</b>\n"), None)
+
+
+def btn_leaderboard_delete(conn, uid, ud, args):
+    agent, stat = _board_args(conn, uid, args)
+    stats.delete_leaderboard(conn, agent["id"], stat)
+    return (*leaderboards_screen(conn, agent), "Leaderboard deleted")
+
+
 def btn_goal_delete(conn, uid, ud, args):
     goal = _goal(conn, uid, args[0])
     stats.delete_goal(conn, goal["id"])
@@ -1819,6 +2022,12 @@ BUTTONS = {
     "gper": btn_goal_period,
     "gsel": btn_goal_stat,
     "gdel": btn_goal_delete,
+    "lbs": btn_leaderboards,
+    "lb": btn_leaderboard,
+    "lbnew": btn_leaderboard_new,
+    "lbstat": btn_leaderboard_stat,
+    "lbgoal": btn_leaderboard_goal,
+    "lbdel": btn_leaderboard_delete,
     "help": btn_help,
     "catalog": btn_catalog,
 }
@@ -1879,6 +2088,42 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 keyboard([("✖️ Cancel", "menu")]),
             )
             return
+
+        if kind in ("lb_stat", "leaderboard"):
+            agent = stats.get_agent(conn, uid, awaiting["agent_id"])
+            if agent is None:
+                context.user_data.pop("awaiting", None)
+            elif kind == "lb_stat":
+                snap = stats.latest_snapshot(conn, agent["id"])
+                choices = [s for s in stats.stat_choices(snap) if s in stats.STAT_INDEX]
+                stat = stats.lookup_stat(text, choices)
+                if stat is None:
+                    await respond(
+                        update,
+                        f"🤔 I don't know a stat called <b>{esc(text)}</b>. Tap one of the buttons, "
+                        "or try another name.",
+                        keyboard([("📋 Show the stats", f"lbnew:{agent['id']}")],
+                                 [("✖️ Cancel", f"lbs:{agent['id']}")]),
+                    )
+                    return
+                context.user_data["awaiting"] = {"kind": "leaderboard", "agent_id": agent["id"], "stat": stat}
+                await respond(update, *leaderboard_prompt_screen(conn, agent, stat))
+                return
+            else:
+                entries = stats.parse_leaderboard(text)
+                if not stats.rivals({"entries": entries}, agent["name"]):
+                    await respond(
+                        update,
+                        "🤔 I couldn't find any agents in that. Send one per line, like "
+                        "<code>cristy92 163,477</code>, or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"lbs:{agent['id']}")]),
+                    )
+                    return
+                context.user_data.pop("awaiting", None)
+                stats.save_leaderboard(conn, agent["id"], awaiting["stat"], entries, datetime.now())
+                note = f"✅ Saved {plural(len(entries), 'agent')}.\n"
+                await respond(update, *leaderboard_screen(conn, agent, awaiting["stat"], note))
+                return
 
         if kind in ("goal_stat", "goal_target"):
             agent = stats.get_agent(conn, uid, awaiting["agent_id"])

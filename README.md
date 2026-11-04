@@ -103,6 +103,13 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
   the month ends, 14 days before the year ends). Progress is measured from the
   last stats pasted before the period started, so paste at least at the start
   and end of each day or week for accurate numbers.
+- **🏁 Leaderboards** (in 📊 Stats & goals): pick a stat and paste a leaderboard,
+  e.g. Glyph Hack Points from the-grid.blue, one agent per line (`cristy92 163,477`;
+  ranks, commas and text copied from the page all work). The bot ranks you by your
+  latest stats, shows who's next and the gap, and 🎯 sets a lifetime goal to pass
+  them. When a stats paste moves you past someone you get a 🚀 note and a button
+  to chase the next agent. Lifetime goals now show progress from where you were
+  when you set them.
 
 Buttons never expire. Old menus keep working, even after the bot restarts.
 

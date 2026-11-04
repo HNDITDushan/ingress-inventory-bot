@@ -247,6 +247,23 @@ def init_stats_db(conn):
         )
         """
     )
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(goals)")}
+    if "note" not in columns:
+        conn.execute("ALTER TABLE goals ADD COLUMN note TEXT NOT NULL DEFAULT ''")
+    if "start_value" not in columns:
+        # Lifetime goals measure progress from the value when they were set.
+        conn.execute("ALTER TABLE goals ADD COLUMN start_value INTEGER")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS leaderboards (
+            agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+            stat TEXT NOT NULL,
+            entries TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (agent_id, stat)
+        )
+        """
+    )
 
 
 def _snapshot(row):
@@ -405,12 +422,15 @@ def get_goal(conn, owner_id: int, goal_id: int):
     ).fetchone()
 
 
-def set_goal(conn, agent_id: int, stat: str, period: str, target: int, now: datetime):
+def set_goal(conn, agent_id: int, stat: str, period: str, target: int, now: datetime,
+             note: str = "", start_value: int = None):
     """Create the goal, or change the target of the same stat + period. Returns its id."""
     conn.execute(
-        "INSERT INTO goals (agent_id, stat, period, target, created_at) VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(agent_id, stat, period) DO UPDATE SET target = excluded.target",
-        (agent_id, stat, period, target, _ts(now)),
+        "INSERT INTO goals (agent_id, stat, period, target, created_at, note, start_value) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(agent_id, stat, period) DO UPDATE SET "
+        "target = excluded.target, note = excluded.note, start_value = excluded.start_value",
+        (agent_id, stat, period, target, _ts(now), note, start_value),
     )
     goal_id = conn.execute(
         "SELECT id FROM goals WHERE agent_id = ? AND stat = ? AND period = ?", (agent_id, stat, period)
@@ -443,13 +463,18 @@ def goal_progress(conn, goal, now: datetime) -> dict:
         done = gained["gain"] if gained else 0
         base_at = gained["base_at"] if gained else None
     target = goal["target"]
+    start_value = goal["start_value"] if goal["period"] == "lifetime" else None
+    if start_value is not None and target > start_value:
+        pct = max(0, math.floor((done - start_value) * 100 / (target - start_value)))
+    else:
+        pct = math.floor(done * 100 / target) if target > 0 else 100
     return {
         "key": key,
         "start": start,
         "end": end,
         "done": done,
         "target": target,
-        "pct": math.floor(done * 100 / target) if target > 0 else 100,
+        "pct": pct,
         "remaining": max(0, target - done),
         "complete": done >= target,
         "latest_at": latest["taken_at"] if latest else None,
@@ -464,3 +489,109 @@ def mark_alert(conn, goal_id: int, period_key: str, kind: str, now: datetime) ->
         (goal_id, period_key, kind, _ts(now)),
     )
     return cur.rowcount == 1
+
+
+# ---------------------------------------------------------------------------
+# Leaderboards (pasted by the user, e.g. from the-grid.blue)
+# ---------------------------------------------------------------------------
+
+_NAME = r"[A-Za-z0-9_]*[A-Za-z][A-Za-z0-9_]*"
+_NUMBER = r"\d[\d,]*(?:\.\d+)?\s*[kKmM]?"
+# "#4 SRajaneththi 244,060", "🥇 mistybeast - 391642", "cristy92 163477"
+ENTRY_LINE_RE = re.compile(
+    rf"^\s*(?:#?\d{{1,4}}[.)]?\s+)?(?:[^\w\s]+\s*)?({_NAME})(?:\s*[-–—:|]\s*|\s+)({_NUMBER})\s*$"
+)
+# The leaderboard page copied as text: name, location and score on separate lines.
+NAME_LINE_RE = re.compile(rf"^\s*(?:[^\w\s]+\s*)?({_NAME})\s*$")
+NUMBER_LINE_RE = re.compile(rf"^\s*({_NUMBER})\s*$")
+
+
+def parse_leaderboard(text: str):
+    """Pasted leaderboard -> [(name, value), ...] (highest first), or []."""
+    found = {}
+    pending = None
+    for line in text.splitlines():
+        m = ENTRY_LINE_RE.match(line)
+        if m:
+            value = parse_amount(m[2])
+            if value is not None:
+                found[m[1]] = value
+            pending = None
+            continue
+        m = NUMBER_LINE_RE.match(line)
+        if m and pending:
+            value = parse_amount(m[1])
+            if value is not None:
+                found[pending] = value
+            pending = None
+            continue
+        m = NAME_LINE_RE.match(line)
+        if m and pending is None:
+            pending = m[1]
+    return sorted(found.items(), key=lambda kv: -kv[1])
+
+
+def save_leaderboard(conn, agent_id: int, stat: str, entries, now: datetime):
+    conn.execute(
+        "INSERT INTO leaderboards (agent_id, stat, entries, updated_at) VALUES (?, ?, ?, ?) "
+        "ON CONFLICT(agent_id, stat) DO UPDATE SET entries = excluded.entries, updated_at = excluded.updated_at",
+        (agent_id, stat, json.dumps(entries), _ts(now)),
+    )
+
+
+def _board(row):
+    if row is None:
+        return None
+    return {
+        "stat": row["stat"],
+        "entries": [tuple(e) for e in json.loads(row["entries"])],
+        "updated_at": datetime.strptime(row["updated_at"], TS_FORMAT),
+    }
+
+
+def get_leaderboard(conn, agent_id: int, stat: str):
+    return _board(conn.execute(
+        "SELECT * FROM leaderboards WHERE agent_id = ? AND stat = ?", (agent_id, stat)
+    ).fetchone())
+
+
+def list_leaderboards(conn, agent_id: int):
+    rows = conn.execute("SELECT * FROM leaderboards WHERE agent_id = ? ORDER BY stat", (agent_id,))
+    return [_board(row) for row in rows]
+
+
+def delete_leaderboard(conn, agent_id: int, stat: str):
+    conn.execute("DELETE FROM leaderboards WHERE agent_id = ? AND stat = ?", (agent_id, stat))
+
+
+def rivals(board, me: str):
+    """The board's entries other than the agent themself."""
+    return [(name, value) for name, value in board["entries"] if name.lower() != me.lower()]
+
+
+def ranking(board, me: str, my_value: int):
+    """[(rank, name, value, is_me), ...] with the agent placed by their own latest value."""
+    others = rivals(board, me)
+    rows = sorted(
+        [(name, value, False) for name, value in others] + [(me, my_value, True)],
+        key=lambda r: (-r[1], not r[2]),  # on a tie the rival stays ahead
+    )
+    return [(i + 1, name, value, is_me) for i, (name, value, is_me) in enumerate(rows)]
+
+
+def my_rank(board, me: str, my_value: int) -> int:
+    return 1 + sum(1 for _, value in rivals(board, me) if value >= my_value)
+
+
+def next_rival(board, me: str, my_value: int):
+    """The lowest-scoring rival still at or above my_value, or None if you're top."""
+    ahead = [(name, value) for name, value in rivals(board, me) if value >= my_value]
+    return min(ahead, key=lambda kv: kv[1]) if ahead else None
+
+
+def passed_rivals(board, me: str, old_value: int, new_value: int):
+    """Rivals overtaken by going from old_value to new_value, highest first."""
+    return sorted(
+        ((name, value) for name, value in rivals(board, me) if old_value <= value < new_value),
+        key=lambda kv: -kv[1],
+    )
