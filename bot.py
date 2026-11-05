@@ -19,17 +19,25 @@ Setup:
 """
 
 import asyncio
+import difflib
 import html
 import logging
 import math
 import os
+import random
 import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime
 
 from dotenv import load_dotenv
-from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    BotCommand,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    Update,
+)
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 
@@ -194,6 +202,16 @@ ITEM_LOOKUP.update(ALIASES)
 
 def lookup_item(raw: str):
     return ITEM_LOOKUP.get(_norm(raw))
+
+
+def suggest_item(raw: str):
+    """Closest catalog item for a misspelt name ("vrsp" -> Very Rare Portal Shield), or None."""
+    words = [w for w in raw.replace(",", " ").replace(":", " ").split() if not QTY_RE.match(w)]
+    key = _norm(" ".join(words)).replace("-", "")
+    if len(key) < 2:
+        return None
+    match = difflib.get_close_matches(key, list(ITEM_LOOKUP), n=1, cutoff=0.6)
+    return ITEM_LOOKUP[match[0]] if match else None
 
 
 # Short words that mean a whole family of items when searching.
@@ -471,6 +489,71 @@ def chunked(buttons, per_row):
 
 
 HOME = ("🏠 Menu", "menu")
+UNDO = ("↩️ Undo", "undo")
+
+
+def with_row(markup, row, first: bool = True):
+    """Return `markup` with an extra row of (label, data) buttons on top (or bottom)."""
+    extra = (tuple(InlineKeyboardButton(label, callback_data=data) for label, data in row),)
+    rows = tuple(markup.inline_keyboard) if markup else ()
+    return InlineKeyboardMarkup(extra + rows if first else rows + extra)
+
+
+# Quick buttons that stay at the bottom of the chat (Telegram's reply keyboard).
+QUICK_KEYS = {
+    "📦 Inventory": "inv",
+    "🔍 Search": "search",
+    "📊 Stats": "stats",
+    "🏠 Menu": "menu",
+}
+QUICK_KB_VERSION = 1
+
+
+def quick_keyboard():
+    labels = list(QUICK_KEYS)
+    return ReplyKeyboardMarkup(
+        [labels[:2], labels[2:]],
+        resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Type e.g. R8 10, or tap a button",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Undo: the last inventory change can be taken back with one tap
+# ---------------------------------------------------------------------------
+
+def snapshot(conn, account_ids):
+    return {aid: get_counts(conn, aid) for aid in account_ids}
+
+
+def remember_undo(ud, before: dict, label: str, merge_key=None, created=()):
+    """Remember how accounts looked before a change.
+
+    Repeated taps on the same item screen (same merge_key) keep the first
+    snapshot, so one Undo takes back the whole run of +1/+5 taps.
+    """
+    prev = ud.get("undo")
+    if merge_key and prev and prev.get("merge_key") == merge_key:
+        return
+    ud["undo"] = {"before": before, "label": label, "merge_key": merge_key, "created": list(created)}
+
+
+def undo_last(conn, uid: int, ud):
+    """Restore the remembered state. Returns (label, account ids restored) or None."""
+    undo = ud.pop("undo", None)
+    if not undo:
+        return None
+    restored = []
+    for aid, counts in undo["before"].items():
+        if get_owned_account(conn, uid, aid):
+            replace_inventory(conn, aid, counts)
+            restored.append(aid)
+    for aid in undo["created"]:
+        account = get_owned_account(conn, uid, aid)
+        if account:
+            delete_account(conn, uid, account)
+    return undo["label"], restored
 
 
 def inventory_lines(counts: dict):
@@ -575,32 +658,64 @@ def welcome_screen():
     )
 
 
+TIPS = [
+    "Just send me <code>R8 10</code> to add 10 R8 to the active account.",
+    "Send <code>-3 VRPS</code> to remove 3 Very Rare Portal Shields.",
+    "Send <code>Keys =120</code> to set Keys to exactly 120.",
+    "Send several lines at once, like <code>R8 10</code> and <code>X8 20</code>, to update many items.",
+    "Made a mistake? Tap ↩️ Undo right after a change to take it back.",
+    "Paste your ALL TIME stats from Ingress any time — I'll show what grew and track your goals.",
+    "Send just an item name, like <code>HC</code>, to open its +/− buttons.",
+    "Use the quick buttons at the bottom of the chat to jump to your inventory, search or stats.",
+]
+
+
 def menu_screen(conn, uid: int):
     accounts = list_accounts(conn, uid)
     if not accounts:
         return welcome_screen()
     active = get_current_account(conn, uid)
+    lines = ["🏠 <b>Ingress Inventory</b>", ""]
     if active:
         total = sum(get_counts(conn, active["id"]).values())
-        active_line = f"👤 Active account: <b>{esc(active['name'])}</b> · {plural(total)}"
+        lines.append(f"👤 Active account: <b>{esc(active['name'])}</b> · {plural(total)}")
+        if active["description"]:
+            lines.append(f"📝 {esc(active['description'])}")
     else:
-        active_line = "👤 No active account — tap 🔄 Switch account to pick one."
-    text = (
-        "🏠 <b>Ingress Inventory</b>\n\n"
-        f"{active_line}\n"
-        f"🗂 You have {plural(len(accounts), 'account')}\n\n"
-        "💡 <i>Tip: just send me</i> <code>R8 10</code> <i>to add 10 R8 to the active account.</i>"
-    )
+        lines.append("👤 No active account — tap 🔄 Switch account to pick one.")
+    lines.append(f"🗂 You have {plural(len(accounts), 'account')}")
+    agents = stats.list_agents(conn, uid)
+    if agents and agents[0]["last_taken"]:
+        snap = stats.latest_snapshot(conn, agents[0]["id"])
+        lines.append(f"📊 Last stats: {fmt_ago(snap['taken_at'], datetime.now())}")
+    lines += ["", f"💡 <i>Tip:</i> {random.choice(TIPS)}"]
+
+    switch_label = f"🔄 Switch ({active['name']})" if active else "🔄 Switch account"
     markup = keyboard(
         [("📥 Add items", "cats:a"), ("📤 Remove items", "cats:r")],
         [("📦 My inventory", "inv"), ("🗂 All accounts", "all")],
-        [("🔍 Search all accounts", "search")],
-        [("📊 Stats & goals", "stats")],
-        [("🧾 Sync this account", "sync"), ("📥 Import all accounts", "import")],
-        [("🔄 Switch account", "switch"), ("➕ New account", "new")],
-        [("⚙️ Manage accounts", "manage"), ("❓ Help", "help")],
+        [("🔍 Search", "search"), ("📊 Stats & goals", "stats")],
+        [(switch_label, "switch"), ("➕ New account", "new")],
+        [("🧰 More tools", "more"), ("❓ Help", "help")],
     )
-    return text, markup
+    return "\n".join(lines), markup
+
+
+def more_screen(conn, uid: int):
+    active = get_current_account(conn, uid)
+    name = f" ({esc(active['name'])})" if active else ""
+    text = (
+        "🧰 <b>More tools</b>\n\n"
+        f"🧾 <b>Sync this account</b>{name} — paste your full list and the account is set to match it.\n"
+        "📥 <b>Import all accounts</b> — paste every account in one message.\n"
+        "⚙️ <b>Manage accounts</b> — rename, describe or delete accounts.\n"
+        "📋 <b>Item names</b> — every item and the shortcuts you can type."
+    )
+    return text, keyboard(
+        [("🧾 Sync this account", "sync"), ("📥 Import all accounts", "import")],
+        [("⚙️ Manage accounts", "manage"), ("📋 Item names", "catalog")],
+        [HOME],
+    )
 
 
 def no_active_screen(conn, uid: int):
@@ -692,15 +807,16 @@ def quantity_screen(conn, account, mode: str, item: str, note: str = ""):
         "<i>Type</i> <code>=20</code> <i>to set the exact count.</i>"
     )
     nav = [("⬅️ Back", f"cat:{mode}:{account['id']}:{CATEGORY_INDEX[cat]}"), ("✅ Done", f"inv:{account['id']}")]
-    return text, keyboard(*rows, nav)
+    return text, keyboard(*rows, [UNDO] if note else [], nav)
 
 
-def inventory_screen(conn, uid: int, account):
+def inventory_screen(conn, uid: int, account, note: str = "", undo: bool = False):
     active = get_current_account(conn, uid)
     is_active = active is not None and active["id"] == account["id"]
     return (
-        account_block(conn, account, is_active),
+        (f"{note}\n\n" if note else "") + account_block(conn, account, is_active),
         keyboard(
+            [UNDO] if undo else [],
             [] if is_active else [("✅ Make this account active", f"use:{account['id']}")],
             [("📥 Add", f"cats:a:{account['id']}"), ("📤 Remove", f"cats:r:{account['id']}")],
             [("🧾 Sync full inventory", f"sync:{account['id']}")],
@@ -788,64 +904,93 @@ def delete_confirm_screen(conn, account):
     )
 
 
-def help_screen():
-    text = (
-        "❓ <b>How it works</b>\n\n"
-        "<b>1. Accounts</b>\n"
-        "Make one account for each Ingress agent you play. New items go into the "
-        "<i>active</i> account. Change it any time with 🔄 Switch account.\n\n"
-        "<b>2. Adding gear with buttons</b>\n"
-        "Tap 📥 Add items → pick a category → pick an item → tap +1, +5, +10… "
-        "or type a number.\n\n"
-        "<b>3. Typing is even faster</b>\n"
-        "Just send me a message like:\n"
+HELP_TOPICS = [
+    ("start", "🚀 Getting started", (
+        "Make one <b>account</b> for each Ingress agent you play — your agent name works great. "
+        "New items go into the <i>active</i> account, shown at the top of the menu. "
+        "Tap 🔄 Switch to change it.\n\n"
+        "The quick buttons at the bottom of the chat (📦 Inventory, 🔍 Search, 📊 Stats, 🏠 Menu) "
+        "work from anywhere."
+    )),
+    ("add", "📥 Adding & removing", (
+        "Tap 📥 Add items → pick a category → pick an item → tap +1, +5, +10…\n"
+        "Or type a number, e.g. <code>15</code>. Type <code>=20</code> to set the exact count.\n\n"
+        "📤 Remove items works the same way and only shows what you have.\n\n"
+        "Made a mistake? Tap <b>↩️ Undo</b> right after the change."
+    )),
+    ("type", "⌨️ Typing shortcuts", (
+        "Just send me a message — no menu needed:\n"
         "<code>R8 10</code>  → add 10 R8\n"
         "<code>-3 VRPS</code>  → remove 3 Very Rare Shields\n"
         "<code>Keys =120</code>  → set Keys to exactly 120\n"
-        "Send several lines at once to update many items.\n\n"
-        "<b>4. Syncing everything at once</b>\n"
-        "Tap 🧾 Sync full inventory and send your complete list (one item per line). "
-        "The account is set to match it exactly — items you leave out become 0. "
-        "You see a preview first.\n\n"
-        "Got several accounts? Tap 📥 Import all accounts and paste them all in one "
-        "message, each starting with <code>[Account name]</code>.\n\n"
-        "<b>5. Finding gear</b>\n"
-        "Tap 🔍 Search all accounts and send an item (<code>R8</code>) to see which accounts "
-        "hold it and the total, or a wider word (<code>shield</code>, <code>res</code>) for a "
-        "whole family. It also searches account names and descriptions.\n\n"
-        "<b>6. Describing accounts</b>\n"
-        "In ⚙️ Manage accounts, pick an account and tap 📝 Add description to note things "
-        "like which area's keys it holds.\n\n"
-        "<b>7. Checking your gear</b>\n"
-        "📦 My inventory shows the active account. 🗂 All accounts shows every "
-        "account plus combined totals.\n\n"
-        "<b>8. Stats & goals</b>\n"
-        "In Ingress, copy your <b>ALL TIME</b> stats and paste them here any time. "
-        "Then tap 📊 Stats & goals → ➕ New goal to set daily, weekly, monthly, yearly or "
-        "lifetime targets. I'll tell you when you're close, and remind you when time is "
-        "running out. Paste stats often (at least at the start and end of each day or week) "
-        "so progress is accurate.\n\n"
-        "Tap 🏁 Leaderboards to paste a leaderboard for a stat (one agent per line, like "
-        "<code>cristy92 163,477</code>). I'll show your rank and who's next, and can set a goal "
-        "to pass them.\n\n"
-        "<b>Commands</b>\n"
+        "<code>HC</code>  → open Hyper Cube's +/− buttons\n\n"
+        "Send several lines at once to update many items. Short names like res8, xmp8, "
+        "VRPS, HC and SBUL work, in any case. If I don't recognise a name, I'll suggest the closest one."
+    )),
+    ("sync", "🧾 Sync & import", (
+        "<b>🧾 Sync this account</b> (in 🧰 More tools): send your complete list, one item per line. "
+        "The account is set to match it exactly — items you leave out become 0.\n\n"
+        "<b>📥 Import all accounts</b>: paste every account in one message, each starting with "
+        "<code>[Account name]</code>. Missing accounts are created.\n\n"
+        "Both show a preview first, and both can be undone."
+    )),
+    ("search", "🔍 Search", (
+        "Tap 🔍 Search and send an item (<code>R8</code>) to see which accounts hold it and the total, "
+        "or a wider word (<code>shield</code>, <code>res</code>) for a whole family.\n\n"
+        "It also searches account names and descriptions, so a note like "
+        "<i>Ambalangoda keys</i> is easy to find. Add descriptions in ⚙️ Manage accounts."
+    )),
+    ("stats", "📊 Stats & goals", (
+        "In Ingress open your agent profile, choose <b>ALL TIME</b>, copy your stats and paste them "
+        "here — any time, no button needed. I'll show what grew since last time.\n\n"
+        "Tap 📊 Stats & goals → ➕ New goal for daily, weekly, monthly, yearly or lifetime targets. "
+        "I'll cheer when you're close (80%), and remind you when time is running out.\n\n"
+        "Paste stats at least at the start and end of each day or week so progress is accurate."
+    )),
+    ("lb", "🏁 Leaderboards", (
+        "In 📊 Stats & goals tap 🏁 Leaderboards, pick a stat and paste a leaderboard, one agent per "
+        "line (<code>cristy92 163,477</code>). Text copied from the-grid.blue works too.\n\n"
+        "I'll show your rank and who's next, and 🎯 can set a goal to pass them. "
+        "When new stats move you past someone, you get a 🚀 note."
+    )),
+    ("cmds", "⌘ Commands", (
         "/menu – main menu\n"
         "/add 5 U3 – quick add\n"
         "/remove 2 R8 – quick remove\n"
         "/list – active account's items\n"
         "/listall – all accounts\n"
-        "/sync – replace the whole inventory with a pasted list\n"
-        "/import – import many accounts at once\n"
         "/search <i>item</i> – find an item across all accounts\n"
-        "/describe <i>text</i> – describe the active account\n"
         "/stats – your agent stats (or paste stats after it)\n"
         "/goals – your goals and progress\n"
         "/use <i>name</i> – switch account\n"
         "/newaccount <i>name</i> – create an account\n"
+        "/describe <i>text</i> – describe the active account\n"
+        "/sync – replace the whole inventory with a pasted list\n"
+        "/import – import many accounts at once\n"
         "/items – item names and shortcuts\n"
         "/cancel – stop what you're doing"
+    )),
+]
+HELP_BY_KEY = {key: (title, body) for key, title, body in HELP_TOPICS}
+
+
+def help_screen(topic: str = None):
+    if topic in HELP_BY_KEY:
+        title, body = HELP_BY_KEY[topic]
+        keys = [k for k, _, _ in HELP_TOPICS]
+        nxt = keys[(keys.index(topic) + 1) % len(keys)]
+        return f"<b>{title}</b>\n\n{body}", keyboard(
+            [(f"Next: {HELP_BY_KEY[nxt][0]}", f"help:{nxt}")],
+            [("⬅️ Help topics", "help"), HOME],
+        )
+    text = (
+        "❓ <b>Help</b>\n\n"
+        "I keep track of the gear in each of your Ingress accounts, and your agent stats and goals.\n\n"
+        "<b>The fastest way:</b> just send me <code>R8 10</code> to add 10 R8 to the active account.\n\n"
+        "Pick a topic:"
     )
-    return text, keyboard([("📋 Item names & shortcuts", "catalog")], [HOME])
+    buttons = [(title, f"help:{key}") for key, title, _ in HELP_TOPICS]
+    return text, keyboard(*chunked(buttons, 2), [("📋 Item names & shortcuts", "catalog")], [HOME])
 
 
 def catalog_screen():
@@ -891,9 +1036,18 @@ def apply_text_changes(conn, account, text: str, default_op: str = "add"):
         return None
     report = f"✅ <b>{esc(account['name'])}</b> updated:\n\n" + "\n".join(done)
     if bad:
-        report += "\n\n⚠️ I couldn't read:\n" + "\n".join(f"• <code>{esc(b)}</code>" for b in bad)
+        report += "\n\n⚠️ I couldn't read:\n" + "\n".join(unreadable_line(b) for b in bad)
         report += "\nSee /items for item names."
     return report
+
+
+def unreadable_line(line: str) -> str:
+    """'• <code>line</code>', plus a "did you mean" hint when an item name looks misspelt."""
+    text = f"• <code>{esc(line)}</code>"
+    guess = suggest_item(line)
+    if guess:
+        text += f" — did you mean <b>{esc(guess)}</b>?"
+    return text
 
 
 def parse_sync_text(text: str):
@@ -952,7 +1106,7 @@ def sync_preview_screen(conn, account, new_counts: dict, bad):
     text += f"\n\n📦 Total: {old_total} → <b>{new_total}</b>"
     if bad:
         text += "\n\n⚠️ I couldn't read these lines (they'll be ignored):\n"
-        text += "\n".join(f"• <code>{esc(b)}</code>" for b in bad)
+        text += "\n".join(unreadable_line(b) for b in bad)
     text += "\n\nApply this? You can also send a corrected list instead."
 
     rows = [[("✅ Apply sync", f"syncok:{account['id']}")]] if changes else []
@@ -1043,7 +1197,7 @@ def import_preview_screen(conn, uid: int, parsed, bad):
     )
     if bad:
         text += "\n\n⚠️ I couldn't read these lines (they'll be ignored):\n"
-        text += "\n".join(f"• <code>{esc(b)}</code>" for b in bad[:20])
+        text += "\n".join(unreadable_line(b) for b in bad[:20])
         if len(bad) > 20:
             text += f"\n…and {len(bad) - 20} more"
     text += "\n\nApply this? You can also send a corrected list instead."
@@ -1051,8 +1205,8 @@ def import_preview_screen(conn, uid: int, parsed, bad):
 
 
 def apply_import(conn, uid: int, parsed):
-    """Create/replace each account. Returns (created, updated) counts."""
-    created = updated = 0
+    """Create/replace each account. Returns (created ids, updated ids)."""
+    created, updated = [], []
     for name, counts in parsed:
         account = find_import_account(conn, uid, name)
         if account is None:
@@ -1061,10 +1215,10 @@ def apply_import(conn, uid: int, parsed):
                 continue
             cur = conn.execute("INSERT INTO accounts (owner_id, name) VALUES (?, ?)", (uid, clean))
             account_id = cur.lastrowid
-            created += 1
+            created.append(account_id)
         else:
             account_id = account["id"]
-            updated += 1
+            updated.append(account_id)
         replace_inventory(conn, account_id, counts)
     if get_current_account(conn, uid) is None:
         remaining = list_accounts(conn, uid)
@@ -1189,10 +1343,6 @@ def search_results_screen(conn, uid: int, query: str):
 
 STATS_PER_PAGE = 16
 FACTION_EMOJI = {"Resistance": "🔵", "Enlightened": "🟢"}
-SUMMARY_STATS = [
-    "Level", "Lifetime AP", "Unique Portals Visited", "Unique Portals Captured", "Hacks",
-    "Links Created", "Control Fields Created", "Mind Units Captured", "Distance Walked",
-]
 
 
 def fmt_num(n: int) -> str:
@@ -1254,28 +1404,70 @@ def goal_label(goal) -> str:
     return f"{stats.PERIOD_LABEL[goal['period']].lower()} {esc(goal['stat'])} goal"
 
 
+def fmt_short(n: int) -> str:
+    """1234 -> 1.2k, 2500000 -> 2.5M (for tight spots like buttons)."""
+    for size, suffix in ((1_000_000_000, "B"), (1_000_000, "M"), (1_000, "k")):
+        if abs(n) >= size:
+            return f"{n / size:.1f}".rstrip("0").rstrip(".") + suffix
+    return str(n)
+
+
 def goal_text(goal, p, now: datetime) -> str:
+    """Two short lines per goal for the goals list:
+    '🏔 Hacks · pass K4W4S4KI' / '└ 🎯 Need 389 · 27%'."""
     period = goal["period"]
-    status = f"{progress_bar(p['pct'])} {p['pct']}% · {fmt_num(p['done'])} / {fmt_num(p['target'])}"
+    title = f"{stats.PERIOD_EMOJI[period]} <b>{esc(goal['stat'])}</b>"
+    if goal["note"]:
+        title += f" · <i>{esc(goal['note'])}</i>"
+    if period != "lifetime":
+        title += f" · <i>{stats.PERIOD_LABEL[period].lower()}</i>"
     if p["complete"]:
-        status += " 🏆"
-    elif p["end"]:
-        status += f" · {fmt_duration(p['end'] - now)} left"
-    note = f" ({esc(goal['note'])})" if goal["note"] else ""
-    return (
-        f"{stats.PERIOD_EMOJI[period]} <b>{stats.PERIOD_LABEL[period]}</b> · {esc(goal['stat'])}{note}\n"
-        f"└ {status}"
-    )
+        status = f"🏆 Done! {fmt_stat(goal['stat'], p['done'])}"
+    else:
+        status = f"🎯 Need <b>{fmt_stat(goal['stat'], p['remaining'])}</b> · {p['pct']}%"
+        if p["end"]:
+            status += f" · ⏳ {fmt_duration(p['end'] - now)}"
+    return f"{title}\n└ {status}"
+
+
+def goal_line(goal, p) -> str:
+    """One short line for summaries: '🏔 Hacks — need 1,200 (45%)'."""
+    head = f"{stats.PERIOD_EMOJI[goal['period']]} {esc(goal['stat'])}"
+    if p["complete"]:
+        return f"{head} — 🏆 done"
+    return f"{head} — need <b>{fmt_stat(goal['stat'], p['remaining'])}</b> ({p['pct']}%)"
+
+
+def goal_button(goal, p) -> str:
+    head = f"{stats.PERIOD_EMOJI[goal['period']]} {goal['stat']}"
+    return f"{head} · 🏆" if p["complete"] else f"{head} · {fmt_short(p['remaining'])} to go"
 
 
 def stats_prompt_screen(note: str = ""):
     return (
         f"{note}📊 <b>Agent stats</b>\n\n"
-        "In Ingress open your agent profile, choose <b>ALL TIME</b> and copy your stats. "
-        "Then paste them here as one message.\n\n"
-        "<i>It starts with</i> <code>Time Span  Agent Name  …</code>",
+        "1️⃣ In Ingress, open your agent profile.\n"
+        "2️⃣ Choose <b>ALL TIME</b>.\n"
+        "3️⃣ Copy your stats.\n"
+        "4️⃣ Paste them here as one message.\n\n"
+        "<i>The paste starts with</i> <code>Time Span  Agent Name  …</code>\n"
+        "<i>You can paste stats any time — you don't need to open this screen first.</i>",
         keyboard([("✖️ Cancel", "menu")]),
     )
+
+
+# Friendly short names for the stats overview.
+SUMMARY_LABELS = [
+    ("Lifetime AP", "⭐", "AP"),
+    ("Unique Portals Visited", "🗺", "Portals visited"),
+    ("Unique Portals Captured", "🚩", "Portals captured"),
+    ("Hacks", "🔓", "Hacks"),
+    ("Links Created", "🔗", "Links"),
+    ("Control Fields Created", "🔺", "Fields"),
+    ("Mind Units Captured", "🧠", "Mind units"),
+    ("Distance Walked", "🚶", "Walked"),
+]
+STATS_SCREEN_GOALS = 5
 
 
 def stats_screen(conn, uid: int, agent=None):
@@ -1285,22 +1477,44 @@ def stats_screen(conn, uid: int, agent=None):
     snap = stats.latest_snapshot(conn, agent["id"])
     values = snap["values"]
     faction = agent["faction"]
+    who = f"{FACTION_EMOJI.get(faction, '⚪')} {esc(faction)}"
+    if "Level" in values:
+        who += f" · Level {values['Level']}"
+    age = now - snap["taken_at"]
+    fresh = "🕒" if age.total_seconds() < 86400 else "⚠️"
     lines = [
-        f"📊 <b>{esc(agent['name'])}</b> · {FACTION_EMOJI.get(faction, '⚪')} {esc(faction)}",
-        f"🕒 Stats from {fmt_ago(snap['taken_at'], now)} ({snap['taken_at']:%Y-%m-%d %H:%M})",
-        "",
+        f"📊 <b>{esc(agent['name'])}</b>",
+        who,
+        f"{fresh} Updated {fmt_ago(snap['taken_at'], now)}",
     ]
-    lines += [f"{esc(s)}: <b>{fmt_stat(s, values[s])}</b>" for s in SUMMARY_STATS if s in values]
-    lines += ["", "🎯 <b>Goals</b>"]
+    if age.total_seconds() >= 86400:
+        lines.append("<i>Paste fresh stats to update your goals.</i>")
+    lines.append("")
+    lines += [
+        f"{emoji} {label}: <b>{fmt_stat(stat, values[stat])}</b>"
+        for stat, emoji, label in SUMMARY_LABELS if stat in values
+    ]
+
     goals = goals_by_progress(conn, agent["id"], now)
+    done = sum(1 for _, p in goals if p["complete"])
+    lines.append("")
     if goals:
-        lines += [goal_text(g, p, now) for g, p in goals]
+        head = f"🎯 <b>Goals</b> · {len(goals)} active"
+        if done:
+            head += f", {done} done 🏆"
+        lines.append(head)
+        lines.append("<i>Closest to done first:</i>")
+        lines += [goal_line(g, p) for g, p in goals[:STATS_SCREEN_GOALS]]
+        if len(goals) > STATS_SCREEN_GOALS:
+            lines.append(f"<i>…and {len(goals) - STATS_SCREEN_GOALS} more — tap 🎯 Goals.</i>")
     else:
-        lines.append("<i>No goals yet — tap ➕ New goal.</i>")
+        lines.append("🎯 <i>No goals yet — tap ➕ New goal.</i>")
+
     others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
+    goals_label = f"🎯 Goals ({len(goals)})" if goals else "🎯 Goals"
     return "\n".join(lines), keyboard(
         [("📋 Paste new stats", "statsin")],
-        [("🎯 Goals", f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
+        [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
         *others[:5],
         [HOME],
@@ -1374,7 +1588,7 @@ def stats_saved_screen(conn, uid: int, text: str):
     if goals:
         cheers, goal_lines = [], []
         for g, p in goals:
-            goal_lines.append(goal_text(g, p, now))
+            goal_lines.append(goal_line(g, p))
             if p["complete"]:
                 if stats.mark_alert(conn, g["id"], p["key"], "done", now):
                     cheers.append(
@@ -1406,11 +1620,11 @@ def goals_screen(conn, uid: int, agent):
         lines.append("\n\n".join(goal_text(g, p, now) for g, p in goals))
         latest = stats.latest_snapshot(conn, agent["id"])
         lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
-                      "Paste fresh stats to update.</i>"]
+                      "Paste fresh stats to update. Tap a goal below for details.</i>"]
     else:
         lines.append("No goals yet. Tap ➕ New goal to set one.")
     goal_rows = [
-        [(f"{stats.PERIOD_EMOJI[g['period']]} {g['stat']} · {p['pct']}%", f"goal:{g['id']}")]
+        [(goal_button(g, p), f"goal:{g['id']}")]
         for g, p in goals
     ]
     return "\n".join(lines), keyboard(
@@ -1432,15 +1646,18 @@ def goal_screen(conn, uid: int, goal, note: str = ""):
     ]
     if goal["note"]:
         lines.append(f"🏁 {esc(goal['note'])}")
-    lines += [
-        "",
-        f"{progress_bar(p['pct'])} {p['pct']}%",
-        f"{fmt_num(p['done'])} / {fmt_num(p['target'])}",
-    ]
+    lines += ["", f"{progress_bar(p['pct'])} {p['pct']}%"]
     if p["complete"]:
-        lines.append("🏆 Done!")
+        lines.append(f"🏆 <b>Done!</b> {fmt_stat(goal['stat'], p['done'])} / {fmt_stat(goal['stat'], p['target'])}")
     else:
-        lines.append(f"🎯 {fmt_num(p['remaining'])} to go{pace_text(p, now)}")
+        lines.append(f"🎯 Need <b>{fmt_stat(goal['stat'], p['remaining'])}</b> more{pace_text(p, now)}")
+        if period == "lifetime":
+            lines.append(f"📍 Now: {fmt_stat(goal['stat'], p['done'])}")
+            lines.append(f"🏁 Target: {fmt_stat(goal['stat'], p['target'])}")
+            if goal["start_value"] is not None:
+                lines.append(f"<i>% counts from {fmt_num(goal['start_value'])}, where you were when you set it.</i>")
+        else:
+            lines.append(f"📍 Done so far: {fmt_num(p['done'])} / {fmt_num(p['target'])}")
     if period != "lifetime":
         noun = stats.PERIOD_NOUN[period]
         lines.append(f"⏳ Ends in {fmt_duration(p['end'] - now)} ({p['end']:%Y-%m-%d %H:%M})")
@@ -1679,13 +1896,14 @@ def ending_reminder_text(goal, p, now: datetime) -> str:
 
 
 def after_change_keyboard(account):
-    return keyboard([("📦 View inventory", f"inv:{account['id']}"), HOME])
+    return keyboard([UNDO], [("📦 View inventory", f"inv:{account['id']}"), HOME])
 
 
 DIDNT_UNDERSTAND = (
     "🤔 Sorry, I didn't catch that.\n\n"
     "To change items, send something like:\n"
     "<code>R8 10</code>  or  <code>-3 VRPS</code>  or  <code>Keys =120</code>\n\n"
+    "To save stats, paste your ALL TIME stats from Ingress.\n"
     "Or open the menu and use the buttons."
 )
 
@@ -1748,6 +1966,8 @@ def btn_item(conn, uid, ud, args):
     mode, account = _mode(args[0]), _owned(conn, uid, args[1])
     item = _item(args[2])
     ud["awaiting"] = {"kind": "qty", "account_id": account["id"], "item": item, "mode": mode}
+    if ud.get("undo"):
+        ud["undo"]["merge_key"] = None
     return (*quantity_screen(conn, account, mode, item), None)
 
 
@@ -1759,6 +1979,7 @@ def btn_quantity(conn, uid, ud, args):
     else:
         delta = int(args[3])
         op, amount = ("add", delta) if delta > 0 else ("remove", -delta)
+    remember_undo(ud, snapshot(conn, [account["id"]]), item, merge_key=f"{account['id']}:{item}")
     old, new = apply_change(conn, account["id"], item, op, amount)
     ud["awaiting"] = {"kind": "qty", "account_id": account["id"], "item": item, "mode": mode}
     note = change_note(item, op, amount, old, new)
@@ -1833,8 +2054,9 @@ def btn_sync_ok(conn, uid, ud, args):
     pending = ud.pop("pending_sync", None)
     if not pending or pending["account_id"] != account["id"]:
         raise StaleButton
+    remember_undo(ud, snapshot(conn, [account["id"]]), "sync")
     replace_inventory(conn, account["id"], pending["counts"])
-    return (*inventory_screen(conn, uid, account), "Inventory synced ✅")
+    return (*inventory_screen(conn, uid, account, "✅ <b>Inventory synced.</b>", undo=True), "Inventory synced ✅")
 
 
 def btn_import(conn, uid, ud, args):
@@ -1847,9 +2069,13 @@ def btn_import_ok(conn, uid, ud, args):
     pending = ud.pop("pending_import", None)
     if not pending:
         raise StaleButton
+    existing = {a["id"] for name, _ in pending if (a := find_import_account(conn, uid, name))}
+    before = snapshot(conn, existing)
     created, updated = apply_import(conn, uid, pending)
-    toast = f"Imported: {created} new, {updated} updated"
-    return (*all_accounts_screen(conn, uid), toast)
+    remember_undo(ud, before, "import", created=created)
+    toast = f"Imported: {len(created)} new, {len(updated)} updated"
+    text, markup = all_accounts_screen(conn, uid)
+    return text, with_row(markup, [("↩️ Undo import", "undo")]), toast
 
 
 def btn_description(conn, uid, ud, args):
@@ -1992,7 +2218,25 @@ def btn_goal_delete(conn, uid, ud, args):
 
 
 def btn_help(conn, uid, ud, args):
-    return (*help_screen(), None)
+    return (*help_screen(args[0] if args else None), None)
+
+
+def btn_more(conn, uid, ud, args):
+    return (*more_screen(conn, uid), None)
+
+
+def btn_undo(conn, uid, ud, args):
+    result = undo_last(conn, uid, ud)
+    if result is None:
+        return (*menu_screen(conn, uid), "Nothing to undo")
+    label, restored = result
+    what = {"sync": "the sync", "import": "the import"}.get(label, f"the {label} change")
+    note = f"↩️ <b>Undone</b> — {esc(what)} was taken back."
+    if len(restored) == 1:
+        account = get_owned_account(conn, uid, restored[0])
+        return (*inventory_screen(conn, uid, account, note), "Undone ↩️")
+    text, markup = all_accounts_screen(conn, uid)
+    return f"{note}\n\n{text}", markup, "Undone ↩️"
 
 
 def btn_catalog(conn, uid, ud, args):
@@ -2039,6 +2283,8 @@ BUTTONS = {
     "lbdel": btn_leaderboard_delete,
     "help": btn_help,
     "catalog": btn_catalog,
+    "more": btn_more,
+    "undo": btn_undo,
 }
 
 
@@ -2074,14 +2320,33 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Typed messages
 # ---------------------------------------------------------------------------
 
+async def ensure_quick_keyboard(update: Update, ud, force: bool = False):
+    """Show the bottom quick buttons once (or again on /start)."""
+    if not force and ud.get("quick_kb") == QUICK_KB_VERSION:
+        return
+    ud["quick_kb"] = QUICK_KB_VERSION
+    await update.effective_message.reply_text(
+        "⌨️ Quick buttons are at the bottom of the chat — tap them any time.",
+        reply_markup=quick_keyboard(),
+    )
+
+
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     text = update.message.text.strip()
     awaiting = context.user_data.get("awaiting") or {}
     kind = awaiting.get("kind")
+    await ensure_quick_keyboard(update, context.user_data)
 
     with closing(get_conn()) as conn, conn:
         ensure_user(conn, uid)
+
+        # The bottom quick buttons work from anywhere and stop any typing flow.
+        if text in QUICK_KEYS:
+            context.user_data.pop("awaiting", None)
+            reply, markup, _ = BUTTONS[QUICK_KEYS[text]](conn, uid, context.user_data, [])
+            await respond(update, reply, markup)
+            return
 
         # Pasted stats are recognised whatever the bot was waiting for.
         if stats.looks_like_stats(text):
@@ -2265,6 +2530,8 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if account is not None and qty is not None:
                 op, amount = qty
                 item = awaiting["item"]
+                remember_undo(context.user_data, snapshot(conn, [account["id"]]), item,
+                              merge_key=f"{account['id']}:{item}")
                 old, new = apply_change(conn, account["id"], item, op, amount)
                 note = change_note(item, op, amount, old, new)
                 await respond(update, *quantity_screen(conn, account, awaiting["mode"], item, note))
@@ -2276,7 +2543,9 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if account is None:
                 await respond(update, *no_active_screen(conn, uid))
                 return
+            before = snapshot(conn, [account["id"]])
             report = apply_text_changes(conn, account, text)
+            remember_undo(context.user_data, before, "typed")
             await respond(update, report, after_change_keyboard(account))
             return
 
@@ -2294,7 +2563,31 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await respond(update, *welcome_screen())
             return
 
-    await respond(update, DIDNT_UNDERSTAND, keyboard([HOME, ("📋 Item names", "catalog")]))
+        # A bare number: we don't know which item it's for.
+        if parse_qty(text.replace(" ", "")) and account:
+            await respond(
+                update,
+                f"🤔 <b>{esc(text)}</b> of what? Send it with an item, like "
+                f"<code>R8 {esc(text.lstrip('+'))}</code>, or pick the item with the buttons.",
+                keyboard([("📥 Add items", f"cats:a:{account['id']}"),
+                          ("📤 Remove items", f"cats:r:{account['id']}")], [HOME]),
+            )
+            return
+
+        # A misspelt item: suggest the closest one.
+        guess = suggest_item(text) if len(text.splitlines()) == 1 else None
+        if guess and account:
+            hint = (
+                f"🤔 I don't know <b>{esc(text)}</b>. Did you mean <b>{esc(guess)}</b>?\n\n"
+                f"Tap below to open it, or send it again like <code>{esc(guess)} 10</code>."
+            )
+            await respond(update, hint, keyboard(
+                [(f"✅ Yes, open {guess}", f"it:a:{account['id']}:{ITEM_INDEX[guess]}")],
+                [HOME, ("📋 Item names", "catalog")],
+            ))
+            return
+
+    await respond(update, DIDNT_UNDERSTAND, keyboard([HOME, ("❓ Help", "help:type")], [("📋 Item names", "catalog")]))
 
 
 # ---------------------------------------------------------------------------
@@ -2314,6 +2607,7 @@ async def _show(update: Update, screen_fn, *extra):
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("awaiting", None)
+    await ensure_quick_keyboard(update, context.user_data, force=update.message.text.startswith("/start"))
     await _show(update, menu_screen)
 
 
@@ -2365,8 +2659,10 @@ async def _items_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE, mode: s
         elif not raw:
             text, markup = categories_screen(conn, account, mode)
         else:
+            before = snapshot(conn, [account["id"]])
             report = apply_text_changes(conn, account, raw, default_op)
             if report:
+                remember_undo(context.user_data, before, "typed")
                 text, markup = report, after_change_keyboard(account)
             else:
                 cmd = "/add" if mode == "a" else "/remove"

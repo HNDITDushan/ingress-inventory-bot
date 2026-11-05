@@ -54,6 +54,16 @@ Send `/items` any time to see the full list from the bot itself.
 
 Send `/start` (or `/menu`). Everything can be done with buttons:
 
+- **Quick buttons** stay at the bottom of the chat: 📦 Inventory, 🔍 Search,
+  📊 Stats and 🏠 Menu work from anywhere.
+- **↩️ Undo** appears after every inventory change (button taps, typed lines,
+  sync and import). One tap takes the last change back; a run of taps on the
+  same item is undone together.
+- **Did you mean…?** If an item name is misspelt (`vrsp`, `hypercub`), the bot
+  suggests the closest item and offers a button to open it.
+- **❓ Help** is split into short topics. Rarely used tools (sync, import,
+  manage accounts, item names) are under **🧰 More tools** in the menu.
+
 - **📥 Add items / 📤 Remove items**: pick a category, then an item, then tap
   `+1 +5 +10 +25 +50 +100` (or `−…`, `🗑 All`), or type a number. Type `=20` to
   set an exact count.
