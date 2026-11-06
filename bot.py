@@ -1495,26 +1495,25 @@ def stats_screen(conn, uid: int, agent=None):
         for stat, emoji, label in SUMMARY_LABELS if stat in values
     ]
 
-    goals = goals_by_progress(conn, agent["id"], now)
-    done = sum(1 for _, p in goals if p["complete"])
+    goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")
     if goals:
-        head = f"🎯 <b>Goals</b> · {len(goals)} active"
-        if done:
-            head += f", {done} done 🏆"
-        lines.append(head)
+        lines.append(f"🎯 <b>Goals</b> · {len(goals)} active")
         lines.append("<i>Closest to done first:</i>")
         lines += [goal_line(g, p) for g, p in goals[:STATS_SCREEN_GOALS]]
         if len(goals) > STATS_SCREEN_GOALS:
             lines.append(f"<i>…and {len(goals) - STATS_SCREEN_GOALS} more — tap 🎯 Goals.</i>")
     else:
-        lines.append("🎯 <i>No goals yet — tap ➕ New goal.</i>")
+        lines.append("🎯 <i>No active goals — tap ➕ New goal.</i>")
+    if completed:
+        lines += ["", f"🏆 <b>{plural(len(completed), 'goal')} completed</b> — tap 🏆 Completed."]
 
     others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
     goals_label = f"🎯 Goals ({len(goals)})" if goals else "🎯 Goals"
     return "\n".join(lines), keyboard(
         [("📋 Paste new stats", "statsin")],
         [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
+        [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else [],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
         *others[:5],
         [HOME],
@@ -1588,7 +1587,8 @@ def stats_saved_screen(conn, uid: int, text: str):
     if goals:
         cheers, goal_lines = [], []
         for g, p in goals:
-            goal_lines.append(goal_line(g, p))
+            if not p["complete"]:
+                goal_lines.append(goal_line(g, p))
             if p["complete"]:
                 if stats.mark_alert(conn, g["id"], p["key"], "done", now):
                     cheers.append(
@@ -1601,7 +1601,11 @@ def stats_saved_screen(conn, uid: int, text: str):
                 )
         if cheers:
             lines += [""] + cheers
-        lines += ["", "🎯 <b>Goals</b>"] + goal_lines
+        if goal_lines:
+            lines += ["", "🎯 <b>Goals</b>"] + goal_lines
+        done_count = len(goals) - len(goal_lines)
+        if done_count:
+            lines += ["", f"🏆 {plural(done_count, 'goal')} completed — see 🏆 Completed in 🎯 Goals."]
     else:
         lines += ["", "💡 Tap ➕ New goal to set daily, weekly, monthly, yearly or lifetime targets."]
 
@@ -1612,26 +1616,45 @@ def stats_saved_screen(conn, uid: int, text: str):
     )
 
 
+def split_goals(goals):
+    """(active, completed) from goals_by_progress()."""
+    return [gp for gp in goals if not gp[1]["complete"]], [gp for gp in goals if gp[1]["complete"]]
+
+
 def goals_screen(conn, uid: int, agent):
     now = datetime.now()
-    goals = goals_by_progress(conn, agent["id"], now)
+    active, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines = [f"🎯 <b>Goals</b> · {esc(agent['name'])}", ""]
-    if goals:
-        lines.append("\n\n".join(goal_text(g, p, now) for g, p in goals))
+    if active:
+        lines.append("\n\n".join(goal_text(g, p, now) for g, p in active))
         latest = stats.latest_snapshot(conn, agent["id"])
         lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
                       "Paste fresh stats to update. Tap a goal below for details.</i>"]
+    elif completed:
+        lines.append("🎉 All your goals are done! Tap ➕ New goal to set another.")
     else:
         lines.append("No goals yet. Tap ➕ New goal to set one.")
-    goal_rows = [
-        [(goal_button(g, p), f"goal:{g['id']}")]
-        for g, p in goals
-    ]
+    goal_rows = [[(goal_button(g, p), f"goal:{g['id']}")] for g, p in active]
+    done_row = [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else []
     return "\n".join(lines), keyboard(
         *goal_rows,
+        done_row,
         [("➕ New goal", f"gnew:{agent['id']}")],
         [("⬅️ Stats", f"stats:{agent['id']}"), HOME],
     )
+
+
+def completed_goals_screen(conn, uid: int, agent):
+    now = datetime.now()
+    _, completed = split_goals(goals_by_progress(conn, agent["id"], now))
+    lines = [f"🏆 <b>Completed goals</b> · {esc(agent['name'])}", ""]
+    if completed:
+        lines.append("\n\n".join(goal_text(g, p, now) for g, p in completed))
+        lines += ["", "<i>Tap a goal to chase the next agent, change the target or delete it.</i>"]
+    else:
+        lines.append("No completed goals yet — keep going! 💪")
+    rows = [[(f"🏆 {g['stat']}", f"goal:{g['id']}")] for g, _ in completed]
+    return "\n".join(lines), keyboard(*rows, [("⬅️ Goals", f"goals:{agent['id']}"), HOME])
 
 
 def goal_screen(conn, uid: int, goal, note: str = ""):
@@ -1670,13 +1693,21 @@ def goal_screen(conn, uid: int, goal, note: str = ""):
         if last and last["measured"]:
             lines.append(f"🔙 Last {noun}: {fmt_num(last['gain'])}")
 
-    change = []
+    change, chase = [], []
     if goal["stat"] in stats.STAT_INDEX:
-        change = [("✏️ Change target", f"gsel:{agent['id']}:{period}:{stats.STAT_INDEX[goal['stat']]}")]
+        stat_idx = stats.STAT_INDEX[goal["stat"]]
+        change = [("✏️ Change target", f"gsel:{agent['id']}:{period}:{stat_idx}")]
+        board = stats.get_leaderboard(conn, agent["id"], goal["stat"])
+        if p["complete"] and period == "lifetime" and board:
+            nxt = stats.next_rival(board, agent["name"], p["done"])
+            if nxt:
+                chase = [(f"🎯 Chase next: {nxt[0]}", f"lbgoal:{agent['id']}:{stat_idx}")]
+    back = ("⬅️ Completed", f"gdone:{agent['id']}") if p["complete"] else ("⬅️ Goals", f"goals:{agent['id']}")
     return "\n".join(lines), keyboard(
+        chase,
         change,
         [("🗑 Delete goal", f"gdel:{goal['id']}")],
-        [("⬅️ Goals", f"goals:{agent['id']}"), HOME],
+        [back, HOME],
     )
 
 
@@ -2136,6 +2167,10 @@ def btn_goals(conn, uid, ud, args):
     return (*goals_screen(conn, uid, _agent(conn, uid, args[0])), None)
 
 
+def btn_goals_done(conn, uid, ud, args):
+    return (*completed_goals_screen(conn, uid, _agent(conn, uid, args[0])), None)
+
+
 def btn_goal(conn, uid, ud, args):
     return (*goal_screen(conn, uid, _goal(conn, uid, args[0])), None)
 
@@ -2271,6 +2306,7 @@ BUTTONS = {
     "statsall": btn_stats_all,
     "goals": btn_goals,
     "goal": btn_goal,
+    "gdone": btn_goals_done,
     "gnew": btn_goal_new,
     "gper": btn_goal_period,
     "gsel": btn_goal_stat,
