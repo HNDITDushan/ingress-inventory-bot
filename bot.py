@@ -950,6 +950,8 @@ HELP_TOPICS = [
     ("lb", "🏁 Leaderboards", (
         "In 📊 Stats & goals tap 🏁 Leaderboards, pick a stat and paste a leaderboard, one agent per "
         "line (<code>cristy92 163,477</code>). Text copied from the-grid.blue works too.\n\n"
+        "📎 Faster: send the-grid's Excel export (.xlsx) as a file and I'll update every board "
+        "in one go.\n\n"
         "I'll show your rank and who's next, and 🎯 can set a goal to pass them. "
         "When new stats move you past someone, you get a 🚀 note."
     )),
@@ -1795,15 +1797,17 @@ ALMOST_PCT = 5        # within 5% of the next agent's score counts as "almost th
 OLD_LIST_DAYS = 7     # flag lists older than this
 
 
-def leaderboards_screen(conn, agent):
+def leaderboards_screen(conn, agent, note: str = ""):
     aid = agent["id"]
     now = datetime.now()
     boards = stats.list_leaderboards(conn, aid)
-    lines = [f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}"]
+    lines = [note] if note else []
+    lines.append(f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}")
     if not boards:
         lines += ["", (
             "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
-            "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard."
+            "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard.\n\n"
+            "📎 Or send the-grid's Excel export (.xlsx) here to add them all at once."
         )]
         return "\n".join(lines), keyboard(
             [("➕ Add leaderboard", f"lbnew:{aid}")], [("⬅️ Stats", f"stats:{aid}"), HOME],
@@ -1860,7 +1864,8 @@ def leaderboards_screen(conn, agent):
 
     oldest = max(b["age"] for b in chasing + top)
     lines += ["", f"<i>Oldest list: {fmt_ago(now - oldest, now)}. Your scores come from your latest "
-                  "stats. Tap a board to see everyone or paste a newer list.</i>"]
+                  "stats. Tap a board to see everyone or paste a newer list.</i>",
+              "📎 <i>Send the-grid's Excel export (.xlsx) to update every board at once.</i>"]
     return "\n".join(lines), keyboard(
         *rows,
         [("➕ Add leaderboard", f"lbnew:{aid}")],
@@ -1900,6 +1905,71 @@ def leaderboard_screen(conn, agent, stat: str, note: str = ""):
         [("📋 Update list", f"lbstat:{aid}:{idx}"), ("🗑 Delete", f"lbdel:{aid}:{idx}")],
         [("⬅️ Leaderboards", f"lbs:{aid}"), HOME],
     )
+
+
+XLSX_MAX_BYTES = 5 * 1024 * 1024
+
+
+def lb_import_pick_screen(conn, uid, agents):
+    lines = ["📎 <b>Leaderboard file</b>", "", "Which agent is this file for?"]
+    return "\n".join(lines), keyboard(
+        *[[(f"🕵️ {a['name']}", f"lbxp:{a['id']}")] for a in agents], [HOME],
+    )
+
+
+def lb_import_preview_screen(conn, agent, pending):
+    aid = agent["id"]
+    boards = pending["boards"]
+    tracked = {b["stat"] for b in stats.list_leaderboards(conn, aid)}
+    update = [s for s in boards if s in tracked]
+    new = [s for s in boards if s not in tracked]
+    lines = [f"📎 <b>Leaderboard file</b> · {esc(agent['name'])}", ""]
+    lines.append(f"Found {plural(len(boards), 'leaderboard')}:")
+    if update:
+        lines.append(f"🔄 <b>{len(update)}</b> you already track — I'll update them")
+    if new:
+        lines.append(f"➕ <b>{len(new)}</b> new: " + ", ".join(esc(s) for s in sorted(new)[:6])
+                     + (f" and {len(new) - 6} more" if len(new) > 6 else ""))
+    if pending["skipped"]:
+        n = len(pending["skipped"])
+        lines += ["", f"<i>Skipped {n} event categor{'y' if n == 1 else 'ies'} "
+                      "that aren't in your Ingress stats.</i>"]
+    rows = []
+    if update:
+        rows.append([(f"🔄 Update {plural(len(update), 'board')}", f"lbxl:{aid}:upd")])
+        if new:
+            rows.append([(f"➕ Update + add {len(new)} new", f"lbxl:{aid}:all")])
+    elif new:
+        rows.append([(f"➕ Add {plural(len(new), 'board')}", f"lbxl:{aid}:all")])
+    rows.append([("✖️ Cancel", f"lbs:{aid}")])
+    return "\n".join(lines), keyboard(*rows)
+
+
+def _pending_import(ud):
+    pending = ud.get("lb_import")
+    if not pending:
+        raise StaleButton
+    return pending
+
+
+def btn_lb_import_pick(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    return (*lb_import_preview_screen(conn, agent, _pending_import(ud)), None)
+
+
+def btn_lb_import_save(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    pending = _pending_import(ud)
+    tracked = {b["stat"] for b in stats.list_leaderboards(conn, agent["id"])}
+    now = datetime.now()
+    saved = 0
+    for stat, entries in pending["boards"].items():
+        if args[1] == "all" or stat in tracked:
+            stats.save_leaderboard(conn, agent["id"], stat, entries, now)
+            saved += 1
+    ud.pop("lb_import", None)
+    note = f"✅ Updated {plural(saved, 'leaderboard')} from the file.\n"
+    return (*leaderboards_screen(conn, agent, note), "Leaderboards updated")
 
 
 def set_rival_goal(conn, agent, stat: str):
@@ -2365,6 +2435,8 @@ BUTTONS = {
     "lbstat": btn_leaderboard_stat,
     "lbgoal": btn_leaderboard_goal,
     "lbdel": btn_leaderboard_delete,
+    "lbxp": btn_lb_import_pick,
+    "lbxl": btn_lb_import_save,
     "help": btn_help,
     "catalog": btn_catalog,
     "more": btn_more,
@@ -2413,6 +2485,67 @@ async def ensure_quick_keyboard(update: Update, ud, force: bool = False):
         "⌨️ Quick buttons are at the bottom of the chat — tap them any time.",
         reply_markup=quick_keyboard(),
     )
+
+
+def _guess_agent(agents, filename: str, boards):
+    """The agent this export is for: named in the file name, else the only one listed."""
+    fname = (filename or "").lower()
+    named = [a for a in agents if a["name"].lower() in fname]
+    if len(named) == 1:
+        return named[0]
+    listed = {name.lower() for entries in boards.values() for name, _ in entries}
+    in_file = [a for a in agents if a["name"].lower() in listed]
+    if len(in_file) == 1:
+        return in_file[0]
+    return agents[0] if len(agents) == 1 else None
+
+
+async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """An uploaded the-grid Excel export updates the leaderboards."""
+    uid = update.effective_user.id
+    doc = update.message.document
+    await ensure_quick_keyboard(update, context.user_data)
+    name = doc.file_name or ""
+    if not name.lower().endswith((".xlsx", ".xlsm")):
+        await respond(update, (
+            "📎 I can read leaderboard exports from the-grid.blue as Excel files (<b>.xlsx</b>). "
+            "For anything else, paste the text instead."
+        ), keyboard([HOME]))
+        return
+    if doc.file_size and doc.file_size > XLSX_MAX_BYTES:
+        await respond(update, "📎 That file is too big (over 5 MB) for a leaderboard export.",
+                      keyboard([HOME]))
+        return
+
+    data = bytes(await (await doc.get_file()).download_as_bytearray())
+    try:
+        boards, skipped = stats.parse_grid_workbook(data)
+    except stats.StatsError as e:
+        await respond(update, f"🤔 {esc(str(e))} Send the Excel export from the-grid.blue.",
+                      keyboard([HOME]))
+        return
+    if not boards:
+        await respond(update, "🤔 I didn't find any leaderboards for Ingress stats in that file.",
+                      keyboard([HOME]))
+        return
+
+    context.user_data.pop("awaiting", None)
+    context.user_data["lb_import"] = {"boards": boards, "skipped": skipped}
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        agents = stats.list_agents(conn, uid)
+        if not agents:
+            context.user_data.pop("lb_import", None)
+            await respond(update, (
+                "📎 Paste your Ingress <b>ALL TIME</b> stats first so I know who you are, "
+                "then send the file again."
+            ), keyboard([HOME]))
+            return
+        agent = _guess_agent(agents, name, boards)
+        if agent is None:
+            await respond(update, *lb_import_pick_screen(conn, uid, agents))
+        else:
+            await respond(update, *lb_import_preview_screen(conn, agent, context.user_data["lb_import"]))
 
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3064,6 +3197,7 @@ def main():
         app.add_handler(CommandHandler(name, handler))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.Document.ALL, on_document))
     app.add_handler(MessageHandler(filters.COMMAND, unknown_cmd))
     app.add_error_handler(on_error)
 

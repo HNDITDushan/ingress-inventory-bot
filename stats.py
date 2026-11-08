@@ -564,6 +564,80 @@ def delete_leaderboard(conn, agent_id: int, stat: str):
     conn.execute("DELETE FROM leaderboards WHERE agent_id = ? AND stat = ?", (agent_id, stat))
 
 
+# ---------------------------------------------------------------------------
+# Excel leaderboard exports (the-grid.blue "Rankings" sheet)
+# ---------------------------------------------------------------------------
+
+# the-grid's category names that differ from the Ingress stat names.
+GRID_CATEGORIES = {
+    "topagents": "Lifetime AP", "portalsvisited": "Unique Portals Visited",
+    "mucaptured": "Mind Units Captured", "fieldscreated": "Control Fields Created",
+    "fieldsdestroyed": "Enemy Fields Destroyed", "linksdestroyed": "Enemy Links Destroyed",
+    "longestlink": "Longest Link Ever Created", "timeportalheld": "Max Time Portal Held",
+    "timelinkmaintained": "Max Time Link Maintained", "timefieldheld": "Max Time Field Held",
+    "linklengthdays": "Max Link Length x Days", "musdays": "Largest Field MUs x Days",
+}
+_STAT_BY_NORM = {_norm(name): name for name in STAT_FIELDS}
+MAX_SHEET_ROWS = 50_000
+
+
+def grid_stat(category: str):
+    """the-grid category -> Ingress stat name, or None for event-only categories."""
+    key = _norm(category or "")
+    stat = GRID_CATEGORIES.get(key) or _STAT_BY_NORM.get(key)
+    return stat if stat in STAT_INDEX and stat not in ("Level", "Current AP") else None
+
+
+def parse_grid_workbook(data: bytes):
+    """Excel export -> ({stat: [(name, value), ...]}, [skipped categories]).
+
+    Uses the first sheet with Category, Agent and Value columns. Raises
+    StatsError when there's no such sheet.
+    """
+    import io
+    import openpyxl  # only needed for uploads
+
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception as exc:
+        raise StatsError("I couldn't open that file as an Excel workbook.") from exc
+    try:
+        for ws in wb.worksheets:
+            rows = ws.iter_rows(values_only=True)
+            header = [_norm(str(c or "")) for c in next(rows, ())]
+            try:
+                cat_i, name_i, val_i = (header.index(h) for h in ("category", "agent", "value"))
+            except ValueError:
+                continue
+            boards, skipped = {}, []
+            for n, row in enumerate(rows):
+                if n >= MAX_SHEET_ROWS:
+                    break
+                if len(row) <= max(cat_i, name_i, val_i):
+                    continue
+                category, name, value = row[cat_i], row[name_i], row[val_i]
+                if not category or not name or value is None:
+                    continue
+                stat = grid_stat(str(category))
+                if stat is None:
+                    if category not in skipped:
+                        skipped.append(str(category))
+                    continue
+                amount = value if isinstance(value, (int, float)) else parse_amount(str(value))
+                if amount is None:
+                    continue
+                board = boards.setdefault(stat, {})
+                board[str(name).strip()] = int(amount)
+            boards = {
+                stat: sorted(entries.items(), key=lambda kv: -kv[1])
+                for stat, entries in boards.items() if entries
+            }
+            return boards, skipped
+    finally:
+        wb.close()
+    raise StatsError("I couldn't find a sheet with Category, Agent and Value columns.")
+
+
 def rivals(board, me: str):
     """The board's entries other than the agent themself."""
     return [(name, value) for name, value in board["entries"] if name.lower() != me.lower()]
