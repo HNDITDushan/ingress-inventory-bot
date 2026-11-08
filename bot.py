@@ -1437,24 +1437,6 @@ def fmt_short(n: int) -> str:
     return str(n)
 
 
-def goal_text(goal, p, now: datetime) -> str:
-    """Two short lines per goal for the goals list:
-    '🏔 Hacks · pass K4W4S4KI' / '└ 🎯 Need 389 · 27%'."""
-    period = goal["period"]
-    title = f"{stats.PERIOD_EMOJI[period]} <b>{esc(goal['stat'])}</b>"
-    if goal["note"]:
-        title += f" · <i>{esc(goal['note'])}</i>"
-    if period != "lifetime":
-        title += f" · <i>{stats.PERIOD_LABEL[period].lower()}</i>"
-    if p["complete"]:
-        status = f"🏆 Done! {fmt_stat(goal['stat'], p['done'])}"
-    else:
-        status = f"🎯 Need <b>{fmt_stat(goal['stat'], p['remaining'])}</b> · {p['pct']}%"
-        if p["end"]:
-            status += f" · ⏳ {fmt_duration(p['end'] - now)}"
-    return f"{title}\n└ {status}"
-
-
 def goal_line(goal, p) -> str:
     """One short line for summaries: '🏔 Hacks — need 1,200 (45%)'."""
     head = f"{stats.PERIOD_EMOJI[goal['period']]} {esc(goal['stat'])}"
@@ -1654,20 +1636,69 @@ def split_goals(goals):
     return [gp for gp in goals if not gp[1]["complete"]], [gp for gp in goals if gp[1]["complete"]]
 
 
+HALFWAY_PCT = 50   # lifetime goals at or past this are "almost there"
+
+
+def goal_entry(goal, p, now: datetime) -> str:
+    """Two lines for the goals list: title, then a progress bar with what's left."""
+    period = goal["period"]
+    title = f"{stats.PERIOD_EMOJI[period]} <b>{esc(goal['stat'])}</b>"
+    if goal["note"]:
+        title += f" · <i>{esc(goal['note'])}</i>"
+    if period != "lifetime":
+        title += f" · <i>{stats.PERIOD_LABEL[period].lower()}</i>"
+    if p["complete"]:
+        return (f"{title}\n      ✅ <b>Done</b> · target {fmt_stat(goal['stat'], p['target'])}"
+                f" · now {fmt_stat(goal['stat'], p['done'])}")
+    status = (f"<code>{progress_bar(p['pct'], 8)}</code> {p['pct']}% · need "
+              f"<b>{fmt_stat(goal['stat'], p['remaining'])}</b>")
+    if p["end"]:
+        status += f" · ⏳ {fmt_duration(p['end'] - now)}"
+    return f"{title}\n      {status}"
+
+
 def goals_screen(conn, uid: int, agent):
     now = datetime.now()
-    active, completed = split_goals(goals_by_progress(conn, agent["id"], now))
-    lines = [f"🎯 <b>Goals</b> · {esc(agent['name'])}", ""]
-    if active:
-        lines.append("\n\n".join(goal_text(g, p, now) for g, p in active))
-        latest = stats.latest_snapshot(conn, agent["id"])
-        lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
-                      "Paste fresh stats to update. To change or delete a goal, tap ✏️ Edit goals.</i>"]
-    elif completed:
-        lines.append("🎉 All your goals are done! Tap ➕ New goal to set another.")
-    else:
-        lines.append("No goals yet. Tap ➕ New goal to set one.")
     aid = agent["id"]
+    active, completed = split_goals(goals_by_progress(conn, aid, now))
+    lines = [f"🎯 <b>GOALS</b> · {esc(agent['name'])}"]
+    if active:
+        timed = sorted((gp for gp in active if gp[0]["period"] != "lifetime"),
+                       key=lambda gp: gp[1]["end"])
+        lifetime = [gp for gp in active if gp[0]["period"] == "lifetime"]
+        almost = [gp for gp in lifetime if gp[1]["pct"] >= HALFWAY_PCT]
+        longer = [gp for gp in lifetime if gp[1]["pct"] < HALFWAY_PCT]
+
+        summary = []
+        if timed:
+            summary.append(f"⏰ {len(timed)} timed")
+        if almost:
+            summary.append(f"🔥 {len(almost)} close")
+        if longer:
+            summary.append(f"🏔 {len(longer)} long-term")
+        if completed:
+            summary.append(f"🏆 {len(completed)} done")
+        lines.append("  ·  ".join(summary))
+
+        def section(head, hint, items, shown):
+            text = f"{head}\n<i>{hint}</i>\n" if hint else f"{head}\n"
+            return text + fold_quote([goal_entry(g, p, now) for g, p in items], shown)
+
+        if timed:
+            lines += ["", section("⏰ <b>ON THE CLOCK</b>", "daily, weekly, monthly and yearly — ending soonest first", timed, 5)]
+        if almost:
+            lines += ["", section("🔥 <b>ALMOST THERE</b>", f"{HALFWAY_PCT}% or more of the way", almost, 5)]
+        if longer:
+            lines += ["", section("🏔 <b>LONG-TERM</b>", "closest first", longer, 3)]
+
+        latest = stats.latest_snapshot(conn, aid)
+        lines += ["", f"🕒 <i>Based on stats from {fmt_ago(latest['taken_at'], now)} · paste fresh "
+                      "stats to update.</i>\n"
+                      "✏️ <i>To change or delete a goal, tap Edit goals.</i>"]
+    elif completed:
+        lines += ["", "🎉 All your goals are done! Tap ➕ New goal to set another."]
+    else:
+        lines += ["", "No goals yet. Tap ➕ New goal to set one."]
     done_row = [(f"🏆 Completed ({len(completed)})", f"gdone:{aid}")] if completed else []
     edit_row = [("✏️ Edit goals", f"gedit:{aid}")] if active or completed else []
     return "\n".join(lines), keyboard(
@@ -1680,12 +1711,13 @@ def goals_screen(conn, uid: int, agent):
 def completed_goals_screen(conn, uid: int, agent):
     now = datetime.now()
     _, completed = split_goals(goals_by_progress(conn, agent["id"], now))
-    lines = [f"🏆 <b>Completed goals</b> · {esc(agent['name'])}", ""]
+    lines = [f"🏆 <b>COMPLETED GOALS</b> · {esc(agent['name'])}"]
     if completed:
-        lines.append("\n\n".join(goal_text(g, p, now) for g, p in completed))
-        lines += ["", "<i>To set a new target or delete one, tap ✏️ Edit goals.</i>"]
+        lines.append(f"🎉 {plural(len(completed), 'goal')} reached — nice work!")
+        lines += ["", fold_quote([goal_entry(g, p, now) for g, p in completed], 8)]
+        lines += ["", "✏️ <i>To set a new target or delete one, tap Edit goals.</i>"]
     else:
-        lines.append("No completed goals yet — keep going! 💪")
+        lines += ["", "No completed goals yet — keep going! 💪"]
     edit_row = [("✏️ Edit goals", f"gedit:{agent['id']}")] if completed else []
     return "\n".join(lines), keyboard(edit_row, [("⬅️ Goals", f"goals:{agent['id']}"), HOME])
 
@@ -1847,6 +1879,21 @@ ALMOST_PCT = 5        # within 5% of the next agent's score counts as "almost th
 OLD_LIST_DAYS = 7     # flag lists older than this
 
 
+def fold_quote(entries, shown: int) -> str:
+    """The first `shown` entries in a quote block, the rest folded away until tapped."""
+    if len(entries) - shown <= 2:  # not worth folding one or two away
+        shown = len(entries)
+    out = []
+    if entries[:shown]:
+        out.append("<blockquote>" + "\n".join(entries[:shown]) + "</blockquote>")
+    rest = entries[shown:]
+    if rest:
+        out.append("<blockquote expandable>"
+                   + f"👇 <i>{len(rest)} more — tap to open</i>\n" + "\n".join(rest)
+                   + "</blockquote>")
+    return "\n".join(out)
+
+
 def leaderboards_screen(conn, agent, note: str = ""):
     aid = agent["id"]
     now = datetime.now()
@@ -1899,19 +1946,7 @@ def leaderboards_screen(conn, agent, note: str = ""):
             return head
         return f"{head}\n      ╰ <b>{fmt_stat(b['stat'], b['gap'])}</b> to pass <i>{esc(b['rival'])}</i>"
 
-    def quote(entries, shown: int) -> str:
-        """The first `shown` entries in a quote, the rest folded away until tapped."""
-        if len(entries) - shown <= 2:  # not worth folding one or two away
-            shown = len(entries)
-        out = []
-        if entries[:shown]:
-            out.append("<blockquote>" + "\n".join(entries[:shown]) + "</blockquote>")
-        rest = entries[shown:]
-        if rest:
-            out.append("<blockquote expandable>"
-                       + f"👇 <i>{len(rest)} more — tap to open</i>\n" + "\n".join(rest)
-                       + "</blockquote>")
-        return "\n".join(out)
+    quote = fold_quote
 
     summary = []
     if almost:
