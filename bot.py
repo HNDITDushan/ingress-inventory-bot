@@ -948,9 +948,9 @@ HELP_TOPICS = [
         "Paste stats at least at the start and end of each day or week so progress is accurate."
     )),
     ("lb", "🏁 Leaderboards", (
-        "In 📊 Stats & goals tap 🏁 Leaderboards, pick a stat and paste a leaderboard, one agent per "
+        "In 📊 Stats & goals tap 🏁 Leaderboards → ✏️ Edit leaderboards, then ➕ Add leaderboard: pick a stat and paste it, one agent per "
         "line (<code>cristy92 163,477</code>). Text copied from the-grid.blue works too.\n\n"
-        "📎 Faster: tap 📎 Upload Excel and send the-grid's export (.xlsx) to update every board "
+        "📎 Faster: in ✏️ Edit leaderboards tap 📎 Upload Excel and send the-grid's export (.xlsx) to update every board "
         "in one go.\n\n"
         "I'll show your rank and who's next, and 🎯 can set a goal to pass them. When you pass "
         "them, the goal moves on to the next agent by itself. "
@@ -1640,18 +1640,18 @@ def goals_screen(conn, uid: int, agent):
         lines.append("\n\n".join(goal_text(g, p, now) for g, p in active))
         latest = stats.latest_snapshot(conn, agent["id"])
         lines += ["", f"<i>Based on stats from {fmt_ago(latest['taken_at'], now)}. "
-                      "Paste fresh stats to update. Tap a goal below for details.</i>"]
+                      "Paste fresh stats to update. To change or delete a goal, tap ✏️ Edit goals.</i>"]
     elif completed:
         lines.append("🎉 All your goals are done! Tap ➕ New goal to set another.")
     else:
         lines.append("No goals yet. Tap ➕ New goal to set one.")
-    goal_rows = [[(goal_button(g, p), f"goal:{g['id']}")] for g, p in active]
-    done_row = [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else []
+    aid = agent["id"]
+    done_row = [(f"🏆 Completed ({len(completed)})", f"gdone:{aid}")] if completed else []
+    edit_row = [("✏️ Edit goals", f"gedit:{aid}")] if active or completed else []
     return "\n".join(lines), keyboard(
-        *goal_rows,
         done_row,
-        [("➕ New goal", f"gnew:{agent['id']}")],
-        [("⬅️ Stats", f"stats:{agent['id']}"), HOME],
+        edit_row + [("➕ New goal", f"gnew:{aid}")],
+        [("⬅️ Stats", f"stats:{aid}"), HOME],
     )
 
 
@@ -1661,11 +1661,30 @@ def completed_goals_screen(conn, uid: int, agent):
     lines = [f"🏆 <b>Completed goals</b> · {esc(agent['name'])}", ""]
     if completed:
         lines.append("\n\n".join(goal_text(g, p, now) for g, p in completed))
-        lines += ["", "<i>Tap a goal to chase the next agent, change the target or delete it.</i>"]
+        lines += ["", "<i>To set a new target or delete one, tap ✏️ Edit goals.</i>"]
     else:
         lines.append("No completed goals yet — keep going! 💪")
-    rows = [[(f"🏆 {g['stat']}", f"goal:{g['id']}")] for g, _ in completed]
-    return "\n".join(lines), keyboard(*rows, [("⬅️ Goals", f"goals:{agent['id']}"), HOME])
+    edit_row = [("✏️ Edit goals", f"gedit:{agent['id']}")] if completed else []
+    return "\n".join(lines), keyboard(edit_row, [("⬅️ Goals", f"goals:{agent['id']}"), HOME])
+
+
+def edit_goals_screen(conn, uid: int, agent):
+    aid = agent["id"]
+    now = datetime.now()
+    active, completed = split_goals(goals_by_progress(conn, aid, now))
+    lines = [f"✏️ <b>Edit goals</b> · {esc(agent['name'])}", ""]
+    if active or completed:
+        lines.append("Tap a goal to change its target or delete it.")
+    else:
+        lines.append("No goals yet. Tap ➕ New goal to set one.")
+    rows = [[(goal_button(g, p), f"goal:{g['id']}")] for g, p in active]
+    rows += [[(f"🏆 {g['stat']} · {stats.PERIOD_LABEL[g['period']]}", f"goal:{g['id']}")]
+             for g, _ in completed]
+    return "\n".join(lines), keyboard(
+        *rows,
+        [("➕ New goal", f"gnew:{aid}")],
+        [("⬅️ Goals", f"goals:{aid}"), HOME],
+    )
 
 
 def goal_screen(conn, uid: int, goal, note: str = ""):
@@ -1713,7 +1732,7 @@ def goal_screen(conn, uid: int, goal, note: str = ""):
             nxt = stats.next_rival(board, agent["name"], p["done"])
             if nxt:
                 chase = [(f"🎯 Chase next: {nxt[0]}", f"lbgoal:{agent['id']}:{stat_idx}")]
-    back = ("⬅️ Completed", f"gdone:{agent['id']}") if p["complete"] else ("⬅️ Goals", f"goals:{agent['id']}")
+    back = ("⬅️ Edit goals", f"gedit:{agent['id']}")
     return "\n".join(lines), keyboard(
         chase,
         change,
@@ -1867,19 +1886,32 @@ def leaderboards_screen(conn, agent, note: str = ""):
             head += f"\n<i>{hint}</i>"
         lines += ["", head]
         lines += [entry(b, chase) for b in items]
-        for b in items:
-            if b["stat"] in stats.STAT_INDEX:
-                label = f"{emoji} {b['stat']}" + (f" · {fmt_short(b['gap'])} to go" if chase else "")
-                rows.append([(label, f"lb:{aid}:{stats.STAT_INDEX[b['stat']]}")])
 
     oldest = max(b["age"] for b in chasing + top)
     lines += ["", f"<i>Oldest list: {fmt_ago(now - oldest, now)}. Your scores come from your latest "
-                  "stats. Tap a board to see everyone or paste a newer list.</i>",
-              "📎 <i>Tap Upload Excel to update every board at once from the-grid's export.</i>"]
+                  "stats.</i>",
+              "<i>To see full lists, upload the Excel file, add or delete boards, tap "
+              "✏️ Edit leaderboards.</i>"]
     return "\n".join(lines), keyboard(
-        *rows,
-        [("➕ Add leaderboard", f"lbnew:{aid}"), ("📎 Upload Excel", f"lbfile:{aid}")],
+        [("✏️ Edit leaderboards", f"lbedit:{aid}")],
         [("⬅️ Stats", f"stats:{aid}"), HOME],
+    )
+
+
+def edit_leaderboards_screen(conn, agent, note: str = ""):
+    aid = agent["id"]
+    boards = [b for b in stats.list_leaderboards(conn, aid) if b["stat"] in stats.STAT_INDEX]
+    lines = [note] if note else []
+    lines += [f"✏️ <b>Edit leaderboards</b> · {esc(agent['name'])}", ""]
+    lines.append("📎 <b>Upload Excel</b> updates every board at once from the-grid's export.")
+    lines.append("➕ <b>Add leaderboard</b> pastes one list by hand.")
+    if boards:
+        lines += ["", "Tap a board to see everyone, paste a newer list or delete it."]
+    rows = [[(f"🏁 {b['stat']}", f"lb:{aid}:{stats.STAT_INDEX[b['stat']]}")] for b in boards]
+    return "\n".join(lines), keyboard(
+        [("📎 Upload Excel", f"lbfile:{aid}"), ("➕ Add leaderboard", f"lbnew:{aid}")],
+        *rows,
+        [("⬅️ Leaderboards", f"lbs:{aid}"), HOME],
     )
 
 
@@ -1913,7 +1945,7 @@ def leaderboard_screen(conn, agent, stat: str, note: str = ""):
     return "\n".join(lines), keyboard(
         goal_row,
         [("📋 Update list", f"lbstat:{aid}:{idx}"), ("🗑 Delete", f"lbdel:{aid}:{idx}")],
-        [("⬅️ Leaderboards", f"lbs:{aid}"), HOME],
+        [("⬅️ Edit leaderboards", f"lbedit:{aid}"), HOME],
     )
 
 
@@ -1951,7 +1983,7 @@ def lb_import_preview_screen(conn, agent, pending):
             rows.append([(f"➕ Update + add {len(new)} new", f"lbxl:{aid}:all")])
     elif new:
         rows.append([(f"➕ Add {plural(len(new), 'board')}", f"lbxl:{aid}:all")])
-    rows.append([("✖️ Cancel", f"lbs:{aid}")])
+    rows.append([("✖️ Cancel", f"lbedit:{aid}")])
     return "\n".join(lines), keyboard(*rows)
 
 
@@ -1963,7 +1995,7 @@ def lb_file_prompt_screen(agent):
         "2️⃣ Here, tap 📎 (attach) → <b>File</b> and pick that file.\n"
         "3️⃣ I'll show what changes before saving anything.\n\n"
         "<i>Every leaderboard in the file is read at once.</i>"
-    ), keyboard([("✖️ Cancel", f"lbs:{aid}")])
+    ), keyboard([("✖️ Cancel", f"lbedit:{aid}")])
 
 
 def btn_lb_file(conn, uid, ud, args):
@@ -2357,6 +2389,10 @@ def btn_goals_done(conn, uid, ud, args):
     return (*completed_goals_screen(conn, uid, _agent(conn, uid, args[0])), None)
 
 
+def btn_goals_edit(conn, uid, ud, args):
+    return (*edit_goals_screen(conn, uid, _agent(conn, uid, args[0])), None)
+
+
 def btn_goal(conn, uid, ud, args):
     return (*goal_screen(conn, uid, _goal(conn, uid, args[0])), None)
 
@@ -2400,6 +2436,10 @@ def btn_leaderboards(conn, uid, ud, args):
     return (*leaderboards_screen(conn, _agent(conn, uid, args[0])), None)
 
 
+def btn_leaderboards_edit(conn, uid, ud, args):
+    return (*edit_leaderboards_screen(conn, _agent(conn, uid, args[0])), None)
+
+
 def btn_leaderboard(conn, uid, ud, args):
     return (*leaderboard_screen(conn, *_board_args(conn, uid, args)), None)
 
@@ -2429,13 +2469,13 @@ def btn_leaderboard_goal(conn, uid, ud, args):
 def btn_leaderboard_delete(conn, uid, ud, args):
     agent, stat = _board_args(conn, uid, args)
     stats.delete_leaderboard(conn, agent["id"], stat)
-    return (*leaderboards_screen(conn, agent), "Leaderboard deleted")
+    return (*edit_leaderboards_screen(conn, agent), "Leaderboard deleted")
 
 
 def btn_goal_delete(conn, uid, ud, args):
     goal = _goal(conn, uid, args[0])
     stats.delete_goal(conn, goal["id"])
-    return (*goals_screen(conn, uid, _agent(conn, uid, goal["agent_id"])), "Goal deleted")
+    return (*edit_goals_screen(conn, uid, _agent(conn, uid, goal["agent_id"])), "Goal deleted")
 
 
 def btn_help(conn, uid, ud, args):
@@ -2492,6 +2532,7 @@ BUTTONS = {
     "statsall": btn_stats_all,
     "goals": btn_goals,
     "goal": btn_goal,
+    "gedit": btn_goals_edit,
     "gdone": btn_goals_done,
     "gnew": btn_goal_new,
     "gper": btn_goal_period,
@@ -2499,6 +2540,7 @@ BUTTONS = {
     "gdel": btn_goal_delete,
     "lbs": btn_leaderboards,
     "lb": btn_leaderboard,
+    "lbedit": btn_leaderboards_edit,
     "lbnew": btn_leaderboard_new,
     "lbstat": btn_leaderboard_stat,
     "lbgoal": btn_leaderboard_goal,
