@@ -1791,28 +1791,76 @@ def _my_value(conn, agent, stat: str) -> int:
     return snap["values"].get(stat, 0)
 
 
+ALMOST_PCT = 5        # within 5% of the next agent's score counts as "almost there"
+OLD_LIST_DAYS = 7     # flag lists older than this
+
+
 def leaderboards_screen(conn, agent):
     aid = agent["id"]
     now = datetime.now()
     boards = stats.list_leaderboards(conn, aid)
-    lines = [f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}", ""]
-    rows = []
+    lines = [f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}"]
     if not boards:
-        lines.append(
+        lines += ["", (
             "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
             "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard."
+        )]
+        return "\n".join(lines), keyboard(
+            [("➕ Add leaderboard", f"lbnew:{aid}")], [("⬅️ Stats", f"stats:{aid}"), HOME],
         )
+
+    chasing, top = [], []
     for board in boards:
         stat = board["stat"]
         mine = _my_value(conn, agent, stat)
-        rank = stats.my_rank(board, agent["name"], mine)
-        total = len(stats.rivals(board, agent["name"])) + 1
+        info = {
+            "stat": stat,
+            "rank": stats.my_rank(board, agent["name"], mine),
+            "total": len(stats.rivals(board, agent["name"])) + 1,
+            "age": now - board["updated_at"],
+        }
         nxt = stats.next_rival(board, agent["name"], mine)
-        chase = f"next: {esc(nxt[0])}, {fmt_num(nxt[1] - mine + 1)} to go" if nxt else "you're top 🥇"
-        lines.append(f"🏁 <b>{esc(stat)}</b>: #{rank} of {total} · {chase}")
-        lines.append(f"└ <i>list from {fmt_ago(board['updated_at'], now)}</i>")
-        if stat in stats.STAT_INDEX:
-            rows.append([(f"🏁 {stat}", f"lb:{aid}:{stats.STAT_INDEX[stat]}")])
+        if nxt is None:
+            top.append(info)
+            continue
+        info["rival"], info["gap"] = nxt[0], nxt[1] - mine + 1
+        info["gap_pct"] = info["gap"] * 100 / max(1, nxt[1])  # how far behind, relative to them
+        chasing.append(info)
+    chasing.sort(key=lambda b: b["gap_pct"])
+    top.sort(key=lambda b: b["stat"])
+    almost = [b for b in chasing if b["gap_pct"] <= ALMOST_PCT]
+    later = [b for b in chasing if b["gap_pct"] > ALMOST_PCT]
+
+    def entry(b, chase: bool) -> str:
+        head = f"<b>{esc(b['stat'])}</b> · #{b['rank']} of {b['total']}"
+        if b["age"].days >= OLD_LIST_DAYS:
+            head += f" · ⚠️ list {b['age'].days} days old"
+        if not chase:
+            return head
+        return f"{head}\n└ {fmt_stat(b['stat'], b['gap'])} to pass <b>{esc(b['rival'])}</b>"
+
+    sections = [
+        ("🔥", "Almost there", f"within {ALMOST_PCT}% of the next agent", almost, True),
+        ("🎯", "Keep chasing", "closest first", later, True),
+        ("🥇", "You're on top", None, top, False),
+    ]
+    rows = []
+    for emoji, title, hint, items, chase in sections:
+        if not items:
+            continue
+        head = f"{emoji} <b>{title}</b> ({len(items)})"
+        if hint:
+            head += f"\n<i>{hint}</i>"
+        lines += ["", head]
+        lines += [entry(b, chase) for b in items]
+        for b in items:
+            if b["stat"] in stats.STAT_INDEX:
+                label = f"{emoji} {b['stat']}" + (f" · {fmt_short(b['gap'])} to go" if chase else "")
+                rows.append([(label, f"lb:{aid}:{stats.STAT_INDEX[b['stat']]}")])
+
+    oldest = max(b["age"] for b in chasing + top)
+    lines += ["", f"<i>Oldest list: {fmt_ago(now - oldest, now)}. Your scores come from your latest "
+                  "stats. Tap a board to see everyone or paste a newer list.</i>"]
     return "\n".join(lines), keyboard(
         *rows,
         [("➕ Add leaderboard", f"lbnew:{aid}")],
