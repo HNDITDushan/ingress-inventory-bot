@@ -120,6 +120,10 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
   them. When a stats paste moves you past someone you get a 🚀 note and a button
   to chase the next agent. Lifetime goals now show progress from where you were
   when you set them.
+- **📎 Upload Excel** (on the Leaderboards screen): send the-grid.blue's Excel
+  export (.xlsx) and every leaderboard in it is updated at once, after a preview.
+  "Pass X" goals move on by themselves: when you pass X the goal becomes "pass"
+  the next agent up, and a newer list keeps the target current.
 
 Buttons never expire. Old menus keep working, even after the bot restarts.
 

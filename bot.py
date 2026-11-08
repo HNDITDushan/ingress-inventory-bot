@@ -950,9 +950,10 @@ HELP_TOPICS = [
     ("lb", "🏁 Leaderboards", (
         "In 📊 Stats & goals tap 🏁 Leaderboards, pick a stat and paste a leaderboard, one agent per "
         "line (<code>cristy92 163,477</code>). Text copied from the-grid.blue works too.\n\n"
-        "📎 Faster: send the-grid's Excel export (.xlsx) as a file and I'll update every board "
+        "📎 Faster: tap 📎 Upload Excel and send the-grid's export (.xlsx) to update every board "
         "in one go.\n\n"
-        "I'll show your rank and who's next, and 🎯 can set a goal to pass them. "
+        "I'll show your rank and who's next, and 🎯 can set a goal to pass them. When you pass "
+        "them, the goal moves on to the next agent by itself. "
         "When new stats move you past someone, you get a 🚀 note."
     )),
     ("cmds", "⌘ Commands", (
@@ -1564,6 +1565,9 @@ def stats_saved_screen(conn, uid: int, text: str):
                 lines.append(f"└ …and {len(gains) - 12} more")
 
     chase_row = []
+    moved = {}
+    if is_new and (previous is None or previous["taken_at"] < parsed["taken_at"]):
+        moved = refresh_rival_goals(conn, agent)
     if is_new and previous and previous["taken_at"] < parsed["taken_at"]:
         rival_lines = []
         for board in stats.list_leaderboards(conn, aid):
@@ -1578,12 +1582,17 @@ def stats_saved_screen(conn, uid: int, text: str):
             rank = stats.my_rank(board, agent["name"], mine)
             rival_lines.append(f"🚀 You passed {names} in <b>{esc(stat)}</b> — now #{rank}!")
             nxt = stats.next_rival(board, agent["name"], mine)
-            if nxt:
+            if stat in moved:
+                rival_lines.append(moved.pop(stat))
+            elif nxt:
                 rival_lines.append(f"└ Next: {esc(nxt[0])}, {fmt_num(nxt[1] - mine + 1)} to go")
                 if not chase_row and stat in stats.STAT_INDEX:
                     chase_row = [(f"🎯 Chase {nxt[0]}", f"lbgoal:{aid}:{stats.STAT_INDEX[stat]}")]
         if rival_lines:
             lines += [""] + rival_lines
+
+    if moved:
+        lines += [""] + list(moved.values())
 
     goals = goals_by_progress(conn, aid, now)
     if goals:
@@ -1807,10 +1816,11 @@ def leaderboards_screen(conn, agent, note: str = ""):
         lines += ["", (
             "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
             "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard.\n\n"
-            "📎 Or send the-grid's Excel export (.xlsx) here to add them all at once."
+            "📎 Or tap Upload Excel to add them all at once from the-grid's export."
         )]
         return "\n".join(lines), keyboard(
-            [("➕ Add leaderboard", f"lbnew:{aid}")], [("⬅️ Stats", f"stats:{aid}"), HOME],
+            [("➕ Add leaderboard", f"lbnew:{aid}"), ("📎 Upload Excel", f"lbfile:{aid}")],
+            [("⬅️ Stats", f"stats:{aid}"), HOME],
         )
 
     chasing, top = [], []
@@ -1865,10 +1875,10 @@ def leaderboards_screen(conn, agent, note: str = ""):
     oldest = max(b["age"] for b in chasing + top)
     lines += ["", f"<i>Oldest list: {fmt_ago(now - oldest, now)}. Your scores come from your latest "
                   "stats. Tap a board to see everyone or paste a newer list.</i>",
-              "📎 <i>Send the-grid's Excel export (.xlsx) to update every board at once.</i>"]
+              "📎 <i>Tap Upload Excel to update every board at once from the-grid's export.</i>"]
     return "\n".join(lines), keyboard(
         *rows,
-        [("➕ Add leaderboard", f"lbnew:{aid}")],
+        [("➕ Add leaderboard", f"lbnew:{aid}"), ("📎 Upload Excel", f"lbfile:{aid}")],
         [("⬅️ Stats", f"stats:{aid}"), HOME],
     )
 
@@ -1945,6 +1955,23 @@ def lb_import_preview_screen(conn, agent, pending):
     return "\n".join(lines), keyboard(*rows)
 
 
+def lb_file_prompt_screen(agent):
+    aid = agent["id"]
+    return (
+        f"📎 <b>Upload leaderboards</b> · {esc(agent['name'])}\n\n"
+        "1️⃣ On the-grid.blue, download your rankings as Excel (.xlsx).\n"
+        "2️⃣ Here, tap 📎 (attach) → <b>File</b> and pick that file.\n"
+        "3️⃣ I'll show what changes before saving anything.\n\n"
+        "<i>Every leaderboard in the file is read at once.</i>"
+    ), keyboard([("✖️ Cancel", f"lbs:{aid}")])
+
+
+def btn_lb_file(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "lb_file", "agent_id": agent["id"]}
+    return (*lb_file_prompt_screen(agent), None)
+
+
 def _pending_import(ud):
     pending = ud.get("lb_import")
     if not pending:
@@ -1969,7 +1996,48 @@ def btn_lb_import_save(conn, uid, ud, args):
             saved += 1
     ud.pop("lb_import", None)
     note = f"✅ Updated {plural(saved, 'leaderboard')} from the file.\n"
+    moved = refresh_rival_goals(conn, agent)
+    if moved:
+        note += "\n" + "\n".join(moved.values()) + "\n"
     return (*leaderboards_screen(conn, agent, note), "Leaderboards updated")
+
+
+def is_rival_goal(goal) -> bool:
+    return goal["period"] == "lifetime" and (goal["note"] or "").startswith("pass ")
+
+
+def refresh_rival_goals(conn, agent, only=None):
+    """Keep "pass X" goals pointed at the next agent up. Returns {stat: note line}.
+
+    A reached goal moves on to the next agent; an open one follows the latest
+    list. A goal stays done when you're #1.
+    """
+    now = datetime.now()
+    notes = {}
+    for goal in stats.list_goals(conn, agent["id"]):
+        stat = goal["stat"]
+        if not is_rival_goal(goal) or (only is not None and stat not in only):
+            continue
+        board = stats.get_leaderboard(conn, agent["id"], stat)
+        if board is None:
+            continue
+        mine = _my_value(conn, agent, stat)
+        nxt = stats.next_rival(board, agent["name"], mine)
+        if nxt is None:
+            continue
+        target, note = nxt[1] + 1, f"pass {nxt[0]}"
+        reached = mine >= goal["target"]
+        if not reached and (target, note) == (goal["target"], goal["note"]):
+            continue
+        start = mine if reached else goal["start_value"]
+        stats.set_goal(conn, agent["id"], stat, "lifetime", target, now, note=note, start_value=start)
+        to_go = fmt_stat(stat, target - mine)
+        if reached:
+            notes[stat] = (f"🏆 Goal done: {esc(goal['note'])} in <b>{esc(stat)}</b>!\n"
+                           f"└ 🎯 New goal: pass <b>{esc(nxt[0])}</b>, {to_go} to go")
+        elif note != goal["note"]:
+            notes[stat] = f"🎯 <b>{esc(stat)}</b> goal now: pass <b>{esc(nxt[0])}</b>, {to_go} to go"
+    return notes
 
 
 def set_rival_goal(conn, agent, stat: str):
@@ -2436,6 +2504,7 @@ BUTTONS = {
     "lbgoal": btn_leaderboard_goal,
     "lbdel": btn_leaderboard_delete,
     "lbxp": btn_lb_import_pick,
+    "lbfile": btn_lb_file,
     "lbxl": btn_lb_import_save,
     "help": btn_help,
     "catalog": btn_catalog,
@@ -2529,7 +2598,7 @@ async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                       keyboard([HOME]))
         return
 
-    context.user_data.pop("awaiting", None)
+    awaiting = context.user_data.pop("awaiting", None) or {}
     context.user_data["lb_import"] = {"boards": boards, "skipped": skipped}
     with closing(get_conn()) as conn, conn:
         ensure_user(conn, uid)
@@ -2541,7 +2610,8 @@ async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "then send the file again."
             ), keyboard([HOME]))
             return
-        agent = _guess_agent(agents, name, boards)
+        chosen = [a for a in agents if awaiting.get("kind") == "lb_file" and a["id"] == awaiting.get("agent_id")]
+        agent = chosen[0] if chosen else _guess_agent(agents, name, boards)
         if agent is None:
             await respond(update, *lb_import_pick_screen(conn, uid, agents))
         else:
@@ -2613,8 +2683,20 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data.pop("awaiting", None)
                 stats.save_leaderboard(conn, agent["id"], awaiting["stat"], entries, datetime.now())
                 note = f"✅ Saved {plural(len(entries), 'agent')}.\n"
+                moved = refresh_rival_goals(conn, agent, only={awaiting["stat"]})
+                if moved:
+                    note += "\n".join(moved.values()) + "\n"
                 await respond(update, *leaderboard_screen(conn, agent, awaiting["stat"], note))
                 return
+
+        if kind == "lb_file":
+            await respond(
+                update,
+                "📎 I'm waiting for the Excel file. Tap 📎 (attach) → <b>File</b> and pick the "
+                ".xlsx, or tap Cancel.",
+                keyboard([("✖️ Cancel", f"lbs:{awaiting['agent_id']}")]),
+            )
+            return
 
         if kind in ("goal_stat", "goal_target"):
             agent = stats.get_agent(conn, uid, awaiting["agent_id"])
