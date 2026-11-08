@@ -1546,12 +1546,15 @@ def stats_saved_screen(conn, uid: int, text: str):
     aid = agent["id"]
     values = parsed["values"]
 
-    headline = f"✅ Stats saved for <b>{esc(agent['name'])}</b>"
+    lines = [f"✅ <b>STATS SAVED</b> · {esc(agent['name'])}"]
+    card = []
     if "Level" in values:
-        headline += f" · L{values['Level']}"
+        card.append(f"🎖 L{values['Level']}")
     if "Lifetime AP" in values:
-        headline += f" · {fmt_num(values['Lifetime AP'])} AP"
-    lines = [headline]
+        card.append(f"⚡ {fmt_num(values['Lifetime AP'])} AP")
+    if card:
+        lines.append("  ·  ".join(card))
+    gained = {}
     if not is_new:
         lines.append("ℹ️ I already had stats from that exact time, so nothing changed.")
     elif previous and previous["taken_at"] > parsed["taken_at"]:
@@ -1562,11 +1565,12 @@ def stats_saved_screen(conn, uid: int, text: str):
             for s in stats.PICK_ORDER
             if s in values and s in previous["values"] and values[s] > previous["values"][s]
         ]
+        gained = dict(gains)
         if gains:
-            lines += ["", f"📈 <b>Since your last stats</b> ({fmt_ago(previous['taken_at'], now)})"]
-            lines += [f"└ {esc(s)}: +{fmt_stat(s, d)}" for s, d in gains[:12]]
-            if len(gains) > 12:
-                lines.append(f"└ …and {len(gains) - 12} more")
+            lines += ["", f"📈 <b>SINCE LAST STATS</b> · <i>{fmt_ago(previous['taken_at'], now)}</i>\n"
+                          + fold_quote([f"➕ {esc(s)}  <b>+{fmt_stat(s, d)}</b>" for s, d in gains], 6)]
+        else:
+            lines += ["", "😴 <i>No changes since your last stats.</i>"]
 
     chase_row = []
     moved = {}
@@ -1589,21 +1593,17 @@ def stats_saved_screen(conn, uid: int, text: str):
             if stat in moved:
                 rival_lines.append(moved.pop(stat))
             elif nxt:
-                rival_lines.append(f"└ Next: {esc(nxt[0])}, {fmt_num(nxt[1] - mine + 1)} to go")
+                rival_lines.append(f"      ╰ Next: <i>{esc(nxt[0])}</i>, <b>{fmt_num(nxt[1] - mine + 1)}</b> to go")
                 if not chase_row and stat in stats.STAT_INDEX:
                     chase_row = [(f"🎯 Chase {nxt[0]}", f"lbgoal:{aid}:{stats.STAT_INDEX[stat]}")]
-        if rival_lines:
-            lines += [""] + rival_lines
-
-    if moved:
-        lines += [""] + list(moved.values())
+    else:
+        rival_lines = []
+    highlights = rival_lines + list(moved.values())
 
     goals = goals_by_progress(conn, aid, now)
     if goals:
-        cheers, goal_lines = [], []
+        cheers = []
         for g, p in goals:
-            if not p["complete"]:
-                goal_lines.append(goal_line(g, p))
             if p["complete"]:
                 if stats.mark_alert(conn, g["id"], p["key"], "done", now):
                     cheers.append(
@@ -1614,14 +1614,24 @@ def stats_saved_screen(conn, uid: int, text: str):
                     f"🔥 Almost there: {p['pct']}% of your {goal_label(g)} — "
                     f"just {fmt_num(p['remaining'])} to go!"
                 )
-        if cheers:
-            lines += [""] + cheers
-        if goal_lines:
-            lines += ["", "🎯 <b>Goals</b>"] + goal_lines
-        done_count = len(goals) - len(goal_lines)
-        if done_count:
-            lines += ["", f"🏆 {plural(done_count, 'goal')} completed — see 🏆 Completed in 🎯 Goals."]
+        highlights += cheers
+        if highlights:
+            lines += ["", "🎉 <b>HIGHLIGHTS</b>\n<blockquote>" + "\n".join(highlights) + "</blockquote>"]
+        active, completed = split_goals(goals)
+        moved_goals = [gp for gp in active if gp[0]["stat"] in gained]
+        other_goals = [gp for gp in active if gp[0]["stat"] not in gained]
+        if moved_goals:
+            lines += ["", "📈 <b>GOALS THAT MOVED</b>\n"
+                          + fold_quote([goal_entry(g, p, now) for g, p in moved_goals], 5)]
+        if other_goals:
+            title = "🎯 <b>OTHER GOALS</b>" if moved_goals else "🎯 <b>GOALS</b>"
+            lines += ["", f"{title}\n<i>closest first</i>\n"
+                          + fold_quote([goal_entry(g, p, now) for g, p in other_goals], 3)]
+        if completed:
+            lines += ["", f"🏆 <i>{plural(len(completed), 'goal')} completed — see 🎯 Goals → 🏆 Completed.</i>"]
     else:
+        if highlights:
+            lines += ["", "🎉 <b>HIGHLIGHTS</b>\n<blockquote>" + "\n".join(highlights) + "</blockquote>"]
         lines += ["", "💡 Tap ➕ New goal to set daily, weekly, monthly, yearly or lifetime targets."]
 
     return "\n".join(lines), keyboard(
@@ -2144,7 +2154,7 @@ def refresh_rival_goals(conn, agent, only=None):
         to_go = fmt_stat(stat, target - mine)
         if reached:
             notes[stat] = (f"🏆 Goal done: {esc(goal['note'])} in <b>{esc(stat)}</b>!\n"
-                           f"└ 🎯 New goal: pass <b>{esc(nxt[0])}</b>, {to_go} to go")
+                           f"      ╰ 🎯 New goal: pass <b>{esc(nxt[0])}</b>, {to_go} to go")
         elif note != goal["note"]:
             notes[stat] = f"🎯 <b>{esc(stat)}</b> goal now: pass <b>{esc(nxt[0])}</b>, {to_go} to go"
     return notes
