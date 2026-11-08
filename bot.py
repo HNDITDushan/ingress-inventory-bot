@@ -597,9 +597,29 @@ def change_note(item: str, op: str, amount: int, old: int, new: int) -> str:
     return note
 
 
+def visible_len(text: str) -> int:
+    """Length as Telegram counts it: without HTML tags, entities as one character."""
+    return len(html.unescape(re.sub(r"<[^>]+>", "", text)))
+
+
 def split_message(text: str):
-    if len(text) <= MAX_MESSAGE_LEN:
+    if visible_len(text) <= MAX_MESSAGE_LEN:
         return [text]
+    chunks, current = [], ""
+    for block in text.split("\n\n"):
+        if current and visible_len(current) + visible_len(block) + 2 > MAX_MESSAGE_LEN:
+            chunks.append(current)
+            current = block
+        else:
+            current = f"{current}\n\n{block}" if current else block
+    if current:
+        chunks.append(current)
+    if all(visible_len(c) <= MAX_MESSAGE_LEN for c in chunks):
+        return chunks
+    return split_lines(text)
+
+
+def split_lines(text: str):
     chunks, current = [], ""
     for part in text.split("\n"):
         if current and len(current) + len(part) + 1 > MAX_MESSAGE_LEN:
@@ -1354,6 +1374,8 @@ def fmt_num(n: int) -> str:
 
 def fmt_stat(stat: str, n: int) -> str:
     unit = stats.STAT_UNITS.get(stat)
+    if unit and n == 1 and unit.endswith("s"):
+        unit = unit[:-1]
     return f"{n:,} {unit}" if unit else f"{n:,}"
 
 
@@ -1830,7 +1852,7 @@ def leaderboards_screen(conn, agent, note: str = ""):
     now = datetime.now()
     boards = stats.list_leaderboards(conn, aid)
     lines = [note] if note else []
-    lines.append(f"🏁 <b>Leaderboards</b> · {esc(agent['name'])}")
+    lines.append(f"🏁 <b>LEADERBOARDS</b> · {esc(agent['name'])}")
     if not boards:
         lines += ["", (
             "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
@@ -1864,34 +1886,55 @@ def leaderboards_screen(conn, agent, note: str = ""):
     almost = [b for b in chasing if b["gap_pct"] <= ALMOST_PCT]
     later = [b for b in chasing if b["gap_pct"] > ALMOST_PCT]
 
+    def badge(rank: int) -> str:
+        return {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, "🏅" if rank <= 10 else "🔹")
+
     def entry(b, chase: bool) -> str:
-        head = f"<b>{esc(b['stat'])}</b> · #{b['rank']} of {b['total']}"
+        # Exports stop at you, so "/total" only means something when people are listed below you.
+        place = f"#{b['rank']}/{b['total']}" if b["rank"] < b["total"] else f"#{b['rank']}"
+        head = f"{badge(b['rank'])} <b>{esc(b['stat'])}</b>  <code>{place}</code>"
         if b["age"].days >= OLD_LIST_DAYS:
-            head += f" · ⚠️ list {b['age'].days} days old"
+            head += f" ⚠️ {b['age'].days}d old"
         if not chase:
             return head
-        return f"{head}\n└ {fmt_stat(b['stat'], b['gap'])} to pass <b>{esc(b['rival'])}</b>"
+        return f"{head}\n      ╰ <b>{fmt_stat(b['stat'], b['gap'])}</b> to pass <i>{esc(b['rival'])}</i>"
 
-    sections = [
-        ("🔥", "Almost there", f"within {ALMOST_PCT}% of the next agent", almost, True),
-        ("🎯", "Keep chasing", "closest first", later, True),
-        ("🥇", "You're on top", None, top, False),
-    ]
-    rows = []
-    for emoji, title, hint, items, chase in sections:
-        if not items:
-            continue
-        head = f"{emoji} <b>{title}</b> ({len(items)})"
-        if hint:
-            head += f"\n<i>{hint}</i>"
-        lines += ["", head]
-        lines += [entry(b, chase) for b in items]
+    def quote(entries, shown: int) -> str:
+        """The first `shown` entries in a quote, the rest folded away until tapped."""
+        if len(entries) - shown <= 2:  # not worth folding one or two away
+            shown = len(entries)
+        out = []
+        if entries[:shown]:
+            out.append("<blockquote>" + "\n".join(entries[:shown]) + "</blockquote>")
+        rest = entries[shown:]
+        if rest:
+            out.append("<blockquote expandable>"
+                       + f"👇 <i>{len(rest)} more — tap to open</i>\n" + "\n".join(rest)
+                       + "</blockquote>")
+        return "\n".join(out)
+
+    summary = []
+    if almost:
+        summary.append(f"🔥 {len(almost)} close")
+    if later:
+        summary.append(f"🎯 {len(later)} chasing")
+    if top:
+        summary.append(f"🥇 {len(top)} on top")
+    lines += ["  ·  ".join(summary)]
+
+    if almost:
+        lines += ["", f"🔥 <b>ALMOST THERE</b>\n<i>within {ALMOST_PCT}% of the next agent</i>\n"
+                      + quote([entry(b, True) for b in almost], 5)]
+    if later:
+        lines += ["", "🎯 <b>KEEP CHASING</b>\n<i>closest first</i>\n"
+                      + quote([entry(b, True) for b in later], 3)]
+    if top:
+        lines += ["", "🥇 <b>YOU'RE ON TOP</b>\n" + quote([entry(b, False) for b in top], 5)]
 
     oldest = max(b["age"] for b in chasing + top)
-    lines += ["", f"<i>Oldest list: {fmt_ago(now - oldest, now)}. Your scores come from your latest "
-                  "stats.</i>",
-              "<i>To see full lists, upload the Excel file, add or delete boards, tap "
-              "✏️ Edit leaderboards.</i>"]
+    lines += ["", f"🕒 <i>Oldest list: {fmt_ago(now - oldest, now)} · your scores come from your "
+                  "latest stats.</i>\n"
+                  "✏️ <i>Full lists, Excel upload, add or delete: tap Edit leaderboards.</i>"]
     return "\n".join(lines), keyboard(
         [("✏️ Edit leaderboards", f"lbedit:{aid}")],
         [("⬅️ Stats", f"stats:{aid}"), HOME],
