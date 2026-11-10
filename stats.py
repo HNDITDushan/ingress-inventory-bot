@@ -247,6 +247,10 @@ def init_stats_db(conn):
         )
         """
     )
+    agent_columns = {row["name"] for row in conn.execute("PRAGMA table_info(agents)")}
+    if "started_on" not in agent_columns:
+        # The day the agent started playing (YYYY-MM-DD), for lifetime averages.
+        conn.execute("ALTER TABLE agents ADD COLUMN started_on TEXT")
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(goals)")}
     if "note" not in columns:
         conn.execute("ALTER TABLE goals ADD COLUMN note TEXT NOT NULL DEFAULT ''")
@@ -405,6 +409,61 @@ def gain_between(conn, agent_id: int, stat: str, start: datetime, end: datetime)
         # False when only one snapshot was available, so nothing could be compared.
         "measured": base["taken_at"] < last["taken_at"],
     }
+
+
+INGRESS_LAUNCH = datetime(2012, 11, 15)
+
+
+def parse_start_date(text: str):
+    """'2017-03-01', '2017/3/1', '01.03.2017' or '2017-03' -> datetime, or None."""
+    text = text.strip()
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d.%m.%Y", "%d/%m/%Y", "%Y-%m", "%Y/%m"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def set_start_date(conn, agent_id: int, day: datetime):
+    conn.execute("UPDATE agents SET started_on = ? WHERE id = ?", (day.strftime("%Y-%m-%d"), agent_id))
+
+
+def ap_report(conn, agent, now: datetime):
+    """AP gained today / this week / this month, and AP averages.
+
+    Averages use the agent's start date when set (whole career); otherwise
+    the AP gained between the first and latest pasted stats.
+    """
+    report = {}
+    for period in ("daily", "weekly", "monthly"):
+        start, end, _ = period_window(period, now)
+        report[period] = gain_between(conn, agent["id"], "Lifetime AP", start, end)
+
+    latest = latest_snapshot(conn, agent["id"])
+    total = latest["values"].get("Lifetime AP") if latest else None
+    per_day, since, basis = None, None, None
+    started = agent["started_on"] if "started_on" in agent.keys() else None
+    if started and total:
+        since = datetime.strptime(started, "%Y-%m-%d")
+        days = max(1.0, (latest["taken_at"] - since).total_seconds() / 86400)
+        per_day, basis = total / days, "career"
+    else:
+        first = conn.execute(
+            "SELECT * FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at LIMIT 1",
+            (agent["id"],),
+        ).fetchone()
+        first = _snapshot(first) if first else None
+        if first and latest and "Lifetime AP" in first["values"] and total:
+            days = (latest["taken_at"] - first["taken_at"]).total_seconds() / 86400
+            if days >= 1:
+                per_day = (total - first["values"]["Lifetime AP"]) / days
+                since, basis = first["taken_at"], "tracked"
+    report["avg"] = None if per_day is None else {
+        "day": round(per_day), "month": round(per_day * 30.44), "year": round(per_day * 365.25),
+        "since": since, "basis": basis,
+    }
+    return report
 
 
 def list_goals(conn, agent_id: int):

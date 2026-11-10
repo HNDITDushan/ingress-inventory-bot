@@ -1477,7 +1477,59 @@ SUMMARY_LABELS = [
 STATS_SCREEN_GOALS = 5
 
 
-def stats_screen(conn, uid: int, agent=None):
+def ap_section(conn, agent, now: datetime):
+    """The ⚡ AP block on the stats page."""
+    report = stats.ap_report(conn, agent, now)
+    rows, partial = [], None
+    for period, emoji, label in (("daily", "☀️", "Today"), ("weekly", "📅", "This week"),
+                                 ("monthly", "🗓", "This month")):
+        g = report[period]
+        if g is None or not g["measured"]:
+            rows.append(f"{emoji} {label}: <i>—</i>")
+            continue
+        start, _, _ = stats.period_window(period, now)
+        mark = ""
+        if g["base_at"] > start:
+            mark, partial = "*", min(partial or g["base_at"], g["base_at"])
+        rows.append(f"{emoji} {label}: <b>{fmt_num(g['gain'])}</b>{mark}")
+    avg = report["avg"]
+    if avg:
+        rows += [
+            f"📊 Avg / day: <b>{fmt_num(avg['day'])}</b>",
+            f"📊 Avg / month: <b>{fmt_num(avg['month'])}</b>",
+            f"📊 Avg / year: <b>{fmt_num(avg['year'])}</b>",
+        ]
+    notes = []
+    if partial:
+        notes.append(f"* counted from your first paste, {partial:%Y-%m-%d %H:%M}")
+    if any(report[p] is None or not report[p]["measured"] for p in ("daily", "weekly", "monthly")):
+        notes.append("— paste stats at least twice in a period to measure it")
+    if avg and avg["basis"] == "career":
+        notes.append(f"averages over your whole career, since {avg['since']:%Y-%m-%d}")
+    elif avg:
+        notes.append(f"averages since your first paste ({avg['since']:%Y-%m-%d}) — "
+                     "tap 📅 Start date for career averages")
+    else:
+        notes.append("averages need a day of pasted stats, or tap 📅 Start date")
+    return ("⚡ <b>AP</b>\n<blockquote>" + "\n".join(rows) + "</blockquote>\n"
+            + "\n".join(f"<i>{esc(n)}</i>" for n in notes))
+
+
+def start_date_prompt_screen(agent):
+    current = agent["started_on"]
+    lines = [f"📅 <b>Agent start date</b> · {esc(agent['name'])}", ""]
+    if current:
+        lines += [f"Now set to <b>{current}</b>.", ""]
+    lines += [
+        "When did you start playing Ingress? Send the date, like <code>2017-03-01</code> "
+        "(or just <code>2017-03</code>).",
+        "",
+        "<i>I use it for your AP averages per day, month and year.</i>",
+    ]
+    return "\n".join(lines), keyboard([("✖️ Cancel", f"stats:{agent['id']}")])
+
+
+def stats_screen(conn, uid: int, agent=None, note: str = ""):
     agents = stats.list_agents(conn, uid)
     agent = agent or agents[0]
     now = datetime.now()
@@ -1489,7 +1541,8 @@ def stats_screen(conn, uid: int, agent=None):
         who += f" · Level {values['Level']}"
     age = now - snap["taken_at"]
     fresh = "🕒" if age.total_seconds() < 86400 else "⚠️"
-    lines = [
+    lines = [note] if note else []
+    lines += [
         f"📊 <b>{esc(agent['name'])}</b>",
         who,
         f"{fresh} Updated {fmt_ago(snap['taken_at'], now)}",
@@ -1501,6 +1554,7 @@ def stats_screen(conn, uid: int, agent=None):
         f"{emoji} {label}: <b>{fmt_stat(stat, values[stat])}</b>"
         for stat, emoji, label in SUMMARY_LABELS if stat in values
     ]
+    lines += ["", ap_section(conn, agent, now)]
 
     goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")
@@ -1522,6 +1576,7 @@ def stats_screen(conn, uid: int, agent=None):
         [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
         [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else [],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
+        [("📅 Start date", f"astart:{agent['id']}")],
         *others[:5],
         [HOME],
     )
@@ -2460,6 +2515,12 @@ def btn_stats(conn, uid, ud, args):
     return (*stats_screen(conn, uid, agent), None)
 
 
+def btn_agent_start(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "agent_start", "agent_id": agent["id"]}
+    return (*start_date_prompt_screen(agent), None)
+
+
 def btn_stats_in(conn, uid, ud, args):
     ud["awaiting"] = {"kind": "stats"}
     return (*stats_prompt_screen(), None)
@@ -2616,6 +2677,7 @@ BUTTONS = {
     "descdel": btn_description_delete,
     "search": btn_search,
     "stats": btn_stats,
+    "astart": btn_agent_start,
     "statsin": btn_stats_in,
     "statsall": btn_stats_all,
     "goals": btn_goals,
@@ -2817,6 +2879,27 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if moved:
                     note += "\n".join(moved.values()) + "\n"
                 await respond(update, *leaderboard_screen(conn, agent, awaiting["stat"], note))
+                return
+
+        if kind == "agent_start":
+            agent = stats.get_agent(conn, uid, awaiting["agent_id"])
+            if agent is None:
+                context.user_data.pop("awaiting", None)
+            else:
+                day = stats.parse_start_date(text)
+                if day is None or not (stats.INGRESS_LAUNCH <= day <= datetime.now()):
+                    await respond(
+                        update,
+                        "🤔 I need a date between 2012-11-15 (Ingress launch) and today, like "
+                        "<code>2017-03-01</code>. Or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"stats:{agent['id']}")]),
+                    )
+                    return
+                context.user_data.pop("awaiting", None)
+                stats.set_start_date(conn, agent["id"], day)
+                agent = stats.get_agent(conn, uid, agent["id"])
+                note = f"✅ Start date set to <b>{day:%Y-%m-%d}</b>.\n"
+                await respond(update, *stats_screen(conn, uid, agent, note))
                 return
 
         if kind == "lb_file":
