@@ -1559,15 +1559,20 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
     goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")
     if goals:
-        lines.append(f"🎯 <b>Goals</b> · {len(goals)} active")
-        lines.append("<i>Closest to done first:</i>")
-        lines += [goal_line(g, p) for g, p in goals[:STATS_SCREEN_GOALS]]
+        rows = [f"{stats.PERIOD_EMOJI[g['period']]} {esc(g['stat'])}: "
+                f"<b>{fmt_stat(g['stat'], p['remaining'])}</b> to go · {p['pct']}%"
+                for g, p in goals[:STATS_SCREEN_GOALS]]
+        notes = ["closest to done first"]
         if len(goals) > STATS_SCREEN_GOALS:
-            lines.append(f"<i>…and {len(goals) - STATS_SCREEN_GOALS} more — tap 🎯 Goals.</i>")
+            notes.append(f"…and {len(goals) - STATS_SCREEN_GOALS} more — tap 🎯 Goals")
+        if completed:
+            notes.append(f"🏆 {plural(len(completed), 'goal')} completed — tap 🏆 Completed")
+        lines.append(f"🎯 <b>GOALS</b> · {len(goals)} active\n<blockquote>" + "\n".join(rows)
+                     + "</blockquote>\n" + "\n".join(f"<i>{n}</i>" for n in notes))
     else:
         lines.append("🎯 <i>No active goals — tap ➕ New goal.</i>")
-    if completed:
-        lines += ["", f"🏆 <b>{plural(len(completed), 'goal')} completed</b> — tap 🏆 Completed."]
+        if completed:
+            lines.append(f"<i>🏆 {plural(len(completed), 'goal')} completed — tap 🏆 Completed</i>")
 
     others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
     goals_label = f"🎯 Goals ({len(goals)})" if goals else "🎯 Goals"
