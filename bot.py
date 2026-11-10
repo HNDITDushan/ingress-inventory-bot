@@ -1475,6 +1475,7 @@ SUMMARY_LABELS = [
     ("Distance Walked", "🚶", "Walked"),
 ]
 STATS_SCREEN_GOALS = 5
+STATS_SCREEN_BOARDS = 5
 
 
 def ap_section(conn, agent, now: datetime):
@@ -1573,6 +1574,24 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         lines.append("🎯 <i>No active goals — tap ➕ New goal.</i>")
         if completed:
             lines.append(f"<i>🏆 {plural(len(completed), 'goal')} completed — tap 🏆 Completed</i>")
+
+    boards = stats.list_leaderboards(conn, agent["id"])
+    lines.append("")
+    if boards:
+        chasing, top = board_standings(conn, agent, boards, now)
+        rows = [f"#{b['rank']} {esc(b['stat'])}: <b>{fmt_stat(b['stat'], b['gap'])}</b> "
+                f"to pass {esc(b['rival'])}" for b in chasing[:STATS_SCREEN_BOARDS]]
+        notes = ["closest to passing first"] if rows else []
+        if len(chasing) > STATS_SCREEN_BOARDS:
+            notes.append(f"…and {len(chasing) - STATS_SCREEN_BOARDS} more — tap 🏁 Leaderboards")
+        if top:
+            notes.append(f"🥇 #1 on {plural(len(top), 'board')}")
+        block = f"🏁 <b>LEADERBOARDS</b> · {plural(len(boards), 'board')}"
+        if rows:
+            block += "\n<blockquote>" + "\n".join(rows) + "</blockquote>"
+        lines.append(block + "\n" + "\n".join(f"<i>{n}</i>" for n in notes))
+    else:
+        lines.append("🏁 <i>No leaderboards yet — tap 🏁 Leaderboards to add some.</i>")
 
     others = [[(f"👤 {a['name']}", f"stats:{a['id']}")] for a in agents if a["id"] != agent["id"]]
     goals_label = f"🎯 Goals ({len(goals)})" if goals else "🎯 Goals"
@@ -1964,23 +1983,8 @@ def fold_quote(entries, shown: int) -> str:
     return "\n".join(out)
 
 
-def leaderboards_screen(conn, agent, note: str = ""):
-    aid = agent["id"]
-    now = datetime.now()
-    boards = stats.list_leaderboards(conn, aid)
-    lines = [note] if note else []
-    lines.append(f"🏁 <b>LEADERBOARDS</b> · {esc(agent['name'])}")
-    if not boards:
-        lines += ["", (
-            "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
-            "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard.\n\n"
-            "📎 Or tap Upload Excel to add them all at once from the-grid's export."
-        )]
-        return "\n".join(lines), keyboard(
-            [("➕ Add leaderboard", f"lbnew:{aid}"), ("📎 Upload Excel", f"lbfile:{aid}")],
-            [("⬅️ Stats", f"stats:{aid}"), HOME],
-        )
-
+def board_standings(conn, agent, boards, now: datetime):
+    """(chasing, top): where you stand on each board. Chasing is closest-to-passing first."""
     chasing, top = [], []
     for board in boards:
         stat = board["stat"]
@@ -2000,6 +2004,27 @@ def leaderboards_screen(conn, agent, note: str = ""):
         chasing.append(info)
     chasing.sort(key=lambda b: b["gap_pct"])
     top.sort(key=lambda b: b["stat"])
+    return chasing, top
+
+
+def leaderboards_screen(conn, agent, note: str = ""):
+    aid = agent["id"]
+    now = datetime.now()
+    boards = stats.list_leaderboards(conn, aid)
+    lines = [note] if note else []
+    lines.append(f"🏁 <b>LEADERBOARDS</b> · {esc(agent['name'])}")
+    if not boards:
+        lines += ["", (
+            "Paste a leaderboard (for example Glyph Hack Points from the-grid.blue) to see your "
+            "rank, who's next and how far ahead they are. Tap ➕ Add leaderboard.\n\n"
+            "📎 Or tap Upload Excel to add them all at once from the-grid's export."
+        )]
+        return "\n".join(lines), keyboard(
+            [("➕ Add leaderboard", f"lbnew:{aid}"), ("📎 Upload Excel", f"lbfile:{aid}")],
+            [("⬅️ Stats", f"stats:{aid}"), HOME],
+        )
+
+    chasing, top = board_standings(conn, agent, boards, now)
     almost = [b for b in chasing if b["gap_pct"] <= ALMOST_PCT]
     later = [b for b in chasing if b["gap_pct"] > ALMOST_PCT]
 
