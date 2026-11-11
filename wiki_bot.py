@@ -162,7 +162,7 @@ def intro_screen():
         "",
         "<b>භාවිතා කරන හැටි:</b>",
         "• <code>/ask ADA Refactor කියන්නේ මොකක්ද?</code>",
-        "• <code>/item Heat Sink</code> – item එකක සම්පූර්ණ විස්තර",
+        "• <code>/item Heat Sink</code> – item එකක විස්තර (<code>/item</code> තනියම = items ලැයිස්තුව)",
         "• <code>/compare XMP Burster vs Ultra Strike</code>",
         "• <code>/portal</code> – Portal ගැන විස්තර",
         "• <code>/wsearch Jarvis</code> – Wiki එකේ සොයන්න",
@@ -176,10 +176,75 @@ def intro_screen():
     if pages == 0:
         lines.append("<i>⏳ දැනුම් ගබඩාව තවම සකස් වෙමින් පවතිනවා. ටික වෙලාවකින් නැවත උත්සාහ කරන්න.</i>")
     return "\n".join(lines), kb(
-        [("❓ ප්‍රශ්නයක් අහන්න", "wask"), ("🧰 Item විස්තර", "witem")],
+        [("❓ ප්‍රශ්නයක් අහන්න", "wask"), ("🧰 Items", "wits")],
         [("⚔️ Compare", "wcmp"), ("🔍 Wiki සෙවීම", "wsrch")],
         [("🌀 Portals", "wport")],
         [HOME],
+    )
+
+
+# Item topics: groups shown in the 🧰 Items browser. Items from the wiki's
+# Category:Items that aren't listed here appear under "Other".
+ITEM_GROUPS = [
+    ("⚔️ Weapons", ["XMP Burster", "Ultra Strike", "ADA Refactor", "JARVIS Virus", "Flip Card"]),
+    ("🛡️ Portal Mods", ["Portal Shield", "Force Amp", "Turret", "Heat Sink", "Multi-Hack", "Link Amp",
+                        "ITO EN Transmuter"]),
+    ("🔋 Resonators & Power", ["Resonator", "Power Cube"]),
+    ("🔑 Keys & Storage", ["Portal Key", "Capsule", "Key Locker", "Media"]),
+    ("🚀 Boosts & Store", ["Apex", "Battle Beacon", "Beacon", "Portal Fracker"]),
+]
+ITEM_EMOJI = {
+    "XMP Burster": "💥", "Ultra Strike": "⚡", "ADA Refactor": "🔵", "JARVIS Virus": "🟢", "Flip Card": "🔄",
+    "Portal Shield": "🛡️", "Force Amp": "💪", "Turret": "🎯", "Heat Sink": "🔥", "Multi-Hack": "🔁",
+    "Link Amp": "📡", "ITO EN Transmuter": "🍵", "Resonator": "🔋", "Power Cube": "🧊", "Portal Key": "🔑",
+    "Capsule": "📦", "Key Locker": "🔐", "Media": "🎞️", "Apex": "⚡", "Battle Beacon": "🏁",
+    "Beacon": "📍", "Portal Fracker": "⛏️",
+}
+
+
+def item_groups():
+    """[(group label, [page rows])] from the wiki's Category:Items (static list as fallback)."""
+    titles = [t for t in store.category("Items") if t != "Items"]
+    if not titles:
+        titles = [t for _, ts in ITEM_GROUPS for t in ts]
+    pages = {t: store.get_page(t) for t in titles}
+    pages = {t: p for t, p in pages.items() if p is not None}
+    groups, used = [], set()
+    for label, names in ITEM_GROUPS:
+        rows = [pages[n] for n in names if n in pages]
+        used.update(names)
+        if rows:
+            groups.append((label, rows))
+    other = [p for t, p in sorted(pages.items()) if t not in used]
+    if other:
+        groups.append(("🧩 Other", other))
+    return groups
+
+
+def items_screen():
+    groups = item_groups()
+    total = sum(len(rows) for _, rows in groups)
+    parts = [f"🧰 <b>Ingress Items</b> · {total}",
+             "කාණ්ඩයක් තෝරන්න. Item එකක් ඔබපුවම සිංහල විස්තරය සහ Wiki පින්තූර එනවා."]
+    parts += [f"<b>{esc(label)}</b>\n<i>{esc(', '.join(p['title'] for p in rows))}</i>" for label, rows in groups]
+    parts.append("✍️ <i>නැත්නම් item එකේ නම type කරන්න (උදා: VRHS, Aegis).</i>")
+    buttons = [(f"{label} ({len(rows)})", f"witg:{i}") for i, (label, rows) in enumerate(groups)]
+    return "\n\n".join(parts), kb(
+        *[buttons[i:i + 2] for i in range(0, len(buttons), 2)],
+        [WIKI_HOME, HOME],
+    )
+
+
+def item_group_screen(index: int):
+    groups = item_groups()
+    if not 0 <= index < len(groups):
+        return items_screen()
+    label, rows = groups[index]
+    lines = [f"<b>{esc(label)}</b>", "", "Item එකක් තෝරන්න:"]
+    buttons = [(f"{ITEM_EMOJI.get(p['title'], '▫️')} {p['title']}", f"wpg:{p['pageid']}") for p in rows]
+    return "\n".join(lines), kb(
+        *[buttons[i:i + 2] for i in range(0, len(buttons), 2)],
+        [("⬅️ Items", "wits"), WIKI_HOME],
     )
 
 
@@ -434,9 +499,11 @@ async def static_answer(update: Update, question: str, mode: str, placeholder) -
     if await send_images(update, page):
         await _drop(placeholder)
         placeholder = None
+    is_item = any(p["pageid"] == page["pageid"] for _, rows in item_groups() for p in rows)
     await send(update, si_card(entry, page), kb(
         [("📖 Read Full Wiki", None, page["url"]), ("🔍 Related Topics", f"wrel:{page['pageid']}")],
-        [("⚔️ Compare Items", "wcmp"), ASK_AGAIN]), edit_message=placeholder)
+        [("⚔️ Compare Items", "wcmp"), ASK_AGAIN],
+        [("⬅️ Items", "wits"), WIKI_HOME] if is_item else []), edit_message=placeholder)
     return True
 
 
@@ -577,6 +644,10 @@ async def ask_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def item_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _args(context):
+        context.user_data["awaiting"] = {"kind": "wiki_item"}
+        await send(update, *items_screen())
+        return
     await _ask_or_prompt(update, context, "wiki_item")
 
 
@@ -672,7 +743,7 @@ HELP_TOPIC = ("wiki", "📚 Ingress Wiki (සිංහල)", (
 # Buttons and typed answers (called from bot.py)
 # ---------------------------------------------------------------------------
 
-BUTTON_ACTIONS = {"wiki", "wask", "witem", "wcmp", "wsrch", "wport", "wq", "wrel", "wpg"}
+BUTTON_ACTIONS = {"wiki", "wask", "witem", "wcmp", "wsrch", "wport", "wq", "wrel", "wpg", "wits", "witg"}
 
 
 async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str, args) -> None:
@@ -690,6 +761,12 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, acti
             kind = {"wask": "wiki_ask", "witem": "wiki_item", "wcmp": "wiki_compare", "wsrch": "wiki_search"}[action]
             ud["awaiting"] = {"kind": kind}
             await send(update, PROMPTS[kind], kb([("✖️ Cancel", "wiki")]))
+        elif action == "wits":
+            ud["awaiting"] = {"kind": "wiki_item"}
+            await send(update, *items_screen(), edit_message=query.message)
+        elif action == "witg":
+            ud["awaiting"] = {"kind": "wiki_item"}
+            await send(update, *item_group_screen(int(args[0])), edit_message=query.message)
         elif action == "wport":
             await ask(update, context, "Portals in Ingress", "portal")
         elif action == "wq":

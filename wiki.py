@@ -327,6 +327,11 @@ class WikiStore:
             (key, str(value)),
         )
 
+    def category(self, name: str):
+        """Titles of a wiki category saved at the last update (pages we have only)."""
+        titles = json.loads(self.get_meta(f"category:{name}", "[]"))
+        return [t for t in titles if self.get_page(t) is not None]
+
     def kb_version(self) -> str:
         return self.get_meta("kb_version", "0")
 
@@ -622,6 +627,14 @@ class WikiFetcher:
                     out[p["title"]] = info.get("thumburl") or info.get("url")
         return out
 
+    async def category_members(self, client, category: str):
+        """Main-namespace page titles in a wiki category (e.g. 'Items')."""
+        members, _ = await self._list(client, {
+            "action": "query", "list": "categorymembers", "cmtitle": f"Category:{category}",
+            "cmnamespace": 0, "cmlimit": "max",
+        }, key="categorymembers")
+        return [m["title"] for m in members]
+
     async def fetch_page(self, client, pageid: int):
         data = await self._get(client, {
             "action": "parse", "pageid": pageid, "prop": "text|revid|categories",
@@ -692,6 +705,8 @@ async def refresh_images(store: "WikiStore", fetcher: "WikiFetcher", client):
     return count
 
 
+TOPIC_CATEGORIES = ["Items"]   # wiki categories offered as browsable topics
+
 _update_lock = asyncio.Lock()
 
 
@@ -749,6 +764,14 @@ async def update_knowledge(store: WikiStore, fetcher: WikiFetcher = None, force:
                 stats["images"] = await refresh_images(store, fetcher, client)
             except WikiUnavailable as exc:
                 logger.warning("Wiki images not refreshed: %s", exc)
+
+            for cat in TOPIC_CATEGORIES:
+                try:
+                    titles = await fetcher.category_members(client, cat)
+                    with closing(store.connect()) as conn, conn:
+                        store.set_meta(conn, f"category:{cat}", json.dumps(titles))
+                except WikiUnavailable as exc:
+                    logger.warning("Wiki category %s not refreshed: %s", cat, exc)
 
             redirects = await fetcher.list_redirects(client)
             with closing(store.connect()) as conn, conn:
