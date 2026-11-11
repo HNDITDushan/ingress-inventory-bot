@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 bot_state.pickle
 bot.log
+wiki.db
+wiki.db-wal
+wiki.db-shm

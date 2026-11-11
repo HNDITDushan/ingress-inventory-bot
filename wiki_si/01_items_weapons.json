@@ -1,0 +1,149 @@
+[
+  {
+    "title": "ADA Refactor",
+    "revid": 17517,
+    "kw": ["ADA", "ඒඩා", "ADA වයිරස්", "ADA virus", "ADA refactor", "blue flip card", "නිල් flip card"],
+    "h": "🔵 ADA Refactor කියන්නේ මොකක්ද?",
+    "s": "ADA Refactor කියන්නේ Resistance පැත්තේ Flip Card එක. මේකෙන් Enlightened (කොළ) Portal එකක් එකපාරටම Resistance (නිල්) පැත්තට හරවන්න පුළුවන්. වැඩ කරන විදිහ JARVIS Virus එකට සමානයි — වෙනස තියෙන්නේ මේක Enlightened Portals වලට විතරක් පාවිච්චි කරන්න පුළුවන් එකයි.",
+    "p": [
+      "Rarity: Very Rare. Scanner update 1.26.0 එකේදී හඳුන්වා දුන්නා.",
+      "XM වැය වෙන්නේ Portal එකේ level එක අනුව — 1,000 XM සිට 8,000 XM දක්වා.",
+      "Recycle කළොත් 100 XM ලැබෙනවා.",
+      "Resistance එකට සම්බන්ධ වුණත් දෙපැත්තේම Agents ලට මේක පාවිච්චි කරන්න පුළුවන්.",
+      "Community අධ්‍යයන අනුව hack එකකදී ලැබෙන අවස්ථාව ආසන්න වශයෙන් 2,500 කින් 1යි (Agent සහ Portal faction එක මොකක් වුණත්).",
+      "Enlightened Agent කෙනෙක් Enlightened Portal එකක් ADA එකෙන් flip කළොත්, Portal එක, Mods සහ Resonators __ADA__ special account එකට අයිති වෙනවා."
+    ],
+    "sec": [
+      ["Flip Card එකක් කරන දේ", "Portal එකේ faction එක මාරු වෙනවා, Resonators සම්පූර්ණයෙන්ම recharge වෙනවා, Portal එකේ Links සහ Control Fields කැඩෙනවා (ඒකට AP හෝ stats ලැබෙන්නේ නැහැ). විස්තර සඳහා Flip Card පිටුව බලන්න."]
+    ]
+  },
+  {
+    "title": "JARVIS Virus",
+    "revid": 17516,
+    "kw": ["JARVIS", "ජාවිස්", "ජාවිස් වයිරස්", "jarvis virus", "green flip card", "කොළ flip card", "virus"],
+    "h": "🟢 JARVIS Virus කියන්නේ මොකක්ද?",
+    "s": "JARVIS Virus කියන්නේ Enlightened පැත්තේ Flip Card එක. මේකෙන් Resistance (නිල්) Portal එකක් එකපාරටම Enlightened (කොළ) පැත්තට හරවන්න පුළුවන්. මේකේ ක්‍රියාකාරිත්වය ADA Refactor එකට සමානමයි — වෙනස මේක Resistance Portals වලට විතරක් පාවිච්චි කිරීමයි.",
+    "p": [
+      "Rarity: Very Rare. Scanner update 1.26.0 එකේදී හඳුන්වා දුන්නා.",
+      "XM වැය: Portal level එක අනුව 1,000 XM – 8,000 XM.",
+      "Recycle කළොත් 100 XM.",
+      "Roland Jarvis Enlightened එකට සම්බන්ධ වුණත් දෙපැත්තේම Agents ලට පාවිච්චි කරන්න පුළුවන්.",
+      "Drop rate එක ආසන්න වශයෙන් hacking rolls 2,500 කින් 1යි.",
+      "Resistance Agent කෙනෙක් Resistance Portal එකක් JARVIS එකෙන් flip කළොත් Portal එක, Mods සහ Resonators __JARVIS__ special account එකට යනවා."
+    ],
+    "sec": [
+      ["ADA සහ JARVIS අතර වෙනස", "දෙකේම බලපෑම එකයි. වෙනස පෙනුම සහ ඉලක්ක කරන්න පුළුවන් Portals විතරයි: ADA Refactor → Enlightened Portals, JARVIS Virus → Resistance Portals."]
+    ]
+  },
+  {
+    "title": "Flip Card",
+    "revid": 18043,
+    "kw": ["flip card", "flipcard", "ෆ්ලිප් කාඩ්", "flip කරන්න", "portal flip", "පෝටල් එක හරවන්න"],
+    "h": "🔄 Flip Card කියන්නේ මොකක්ද?",
+    "s": "ADA Refactor සහ JARVIS Virus කියන items දෙකටම එකතුවෙලා කියන නම Flip Cards. මේවා Portal එකක් එකපාරටම විරුද්ධ faction එකට ‘flip’ කරනවා. දෙකේම බලපෑම එකයි; වෙනස පෙනුම සහ ඉලක්ක කරන්න පුළුවන් Portals විතරයි. Update 1.26.0 එකේදී හඳුන්වා දුන්නා.",
+    "p": [
+      "Rarity: Very Rare. Recycle value 100 XM.",
+      "දෙපැත්තේම Agents ලට flip cards දෙකම පාවිච්චි කරන්න පුළුවන්. Drop rate දෙකම ආසන්න වශයෙන් hacking rolls 2,500 කින් 1යි.",
+      "Ops menu එකෙන් activate කරලා, ඔබේ 40m area of influence එක ඇතුළේ තියෙන Portal එකක් තෝරන්න පුළුවන්.",
+      "Flip කළාම: Portal එකේ alignment එක මාරු වෙනවා, Resonators full recharge වෙනවා, Links සහ Control Fields කැඩෙනවා (AP, Portal Keys, stats කිසිවක් නැහැ).",
+      "Portal එකේ අලුත් පැත්ත ඔබේ පැත්ත නම්, Resonators සහ Mods වලට ඔබේ නම වැටෙනවා.",
+      "Flip කළාට පස්සේ විනාඩි 60ක් ඒ Portal එකට තවත් Flip Card එකක් පාවිච්චි කරන්න බැහැ.",
+      "Level 8 Portal එකක් flip කිරීම Scanner එකේ තනි ක්‍රියාවකට ඕන වෙන වැඩිම XM ප්‍රමාණයයි."
+    ],
+    "sec": [
+      ["XM වැය", "XM වැය Portal level එක අනුවයි: L1 = 1,000 XM, L2 = 2,000, L3 = 3,000, L4 = 4,000, L5 = 5,000, L6 = 6,000, L7 = 7,000, L8 = 8,000 XM. ඔබේ level එක 6 හෝ ඊට අඩු නම්, ඔබට වඩා level දෙකක් හෝ වැඩි Portals flip කරන්න බැහැ."],
+      ["Strategy – සතුරු Portal එකක් flip කිරීම", "• Resource Access – ඉහළ level සතුරු Portal එකක් ඔබේ පැත්තට හැරෙව්වම, ඒකෙන් වැඩිපුර items hack කරන්න පුළුවන් (විශේෂයෙන් සතුරා Heat Sinks සහ Multi-Hacks දාලා තිබුණොත්).\n• Resource Denial – සතුරා ඉහළ level Portal එකක් farm කරනවා නම්, ඒක flip කිරීමෙන් ඔවුන්ට ලැබෙන items අඩු කරන්න පුළුවන්."],
+      ["Strategy – තමන්ගේ Portal එකක් flip කිරීම", "• Lane Clearing – තමන්ගේ පැත්තේ Portal එකක Links කඩන්න තියෙන එකම ක්‍රමය ඒක flip කිරීමයි. Ops වලදී link lane එකක් අවහිර කරන links අයින් කරන්න මේක වැදගත්.\n• Defense – තමන්ගේ Portal එකක් flip කළාම, විනාඩි 60ක flip lockout එකක් ලැබෙනවා."]
+    ]
+  },
+  {
+    "title": "XMP Burster",
+    "revid": 18737,
+    "kw": ["XMP", "එක්ස්එම්පී", "xmp burster", "burster", "බර්ස්ටර්", "X8", "X7", "bomb", "බෝම්බ", "attack item"],
+    "h": "💥 XMP Burster කියන්නේ මොකක්ද?",
+    "s": "XMP Burster (Exotic Matter Pulse) කියන්නේ සතුරු Resonators සහ Mods විනාශ කරලා සතුරු Portals neutralize කරන්න පාවිච්චි කරන ප්‍රධාන weapon එක. Hack කිරීමෙන් වැඩියෙන්ම ලැබෙන weapon එකත් මේකයි (Very Common).",
+    "p": [
+      "Level 8ක් තියෙනවා (L1–L8). ඔබේ level එකට සමාන හෝ අඩු level XMP විතරයි පාවිච්චි කරන්න පුළුවන්.",
+      "පාවිච්චි කිරීමේ XM වැය: L1 = 50 XM සිට L8 = 400 XM දක්වා. Recycle value: 20 XM – 160 XM.",
+      "Damage සහ range එක level එකත් එක්ක වැඩි වෙනවා — උදා: L1 = 150 damage, 42 m range; L4 = 900 damage, 72 m range.",
+      "පිපිරීම ඔබ (Agent) කේන්ද්‍ර කරගෙනයි සිද්ධ වෙන්නේ. මැදට කිට්ටු Resonators වලට වැඩි damage එකක්.",
+      "'Fire' button එක තදකරගෙන charge කළොත් 20% දක්වා bonus damage ලැබෙනවා — XM රවුම පොඩි වෙලා තියෙද්දී අතහැරියොත් bonus වැඩියි.",
+      "Portal Shields වගේ Mods විනාශ කරන්න XMP එකට වඩා Ultra Strike හොඳයි."
+    ],
+    "sec": [
+      ["පාවිච්චි කරන හැටි", "Inventory එකෙන් weapon එකක් තෝරලා 'Fire' ඔබන්න, නැත්නම් Scanner map එකේ ඇඟිල්ල තියලා උඩට slide කරන්න. ඊට පස්සේ 'Fire' ඔබාම XMP එක පුපුරනවා; ළඟ තියෙන Resonators වලට damage වෙනවා, Mods විනාශ වෙන්නත් පුළුවන්."],
+      ["Damage ක්‍රමය", "Weapon එකේ උපරිම range එක සමාන කොටස් 5කට බෙදෙනවා. 0–20% දුරින් ඇති Resonators වලට raw damage එකෙන් 100%, 20–40% → 50%, 40–60% → 25%, 60–80% → 12.5%, 80–100% → 6.25%. Mitigation සහ critical hits මේ damage එක තවත් වෙනස් කරනවා."]
+    ]
+  },
+  {
+    "title": "Ultra Strike",
+    "revid": 16883,
+    "kw": ["ultra strike", "ultrastrike", "US", "US8", "අල්ට්‍රා ස්ට්‍රයික්", "අල්ට්‍රා"],
+    "h": "⚡ Ultra Strike කියන්නේ මොකක්ද?",
+    "s": "Ultra Strike කියන්නේ XMP weapon එකේම වර්ගයක්. මේකේ පිපිරීම XMP එකට වඩා බලවත්, හැබැයි range එක ගොඩක් පොඩියි. Portal Shields වගේ Portal Mods විනාශ කරන්නයි මේක විශේෂයෙන්ම හදලා තියෙන්නේ.",
+    "p": [
+      "Level 8ක් (L1–L8). XM වැය L1 = 50 XM සිට L8 = 400 XM. Recycle 20 XM – 160 XM.",
+      "Damage/range: L1 = 300 damage, 10 m; L4 = 1,800 damage, 18 m; L7 = 3,600 damage, 27 m.",
+      "Range එක පොඩි නිසා Portal එක මතම හිටගෙන පාවිච්චි කරන එක තමයි හොඳම.",
+      "Critical hit අවස්ථාව වැඩියි — Mods විනාශ වෙන්නේ critical hits වලින් විතරයි.",
+      "Very Common ලෙස සලකුණු කරලා තිබුණත්, hack කිරීමෙන් ලැබෙන්නේ XMP Bursters වලට වඩා ගොඩක් අඩුවෙන්.",
+      "මුලින්ම July 2013 (1.32.1) තෝරාගත් Motorola devices වලට, May 2014 (1.51.0) සියලු devices වලට ලැබුණා."
+    ],
+    "sec": [
+      ["පාවිච්චිය ගැන ඉඟි", "Resonators Portal එකෙන් ගොඩක් ඈතින් දාලා තියෙනවා නම්, Portal එක උඩම Ultra Strike එකක් පාවිච්චි කළොත් Resonators වලට වදින්නේ නැති වෙන්න පුළුවන්. එතකොට Portal එකෙන් counterattack එකක් එන්නේ නැහැ, COMM එකේ හෝ Resonators අයිති Agents ලට notification යන්නෙත් නැහැ."]
+    ]
+  },
+  {
+    "title": "Weapons",
+    "revid": 18740,
+    "kw": ["weapon", "weapons", "ආයුධ", "attack", "ප්‍රහාර", "critical hit", "ක්‍රිටිකල්"],
+    "h": "⚔️ Ingress Weapons මොනවද?",
+    "s": "Ingress වල weapons කියන්නේ XMP Bursters, Ultra Strikes සහ Flip Cards (ADA Refactor සහ JARVIS Virus). XMP සහ Ultra Strike වලින් සතුරු Resonators සහ Mods වලට damage කරනවා; Flip Cards වලින් Portal එකක faction එකම මාරු කරනවා.",
+    "p": [
+      "XMP Burster – Very Common (L1–L8). Range සහ damage වැඩියි, හැබැයි Mods විනාශ කරන්න එච්චර හොඳ නැහැ. වැඩියෙන්ම තියෙන weapon එක.",
+      "Ultra Strike – Very Common (L1–L8). Range අඩුයි, critical hit අවස්ථාව වැඩියි. Portal Shields සහ වෙනත් Mods විනාශ කරන්න හොඳම එක.",
+      "ADA Refactor – Enlightened Portals නිල් පැත්තට හරවනවා. JARVIS Virus – Resistance Portals කොළ පැත්තට හරවනවා.",
+      "Weapon range එක කොටස් 5කට බෙදිලා damage එක 100% → 50% → 25% → 12.5% → 6.25% ලෙස අඩු වෙනවා.",
+      "Critical hit එකකදී damage එක දෙගුණ වෙනවා (damage අංකය ඉස්සරහින් ! ලකුණක් පෙනෙනවා).",
+      "Mods විනාශ වෙන්නේ critical hits වලින් විතරයි; +80 AP එකක් පෙනුණොත් ඒ කියන්නේ Mod එකක් critical hit එකකින් විනාශ වුණා. Stickiness එකෙන් Mod එකකට critical hit එකකින් බේරෙන්න අවස්ථාවක් ලැබෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Resonator",
+    "revid": 18858,
+    "kw": ["reso", "resos", "resonators", "රෙසොනේටර්", "රෙසෝ", "R8", "R7", "res8", "deploy", "ඩිප්ලෝයි"],
+    "h": "🔋 Resonator කියන්නේ මොකක්ද?",
+    "s": "Resonator කියන්නේ Portal එකකට බලය (XM) දීලා ඒක faction එකකට align කරන XM object එකක්. Portal එකක slots 8ක් තියෙනවා; Resonators deploy කරලා තමයි Portal එකක් capture කරන්නේ සහ level කරන්නේ.",
+    "p": [
+      "Level 8ක් (L1–L8). Deploy කිරීමේ XM වැය 50 XM – 400 XM; recycle 20 XM – 160 XM.",
+      "එක Agent කෙනෙකුට එක Portal එකක දාන්න පුළුවන් උපරිම: L1 = 8, L2–L4 = 4 බැගින්, L5–L6 = 2 බැගින්, L7–L8 = 1 බැගින්.",
+      "Portal එකට දෙන XM: L1 = 1,000 XM සිට L8 = 6,000 XM දක්වා.",
+      "Portal level = slots 8ම Resonator levels වල සාමාන්‍යය, පහළට round කරලා. හිස් slot එකක් 0 ලෙස ගණන් ගන්නවා (අවම Portal level එක 1).",
+      "උදා: L8 Resonators 4ක් විතරක් තියෙන Portal එක Level 4යි. L8 7ක් සහ L7 1ක් තියෙනවා නම් Level 7යි.",
+      "Resonators වල XM දවසකට (පැය 24) capacity එකෙන් 15% බැගින් decay වෙනවා; සතුරු ප්‍රහාර වලින්ද අඩු වෙනවා."
+    ],
+    "sec": [
+      ["XM සහ සටන්", "XMP Burster හෝ Ultra Strike එකකින් පහර දුන්නාම Resonator එකේ XM අඩු වෙනවා. Weapon එකේ base damage එකෙන් mitigation සහ range penalties අඩු කරලා, charge bonus එකෙන් ගුණ කරලා තමයි damage එක ගණනය වෙන්නේ. Portal එක ඉඳලා හිටලා counterattack කරනවා."],
+      ["Strategy", "ඉහළ level Portals හදන්න Agents කිහිප දෙනෙක් ඕන. ළඟපාත ඉන්න කණ්ඩායමේ අය එක්ක එකතු වෙලා වැඩ කරන්න; නැත්නම් low-level Portals සතුරා ඉක්මනින් විනාශ කරයි. Portal level එක අනුව drop වෙන Resonators level වෙනස් වෙන නිසා, විවිධ level Portals hack කරන්න."]
+    ]
+  },
+  {
+    "title": "Power Cube",
+    "revid": 18437,
+    "kw": ["power cube", "powercube", "PC", "PC8", "cube", "cubes", "පවර් කියුබ්", "කියුබ්", "hypercube", "hyper cube", "හයිපර් කියුබ්", "XM නැති"],
+    "h": "🧊 Power Cube කියන්නේ මොකක්ද?",
+    "s": "Power Cube කියන්නේ XM ගබඩා කරලා තියෙන item එකක්. පාවිච්චි කළාම ඒකේ තියෙන XM ඔක්කොම ඔබේ Scanner එකට (XM tank එකට) ලැබෙනවා. දිගු වෙලාවක් සෙල්ලම් කරනකොට, විශේෂයෙන් recharge කරනකොට සහ attack කරනකොට XM නැති නොවී ඉන්න මේවා අත්‍යවශ්‍යයි.",
+    "p": [
+      "Level 8ක්: L1 = 1,000 XM සිට L8 = 8,000 XM දක්වා (level × 1,000).",
+      "Update 1.93.1 සිට Power Cube එකක් recycle කළාමත් ඒකේ capacity එකම XM ලැබෙනවා.",
+      "Inventory එකේ 'Use' ඔබපුවම cube එක පාවිච්චි වෙනවා. ඔබේ tank එකේ ඉඩ නැති XM නාස්ති වෙනවා.",
+      "Update 1.94.0 සිට XM tank එක full නම් Power Cube එකක් පාවිච්චි කරන්න බැහැ.",
+      "Store එකෙන්: Power Cubes 10ක් (ඔබේ level එකේ) = 1,000 CMU."
+    ],
+    "sec": [
+      ["Hypercube", "Hypercube කියන්නේ Very Rare Power Cube වර්ගයක් (version 2.38.3). සාමාන්‍ය Power Cube එකකට වඩා ගොඩක් වැඩි XM ප්‍රමාණයක් තියෙනවා. එකපාර XM දෙනවා වෙනුවට, ඉවර වෙනකම් ටිකෙන් ටික ඔබේ XM tank එක පුරවනවා. XM tank එක full වුණත් Hypercube එකක් පාවිච්චි කරන්න පුළුවන්, හැබැයි තව Hypercube එකක් ක්‍රියාත්මක වෙද්දී බැහැ. Recycle value 160 XM."],
+      ["Strategy", "Resonators සිය ගණනක් deploy කරන්න, shield දාපු Portals ගොඩක් විනාශ කරන්න, හෝ විශාල ප්‍රදේශයක් recharge කරන්න යනවා නම් Power Cubes හොඳින් කළමනාකරණය කරන්න. XM නැත්නම් කිසිම item එකක් පාවිච්චි කරන්න බැහැ."]
+    ]
+  }
+]

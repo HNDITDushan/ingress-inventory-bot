@@ -1,0 +1,238 @@
+[
+  {
+    "title": "Access Level",
+    "revid": 18894,
+    "kw": [
+      "level",
+      "levels",
+      "ලෙවල්",
+      "ලෙවල",
+      "level up",
+      "ලෙවල් වෙන්න",
+      "access level",
+      "L8",
+      "L16",
+      "level 16",
+      "ඊළඟ level",
+      "level requirements",
+      "rank"
+    ],
+    "h": "📈 Access Level (Agent level) කියන්නේ මොකක්ද?",
+    "s": "Agent ගේ Access Level එක අනුව පාවිච්චි කරන්න පුළුවන් items වල level, XM tank එකේ ප්‍රමාණය සහ දුර ඉඳන් recharge කරන්න පුළුවන් දුර තීරණය වෙනවා. Levels 1 සිට 16 දක්වා තියෙනවා. L1–L8 ප්‍රධාන levels (items පාවිච්චියට), L9–L16 ‘prestige’ levels.",
+    "p": [
+      "L1–L8 ගන්න AP විතරක් ඕන: L2 2,500 · L3 20,000 · L4 70,000 · L5 150,000 · L6 300,000 · L7 600,000 · L8 1,200,000 AP.",
+      "L9–L16 ගන්න AP සහ Medals දෙකම ඕන: L9 2.4M + Gold 1, Silver 4 · L10 4M + Gold 2, Silver 5 · L11 6M + Gold 4, Silver 6 · L12 8.4M + Gold 6, Silver 7.",
+      "L13 12M + Platinum 1, Gold 7 · L14 17M + Platinum 2 · L15 24M + Platinum 3 · L16 40M + Onyx 2, Platinum 4.",
+      "ඉහළ medal එකක් පහළ requirements වලටත් ගණන් වෙනවා (උදා: Gold 7ක් තියෙනවා නම් ‘Gold 6 + Silver 7’ සම්පූර්ණයි).",
+      "XM tank: L1 3,000 XM සිට L8 10,000 XM, L16 22,000 XM. Remote recharge: L1 250 km සිට L16 4,000 km.",
+      "L8 Agent කෙනෙකුට හැම item එකක්ම පාවිච්චි කරන්න පුළුවන්, හැබැයි L16 කෙනෙකුට වඩා XM සහ recharge දුර අඩුයි."
+    ],
+    "sec": [
+      [
+        "Items පාවිච්චිය",
+        "Resonators, XMP Bursters, Ultra Strikes සහ Power Cubes වගේ level තියෙන items පාවිච්චි කරන්න පුළුවන් ඒවායේ level එක ඔබේ level එකට සමාන හෝ අඩු නම් විතරයි (ඉහළ level Power Cube එකක් recycle කරලා XM ගන්න නම් පුළුවන්). ඔබට වඩා ඉහළ level Portal එකක් hack කළොත් ඔබේ level එකට වඩා ඉහළ items ලැබෙන අවස්ථාව ගොඩක් අඩුයි. Mods, ADA/JARVIS සහ Capsules වලට level නැහැ — ඕනෑම level කෙනෙකුට පාවිච්චි කරන්න පුළුවන්."
+      ]
+    ]
+  },
+  {
+    "title": "Access Points",
+    "revid": 18880,
+    "kw": [
+      "AP",
+      "ඒපී",
+      "action points",
+      "access points",
+      "AP ගන්න",
+      "AP ගන්නේ",
+      "experience",
+      "xp",
+      "AP කොහොමද"
+    ],
+    "h": "⭐ AP (Access Points) කියන්නේ මොකක්ද?",
+    "s": "Access Points (බොහෝ විට Action Points කියනවා) — Scanner එකේ AP — කියන්නේ Ingress වල experience points. Resonators deploy කිරීම, Links විනාශ කිරීම, Control Fields හැදීම වගේ ගොඩක් ක්‍රියා වලින් AP ලැබෙනවා; ඒවා ඔබේ Access Level එක වැඩි කරනවා.",
+    "p": [
+      "Resonator එකක් deploy කිරීම: 125 AP.",
+      "Portal එකක් capture කිරීම: 675 AP + Resonator AP. අටවෙනි (අවසාන) Resonator එක: 250 AP + Resonator AP.",
+      "Machina Portal එකක් recapture කිරීම: 1,331 AP + capture සහ Resonator AP.",
+      "වෙන Agent කෙනෙකුගේ Resonator එකක් upgrade කිරීම: 65 AP.",
+      "Mod එකක් දැමීම: 125 AP. Mod එකක් විනාශ කිරීම: 80 AP.",
+      "Link එකක්: 313 AP. Field එකක්: 1,250 AP (Link සහ Control Field පිටු බලන්න).",
+      "Recharge: XM 100කට 1 AP. සතුරු Portal එකක් hack කිරීම: 100 AP."
+    ],
+    "sec": [
+      [
+        "AP නොලැබෙන ක්‍රියා",
+        "• තමන්ගේම Resonator එකක් upgrade කිරීම.\n• ADA Refactor හෝ JARVIS Virus පාවිච්චි කිරීම.\n• Neutral හෝ Machina Portal එකක් hack කිරීම.\n• Flip Card එකකින් Links/Fields කැඩීම.\n• Mission එකක් සම්පූර්ණ කිරීම."
+      ]
+    ]
+  },
+  {
+    "title": "Exotic Matter",
+    "revid": 18000,
+    "kw": [
+      "XM",
+      "එක්ස්එම්",
+      "exotic matter",
+      "XM එකතු",
+      "XM ගන්න",
+      "XM tank",
+      "scanner disabled",
+      "XM ඉවරයි"
+    ],
+    "h": "✨ XM (Exotic Matter) කියන්නේ මොකක්ද?",
+    "s": "Exotic Matter (XM) කියන්නේ Ingress කතාවේ CERN පර්යේෂකයන් සොයාගත්ත dimension අතර ගමන් කරන ශක්තියක්. Scanner එකෙන් XM එකතු කරනවා, ගොඩක් ක්‍රියා වලදී XM වැය වෙනවා. ලෝකය පුරා දිලිසෙන නිල්-සුදු තිත් ලෙස XM පෙනෙනවා.",
+    "p": [
+      "XM වැඩියෙන්ම තියෙන්නේ Scanner පාවිච්චිය වැඩි තැන් වල (බස්/දුම්රිය නැවතුම්, නගර මධ්‍ය) සහ Portals වටේ.",
+      "XM එකතු කිරීම සහ Power Cube එකකින් XM ගැනීම හැර අනෙක් ගොඩක් ක්‍රියා වලට XM ඕන.",
+      "XM 1%ට වඩා අඩු වුණොත් Scanner එක disable වෙනවා — එතකොටත් Power Cube එකක් පාවිච්චි කරන්න සහ items recycle කරන්න පුළුවන්.",
+      "XM tank ප්‍රමාණය level එක අනුව: L1 3,000 XM · L8 10,000 XM · L16 22,000 XM."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Hacking",
+    "revid": 19600,
+    "kw": [
+      "hack",
+      "hacks",
+      "hacking",
+      "හැක්",
+      "හැක් කරන්න",
+      "items ගන්න"
+    ],
+    "h": "📲 Hacking කියන්නේ මොකක්ද?",
+    "s": "Hacking කියන්නේ Ingress වල items ලබාගන්න ප්‍රධාන ක්‍රමය. Portal එකක් hack කරන්න ඒක ඔබේ area of influence එක ඇතුළේ තියෙන්න ඕන. Portal එක tap කරලා 'Hack' button එක ඔබන්න.",
+    "p": [
+      "Portal එක තදකරගෙන වමට swipe කළොත් hack වෙනවා; පහළට swipe කළොත් Portal Key එකක් නැතුව hack වෙනවා.",
+      "තමන්ගේ පැත්තේ Portal එකක් hack කළොත් අවම වශයෙන් එක Resonator එකක් ලැබෙනවා.",
+      "සතුරු Portal එකක් hack කළොත් 100 AP ලැබෙනවා, හැබැයි Portal එක ප්‍රහාර කරන්න පුළුවන්.",
+      "Hacker medal: Bronze 2,000 · Silver 10,000 · Gold 30,000 · Platinum 100,000 · Onyx 200,000 hacks.",
+      "Dronenet hacks medal: 250 · 1,000 · 2,000 · 5,000 · 10,000.",
+      "Consecutive දින 24 පැය කාල වලදී එක hack එකක් හරි කරන streak medal (Sojourner): 15 · 30 · 60 · 180 · 360."
+    ],
+    "sec": [
+      [
+        "Glyph Hacking",
+        "'Hack' button එක තදකරගෙන Glyph icon එකට slide කළොත් Glyph Hack එකක් පටන් ගන්නවා. පෙන්නන Glyphs පිළිවෙළ මතක තියාගෙන ඉක්මනට නැවත අඳින්න ඕන. සාර්ථක වුණොත් bonus items සහ AP ලැබෙනවා. විස්තර Glyph Hacking පිටුවේ."
+      ]
+    ]
+  },
+  {
+    "title": "Glyph Hacking",
+    "revid": 18874,
+    "kw": [
+      "glyph hack",
+      "glyph hacking",
+      "glyphing",
+      "glacking",
+      "ග්ලිෆ්",
+      "ග්ලිෆ් හැක්",
+      "glyph points",
+      "perfect glyph"
+    ],
+    "h": "✍️ Glyph Hacking කියන්නේ මොකක්ද?",
+    "s": "Glyph Hacking (glyphing) කියන්නේ සාමාන්‍ය hack එකේ දිගු කළ වර්ගයක්. දෙන කාලය ඇතුළත පෙන්නන Glyphs හරියට ඇන්දොත් අමතර items සහ bonus AP ලැබෙනවා. Ingress කතාවේ Glyph sequences ලියලා තියෙන්නේ Shapers ලා.",
+    "p": [
+      "Portal level එක අනුව Glyphs ගණන සහ කාලය: L1 1 (තත්. 20) · L2 2 (20) · L3–L5 3 (20/19/18) · L6–L7 4 (17/16) · L8 5 (තත්. 15).",
+      "Perfect glyph bonus: L1 28% · L2 40% · L3–L5 55% · L6–L7 80% · L8 163%.",
+      "Glyph Points: L1 1 · L2 2 · L3–L5 4 · L6–L7 8 · L8 15.",
+      "හරියට අඳින හැම Glyph එකකටම 50 AP; සම්පූර්ණ sequence එක හරි නම් speed bonus එකත් AP එකට එකතු වෙනවා.",
+      "Glyph/speed bonus එකේ හැම 30%කටම (ඉහළට round කර) අමතර item roll එකක් එකතු වෙනවා.",
+      "Version 1.109.0 (Nov 2016) සිට bonus ලෙස Portal Keys ත් ලැබෙනවා — එක hack එකකින් Keys එකකට වඩා ගන්න පුළුවන්."
+    ],
+    "sec": [
+      [
+        "පටන් ගන්න හැටි",
+        "Area of Influence එකේ තියෙන Portal එකක් tap කරලා info card එක ගන්න. 'Hack' button එක තදකරගෙන Glyph icon එකට slide කරන්න. Glyph sequence එක පෙන්නුවාට පස්සේ ඒ පිළිවෙළටම ඉක්මනින් අඳින්න."
+      ]
+    ]
+  },
+  {
+    "title": "Glyphs",
+    "revid": 19283,
+    "kw": [
+      "glyph",
+      "glyphs",
+      "ග්ලිෆ්ස්",
+      "command channel",
+      "more glyph",
+      "less glyph",
+      "complex glyph",
+      "shapers language"
+    ],
+    "h": "🔣 Glyphs කියන්නේ මොකක්ද?",
+    "s": "Glyphs කියන්නේ Shapers ලාගේ (සහ බොහෝ විට N'Zeer ලාගේ) භාෂාව. Scanner එකේ Glyph Hacking වලදී මේවා පෙනෙනවා. පැරණි runes වගේ, හැම Glyph එකක්ම අකුරක් නෙවෙයි, වචනයක්. තිත් 11ක matrix එකක් මත ළඟ තිත් සෘජු රේඛා වලින් සම්බන්ධ කරලා Glyphs අඳිනවා.",
+    "p": [
+      "Glyph Hack එකකදී පෙන්නන Glyphs ගණන 1 සිට 5 දක්වා.",
+      "හරි Glyph sequences වල දිග Glyphs 3 (L3–L5) සිට 5 (L8) දක්වා; ඒවා Lore එකට අදාළ වාක්‍ය.",
+      "සමහර Glyphs විරුද්ධ අර්ථ යුගල — LESS/MORE, ATTACK/DEFEND, CREATE/DESTROY — ඒවා එකිනෙකේ දර්පණ ප්‍රතිබිම්බ."
+    ],
+    "sec": [
+      [
+        "Command Channel",
+        "Glyph Hack එක පටන් අරන් Glyphs පෙන්නන්න කලින් ‘COMMAND CHANNEL OPEN’ පණිවිඩය ආවම commands යවන්න පුළුවන්:\n• MORE – Key එක දැනටමත් තිබුණත් Portal Keys (3ක් දක්වා) ලැබෙන්න පුළුවන්.\n• LESS – Portal Key එකක් දෙන්නේ නැහැ.\n• COMPLEX – Glyph sequence එක වේගවත් කරනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Cooldown",
+    "revid": 18295,
+    "kw": [
+      "cooldown",
+      "කූල්ඩවුන්",
+      "portal running hot",
+      "hack again",
+      "නැවත hack"
+    ],
+    "h": "⏱️ Cooldown කියන්නේ මොකක්ද?",
+    "s": "Cooldown කියන්නේ එක Portal එකක hacks දෙකක් අතර බලන් ඉන්න ඕන කාලය. ඒක Portal එකේ faction එක, ඔබේ faction එක සහ Portal එකේ Heat Sinks ගණන අනුව වෙනස් වෙනවා.",
+    "p": [
+      "සාමාන්‍ය cooldown එක විනාඩි 5යි (තත්පර 300).",
+      "ඔබේ පැත්තේ Portal එකක් නම් විනාඩි 3යි (තත්පර 180).",
+      "Heat Sinks වලින් තවත් අඩු කරන්න පුළුවන්.",
+      "Cooldown එක Agent එක්කෙනාටයි — ඔබ hack කළාම ඔබට විතරයි බලන් ඉන්න වෙන්නේ.",
+      "Cooldown වෙලාවේ hack කළොත් ‘Portal running hot! Cooldown in ... seconds.’ කියලා පෙන්නනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Recycling",
+    "revid": 13707,
+    "kw": [
+      "recycle",
+      "recycling",
+      "රීසයිකල්",
+      "items අයින්",
+      "XM ගන්න recycle"
+    ],
+    "h": "♻️ Recycling කියන්නේ මොකක්ද?",
+    "s": "Inventory එකේ තියෙන ගොඩක් items recycle කරලා XM bar එක පුරවගන්න හෝ අනවශ්‍ය items අයින් කරන්න පුළුවන්. සාමාන්‍ය items වල recycle value අඩුයි; Power Cubes සහ Portal Keys වෙනස්.",
+    "p": [
+      "Power Cube: 1,000 – 8,000 XM (level × 1,000, use value එකට සමානයි).",
+      "Portal Key: 500 XM.",
+      "Resonator, XMP Burster, Ultra Strike: 20 – 160 XM (level × 20).",
+      "Capsule: 80 XM + ඇතුළේ items වල value. Quantum Capsule: 100 XM + ඇතුළේ items.",
+      "Common Mods 40 XM · Rare Mods 80 XM · Very Rare Mods, ADA, JARVIS 100 XM · Media 20 XM.",
+      "Store එකෙන් ගත්ත items (Frackers, Beacons, Key Lockers) සහ Lawson/Circle-K Power Cubes recycle කරන්න බැහැ."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Stickiness",
+    "revid": 14949,
+    "kw": [
+      "stickiness",
+      "ස්ටිකිනස්",
+      "mod survive",
+      "mod break"
+    ],
+    "h": "🧲 Stickiness කියන්නේ මොකක්ද?",
+    "s": "Stickiness කියන්නේ හැම Mod එකකම තියෙන සඟවා ඇති අගයක් — XMP හෝ Ultra Strike එකක critical hit එකකදී Mod එක විනාශ නොවී බේරෙන්න තියෙන සම්භාවිතාව. Scanner එකේ පෙන්නන්නේ නැහැ. Resonators වගේ Mods වල XM අඩු වෙන්නේ නැහැ — ඒවා කැඩෙනවා, නැත්නම් බේරෙනවා.",
+    "p": [
+      "Common Shield 0% · Rare Shield 15% · Very Rare Shield 45% · Aegis Shield 55%.",
+      "Turret 20% · SoftBank Ultra Link 15%.",
+      "Force Amp, සියලු Heat Sinks, Multi-Hacks, Link Amps, ITO EN — 0%."
+    ],
+    "sec": []
+  }
+]

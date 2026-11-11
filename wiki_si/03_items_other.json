@@ -1,0 +1,243 @@
+[
+  {
+    "title": "Apex",
+    "revid": 18719,
+    "kw": [
+      "apex",
+      "ඇපෙක්ස්",
+      "double ap",
+      "2x ap",
+      "AP boost",
+      "AP දෙගුණ"
+    ],
+    "h": "⚡ Apex කියන්නේ මොකක්ද?",
+    "s": "Apex (Access Point Exploit) කියන්නේ විනාඩි 30කට ඔබට ලැබෙන AP දෙගුණ (2x) කරන Boost item එකක්. SIM card එකක් වගේ පෙනුමක් තියෙනවා. Store එකෙන් මිලදී ගන්න ඕන — hack කරලා ගන්න බැහැ.",
+    "p": [
+      "Rarity: Very Rare. Store මිල: 1ක් 2,500 CMU, 8ක් 15,000 CMU.",
+      "Activate කළාම විනාඩි 30ක timer එකක් Scanner එකේ පෙනෙනවා.",
+      "Inventory එකේ Boost කොටසට ගිහින් තවත් විනාඩි 30කින් දිගු කරන්න පුළුවන් — උපරිම පැය 2ක් දක්වා.",
+      "Apex දෙකක් එකවර stack කරන්න බැහැ: දෙකක් activate කළොත් ලැබෙන්නේ පැයක 2x AP, විනාඩි 30ක 4x AP නෙවෙයි.",
+      "Boost එකක් activate කිරීමට සාමාන්‍යයෙන් 500 AP ලැබෙනවා; Apex එකක් නම් 1,000 AP.",
+      "Level 2 සිට Level 7 දක්වා Field Kits වලත් Apex එකක් ලැබෙනවා."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "Apex එකක් activate කරන්න කලින් සැලැස්මක් හදාගන්න — එතකොට අඩු කාලයකින් වැඩිම AP එකතු කරගන්න පුළුවන්. උදා: Portals ගොඩක් තියෙන ප්‍රදේශයක fielding කරනකොට. Battle Beacons සහ Apex එකට පාවිච්චි කරලා field කරලා විනාඩි 15කින් AP 663,000ක් දක්වා ගත්ත අවස්ථාත් Wiki එකේ සඳහන් වෙනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Battle Beacon",
+    "revid": 19588,
+    "kw": [
+      "battle beacon",
+      "බැටල් බීකන්",
+      "BB",
+      "battle",
+      "checkpoint battle",
+      "beacon battle"
+    ],
+    "h": "🏁 Battle Beacon කියන්නේ මොකක්ද?",
+    "s": "Battle Beacon එකක් Portal එකක deploy කළාම, Portal එක පාලනය කිරීම සඳහා faction දෙක අතර තරඟයක් (Battle Beacon Challenge) පටන් ගන්නවා. Checkpoints කිහිපයකදී Portal එක අල්ලගෙන ඉන්න faction එකට points ලැබෙනවා; වැඩිම points ගන්න faction එක දිනනවා. Rare සහ Very Rare කියලා වර්ග දෙකක් තියෙනවා.",
+    "p": [
+      "Rare Battle Beacon: 16 December 2021 හඳුන්වා දුන්නා. 8ක් 16,000 CMU. Deploy කිරීමට 800 XM. All Time AP 1,200,000ක් හෝ වැඩි Agents ලට මිලදී ගන්න පුළුවන්.",
+      "Very Rare Battle Beacon: 5,000 CMU. All Time AP 40,000,000ක් හෝ වැඩි Agents ලට. Recursed C.O.R.E. Loadout Kit එකෙත් එකක් තියෙනවා.",
+      "දැනටමත් Beacon එකක් (උදා: Beacon - ENL, Meetup) තියෙන Portal එකකට Battle Beacon දාන්න බැහැ.",
+      "Fireworks හෝ Portal Fracker තියෙන Portal එකකට නම් දාන්න පුළුවන් — ඒවා challenge එක ඉවර වෙන්න කලින් ඉවර වෙනවා."
+    ],
+    "sec": [
+      [
+        "Rare Battle Beacon",
+        "Deploy කළාම විනාඩි 10ක countdown එකකින් පස්සේ challenge එක පටන් ගන්නවා. Checkpoints 3ක් විතරයි තියෙන්නේ. Checkpoint එකකදී Portal එකේ alignment එක මාරු වෙන්නේ නැහැ, ඒ නිසා Links සහ Control Fields කැඩෙන්නේ නැහැ. Challenge එක විනාඩි 9ක් (countdown එකට අමතරව) පවතිනවා."
+      ],
+      [
+        "Very Rare Battle Beacon",
+        "Deploy කළ ගමන් challenge එක පටන් ගන්නවා. Checkpoints 5ක් තියෙනවා; හැම checkpoint එකකට පස්සෙම Portal එක විරුද්ධ faction එකට හැරෙනවා (Mods එහෙමම තියෙනවා). Deploy කරන්න කලින් ADA Refactor හෝ JARVIS Virus එකක් පාවිච්චි කිරීමෙන් Flip Card ‘sniping’ වලින් ආරක්ෂා වෙන්න පුළුවන්."
+      ]
+    ]
+  },
+  {
+    "title": "Beacon",
+    "revid": 18751,
+    "kw": [
+      "beacon",
+      "beacons",
+      "බීකන්",
+      "target beacon",
+      "meetup beacon"
+    ],
+    "h": "📍 Beacon කියන්නේ මොකක්ද?",
+    "s": "Beacon කියන්නේ Scanner එකේ Portal එකක් සලකුණු කරන්න පාවිච්චි කරන item එකක්. Beacon එක Portal එකට උඩින් පැය 4ක් පෙනෙනවා; faction දෙකේම අයට ඒක පේනවා. Store එකෙන් ගන්න පුළුවන්, Anomalies වගේ විශේෂ events වලදීත් දෙනවා.",
+    "p": [
+      "Rarity: Very Rare (hack කරලා ගන්න බැහැ). Recycle කරන්න බැහැ.",
+      "Store මිල: 1ක් 1,300 CMU, 12ක් 10,000 CMU.",
+      "Beacons Portal Mods නෙවෙයි — mod slot එකක් ගන්නේ නැහැ, mods 4ම තියෙන Portal එකකටත් දාන්න පුළුවන්.",
+      "Store එකේ වර්ග දෙකක්: Beacon - Meetup සහ Beacon - Target. Beacons 16ක pack එකේ ENL, RES, Niantic, Obsidian වගේ තවත් වර්ග තියෙනවා."
+    ],
+    "sec": [
+      [
+        "Fireworks",
+        "02 July 2020 Fireworks එකතු කළා. මේවා animation සහ sound එක්ක එන Beacon වර්ගයක්. Resistance සහ Enlightened වර්ණ දෙකකින් තියෙනවා. 3ක pack එකක් 1,000 CMU."
+      ],
+      [
+        "Battle Beacons",
+        "Battle Beacons කියන්නේ Portal පාලනය සඳහා faction දෙක අතර checkpoint තරඟයක් පටන් ගන්න විශේෂ Beacon වර්ගයක්. විස්තර Battle Beacon පිටුවේ."
+      ]
+    ]
+  },
+  {
+    "title": "Capsule",
+    "revid": 19565,
+    "kw": [
+      "capsule",
+      "capsules",
+      "කැප්සියුල්",
+      "caps",
+      "kinetic capsule",
+      "kinetic",
+      "කයිනෙටික්",
+      "quantum capsule",
+      "item share",
+      "items දෙන්න"
+    ],
+    "h": "📦 Capsule කියන්නේ මොකක්ද?",
+    "s": "Capsule කියන්නේ වෙනත් items ඇතුළේ තියාගන්න පුළුවන් container එකක්. Items පිළිවෙළට තියාගන්න, එකපාර ගොඩක් items පාවිච්චි කරන්න, සහ ප්‍රධාන වශයෙන් Agents අතර items ගොඩක් හුවමාරු කරගන්න මේවා පාවිච්චි කරනවා.",
+    "p": [
+      "Rarity: Rare. Version 1.51.0. XM වැය 0, recycle 80 XM.",
+      "එක Capsule එකකට items 100ක් දක්වා දාන්න පුළුවන්.",
+      "Rare කියලා තිබුණත් Rare Mods වලට වඩා ගොඩක් අඩුවෙන් ලැබෙන්නේ — ආසන්න වශයෙන් item rolls 4,000 කින් 1යි.",
+      "Drop කරපු Capsule එකක items ඇතුළේම තියෙනවා; වෙනත් Agent කෙනෙක් ඒක pick up කළාම items ඔක්කොම ලැබෙනවා — items දෙන්න ලේසිම ක්‍රමය.",
+      "Inventory එකේ ඉඩ මදි නම් Capsule එකක් pick up කරන්න උත්සාහ කරනකොට පරෙස්සම් වෙන්න."
+    ],
+    "sec": [
+      [
+        "Kinetic Capsule",
+        "Kinetic Capsule එක (19 October 2020, version 2.58.1) ඔබ ඇවිදින දුර (kinetic energy) පාවිච්චි කරලා XM objects අලුත් හෝ rare items බවට පත් කරනවා. Common සහ Rare වර්ග තියෙනවා. Common එක Store එකෙන් එක පාරක් නොමිලේ; Rare එක 2,000 CMU. XM වැය 4,000 / 6,000 XM."
+      ]
+    ]
+  },
+  {
+    "title": "ITO EN Transmuter",
+    "revid": 18814,
+    "kw": [
+      "ito en",
+      "itoen",
+      "transmuter",
+      "ඉටෝ එන්",
+      "ට්‍රාන්ස්මියුටර්",
+      "ito+",
+      "ito-"
+    ],
+    "h": "🍵 ITO EN Transmuter කියන්නේ මොකක්ද?",
+    "s": "ITO EN Transmuter කියන්නේ sponsored Portal Mod එකක්. ඒ Portal එකෙන් hack කරන items වෙනත් වර්ගයක items බවට ‘transmute’ කරනවා. (+) සහ (−) කියලා වර්ග දෙකක් තියෙනවා — විවිධ කාර්යයන් සඳහා variants තියෙන පළමු Portal Mod එක මේකයි.",
+    "p": [
+      "Rarity: Very Rare. Version 1.120.2. Deploy 1,000 XM, recycle 100 XM.",
+      "ITO EN Transmuter (+): hack කරන items Resonators, Portal Shields වගේ defensive/infrastructure items බවට හරවනවා. XMP Bursters සහ Ultra Strikes වගේ offensive items සම්පූර්ණයෙන්ම defensive items බවට මාරු වෙනවා.",
+      "ITO EN Transmuter (−): hack කරන items XMP Bursters වගේ offensive items බවට හරවනවා.",
+      "පාවිච්චි වුණාම ‘Acquired Items’ කොටසේ ‘ITO EN Transmuter applied’ කියලා පෙන්නනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Items",
+    "revid": 14518,
+    "kw": [
+      "items list",
+      "item list",
+      "අයිතම",
+      "අයිටම්ස්",
+      "inventory items",
+      "item වර්ග"
+    ],
+    "h": "🎒 Ingress Items මොනවද?",
+    "s": "Ingress Scanner එකේ තියෙන items ප්‍රධාන කාණ්ඩ කිහිපයකට බෙදෙනවා: Portal Mods, Resonators, Weapons, Power Cubes, Capsules, Portal Keys සහ Media.",
+    "p": [
+      "Mods: Portal Shield, Force Amp, Turret, Heat Sink, Multi-Hack, Link Amp (මේ 5ම v1.28.1), ITO EN Transmuter (v1.120.2).",
+      "Weapons: XMP Burster, Ultra Strike, ADA Refactor සහ JARVIS Virus (v1.26).",
+      "අනෙකුත්: Resonator, Power Cube (v1.23.1), Capsule, Portal Key, Media.",
+      "හැම item එකකම විස්තර බලන්න /item සමඟ නම යවන්න — උදා: /item Heat Sink."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Key Locker",
+    "revid": 18843,
+    "kw": [
+      "key locker",
+      "key lockers",
+      "කී ලොකර්",
+      "key capsule",
+      "keys store"
+    ],
+    "h": "🔐 Key Locker කියන්නේ මොකක්ද?",
+    "s": "Key Locker (Key Capsule) කියන්නේ Portal Keys විතරක් තියාගන්න පුළුවන් Capsule වගේ item එකක්. එකක Keys 100ක් දක්වා තියාගන්න පුළුවන්; ඇතුළේ තියෙන Keys inventory limit එකට ගණන් වෙන්නේ නැහැ.",
+    "p": [
+      "Rarity: Very Rare. එක Agent කෙනෙකුට උපරිම 6ක් — ඒ කියන්නේ inventory එකෙන් පිට Keys 600ක් දක්වා.",
+      "ඇතුළේ තියෙන items inventory cap එකට ගණන් නොවෙන එකම item එක Key Locker එකයි.",
+      "වර්ණ 6ක්: white, yellow, red, green, blue, Onyx. එකක් 3,700 CMU; 6ම එකට 18,000 CMU (4,200 CMU ඉතුරුයි).",
+      "Capsules වගේම unique ID එකක් තියෙනවා, නම වෙනස් කරලා sort කරගන්න පුළුවන්."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "Control Fields සැලසුම් කරන අය field කරන වෙලාව එනකම් Keys Key Lockers වල තියාගන්නවා. මතක සටහන් ලෙස තියාගන්න Keys වගේ, දැනට පාවිච්චි නොකරන Keys තියාගන්නත් හොඳයි."
+      ]
+    ]
+  },
+  {
+    "title": "Media",
+    "revid": 18754,
+    "kw": [
+      "media",
+      "මීඩියා"
+    ],
+    "h": "🎞️ Media කියන්නේ මොකක්ද?",
+    "s": "Media කියන්නේ Scanner එකෙන් පිට content (videos, images, websites) වලට hyperlinks තියෙන items. අනෙක් items වගේ නැතුව, Media ලැබෙන්නේ නිශ්චිත කාල සීමාවලදී විතරයි, සමහර ඒවා නිශ්චිත Portals වලින් විතරයි.",
+    "p": [
+      "Rarity: Very Common. Recycle කළොත් 20 × level XM.",
+      "එකම නමේ Media එකක් inventory එකේ තියෙනවා නම් ඒක ආයේ drop වෙන්නේ නැහැ.",
+      "Ingress Prime සමඟ Media වල level Scanner එකේ පෙන්නන්නේ නැහැ, හැබැයි C.O.R.E. subscription එකක් තියෙනවා නම් Intel Map එකේ බලන්න පුළුවන්.",
+      "හැම Media එකකම title එකක්, image එකක් සහ hyperlink එකක් තියෙනවා. සමහර Media වල videos/පින්තූර ඇතුළේ Passcodes සඟවලා තිබිලා තියෙනවා."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "Media වලට gameplay වැදගත්කමක් නැති තරම්. බොහෝ අය inventory ඉඩ ගන්න ඒවා drop/recycle කරනවා. සමහරු එකතු කරනවා — විශේෂයෙන් #13MAGNUS සහ Shonin Anomalies වලට කලින් ආපු ඒවා."
+      ]
+    ]
+  },
+  {
+    "title": "Portal Key",
+    "revid": 18044,
+    "kw": [
+      "key",
+      "keys",
+      "portal key",
+      "portal keys",
+      "කී",
+      "කීස්",
+      "යතුර",
+      "පෝටල් කී"
+    ],
+    "h": "🔑 Portal Key කියන්නේ මොකක්ද?",
+    "s": "Portal Key එකක් කියන්නේ ඒක hack කරපු Portal එකට අදාළ token එකක්. Links දාන්න, දුර ඉඳන් recharge කරන්න සහ Portal එකේ තත්ත්වය බලන්න Keys අත්‍යවශ්‍යයි.",
+    "p": [
+      "Rarity: Very Common. Recycle කළොත් 500 XM.",
+      "Key එකේ තියෙන level එක Portal එකේ level එක — ඕනෑම level Agent කෙනෙකුට ඕනෑම Key එකක් සම්පූර්ණයෙන් පාවිච්චි කරන්න පුළුවන්.",
+      "Keys item rolls වලින් නෙවෙයි ලැබෙන්නේ: සාමාන්‍ය hacks වලින් ආසන්න වශයෙන් 75%ක, Glyph Hacks වලින් 50%ක Key එකක් ලැබෙනවා. Unclaimed Portal එකක් hack කළොත් අවස්ථාව ~10% වැඩියි.",
+      "Link එකක් දාන්න destination Portal එකේ Key එක ඕන; Link එක හැදුණාම ඒ Key එක inventory එකෙන් අඩු වෙනවා.",
+      "Control Field එකක් හදලා තියාගන්න අවම වශයෙන් Keys 6ක් එකතු කරගන්න ඕන කියලා Wiki එක කියනවා."
+    ],
+    "sec": [
+      [
+        "දුර ඉඳන් බැලීම",
+        "Key එකක් තියෙනවා නම් inventory එකෙන් Portal එකේ alignment, level සහ Resonator health බලන්න පුළුවන්. Key image එක tap කළාම Scanner එක ඒ Portal එක වටේ ප්‍රදේශයට යනවා."
+      ],
+      [
+        "Remote Recharging",
+        "Inventory එකේ Key එක tap කරලා Recharge ඔබලා Portal එක දුර ඉඳන් recharge කරන්න පුළුවන්. දුර කොච්චර වෙනකම්ද සහ XM penalty එක කොච්චරද කියන්නේ ඔබේ Access Level එක අනුවයි."
+      ]
+    ]
+  }
+]

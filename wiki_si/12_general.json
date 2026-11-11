@@ -1,0 +1,74 @@
+[
+  {
+    "title": "Scoring",
+    "revid": 13812,
+    "kw": ["scoring", "score system", "ලකුණු ක්‍රමය"],
+    "h": "🏆 Ingress ලකුණු (Scoring)",
+    "s": "Ingress වල ලකුණු ක්‍රමය Mind Units (MU). ‘Regional scores’ පිටුවේ ඔබ ඉන්න ප්‍රදේශයේ MU බෙදීම සහ ඔබේ කණ්ඩායමේ ඔබේ ranking එක බලන්න පුළුවන්.",
+    "p": ["MU ගැන විස්තර Mind Unit පිටුවේ; checkpoints සහ cycles ගැන ඒ ඒ පිටු බලන්න."],
+    "sec": []
+  },
+  {
+    "title": "Firework",
+    "revid": 18478,
+    "kw": ["firework", "fireworks", "ෆයර්වර්ක්ස්"],
+    "h": "🎆 Firework කියන්නේ මොකක්ද?",
+    "s": "Fireworks කියන්නේ ඉලක්ක කරපු Portal එකක් උඩ චලනය සහ ශබ්දය එක්ක විනාඩි 10ක් පෙනෙන විශේෂ Beacon වර්ගයක්. තාක්ෂණිකව Beacon එකක් වුණත් Beacon එකක් ලෙස ගණන් නොවන නිසා, දැනටමත් Beacon එකක් තියෙන Portal එකකටත් දාන්න පුළුවන්.",
+    "p": ["Rarity: Very Rare. 03 July 2020 (version 2.50.1) හඳුන්වා දුන්නා.", "Store මිල: 3ක් 1,000 CMU.", "Very Rare Battle Beacon Challenge එකක් ඉවර වුණාම Portal එකට ස්වයංක්‍රීයව Fireworks deploy වෙනවා."],
+    "sec": []
+  },
+  {
+    "title": "Aegis Nova",
+    "revid": 18873,
+    "kw": ["aegis nova"],
+    "h": "🌌 Aegis Nova (Anomaly)",
+    "s": "Aegis Nova කියන්නේ 28 May 2016 සිට 20 June 2016 දක්වා පැවැත්වුණ Anomaly series එකක්. XM network එකට N'Zeer මැදිහත් වීම වළක්වන Obsidian Shield එක විනාශ කරන්න Aegis Nova ආයුධය සොයන Jahan ගේ උත්සාහයට සහාය වීම එහි කතාවයි.",
+    "p": ["මේ නම Aegis Shield (කලින් AXA Shield) එකට සම්බන්ධ නැහැ."],
+    "sec": []
+  },
+  {
+    "title": "NL-1331",
+    "revid": 18850,
+    "kw": ["nl-1331 vehicle", "nl1331 car", "research vehicle"],
+    "h": "🚐 NL-1331 කියන්නේ මොකක්ද?",
+    "s": "NL-1331 කියන්නේ NIA පාලනය කරන XM පර්යේෂණ වාහනයක්. ලෝකය පුරා ගමන් කරන අතර ඉඳහිට Anomalies වල පෙනී සිටිනවා; ඒක එක්ක interact කළාම Scanner එකේ ‘NL-1331 meetup’ badge එක ලැබෙනවා.",
+    "p": ["2024 දී Akira Tsuskasa NL-1331H පර්යේෂණ event එක සංවිධානය කළා — Hakodate (ජපානය) හි tram 530 එකේ XM පර්යේෂණ උපකරණ සඟවලා (Shared Memories Anomaly එකේදී)."],
+    "sec": []
+  },
+  {
+    "title": "Nemesis",
+    "revid": 19599,
+    "kw": ["nemesis", "myriad", "aurora"],
+    "h": "🌀 Nemesis කියන්නේ කවුද?",
+    "s": "Nemesis කියන්නේ Nemesis විශ්වයේ (universe) ප්‍රධාන NIA පර්යේෂක කණ්ඩායම. ඔවුන්ගේ Epiphany Night එකෙන් පස්සේ Shapers සහ N'Zeer දෙපිරිසම පෘථිවිය ආක්‍රමණය කරලා එකිනෙකා එක්ක යුද්ධ කළා. ‘Ingression’ දින 28න් පස්සේ Nemesis multiverse හරහා ගමන් කරලා හැකි තරම් විශ්ව Ingression වලින් ආරක්ෂා කරන්න දිවුරුම් දුන්නා.",
+    "p": ["Courier හැර Nemesis සාමාජිකයන් ඔවුන්ගේ Prime සහකරුවන්ට සමානයි.", "Myriad (Victoria Kureze) සහ Aurora (Stein Lightman) Nemesis එකට සම්බන්ධයි."],
+    "sec": []
+  },
+  {
+    "title": "Ingress Report",
+    "revid": 18430,
+    "kw": ["ingress report", "IR"],
+    "h": "📰 Ingress Report කියන්නේ මොකක්ද?",
+    "s": "Ingress Report කියන්නේ NIA එක්ක සම්බන්ධ XM sensitive කෙනෙක් වුණ Susanna Moyer සත්කාරකත්වය දුන්, පුවත් වැඩසටහනක් සහ video blog එකක් මිශ්‍ර විමර්ශනාත්මක වැඩසටහනක්.",
+    "p": ["Episodes 130කට වඩා තියෙනවා. පළමු එක 28 March 2013 පළ වුණා.", "Game එකේ අලුත් දේවල්, events සහ කතාව වගේ විවිධ මාතෘකා ආවරණය කළා."],
+    "sec": []
+  },
+  {
+    "title": "Harmonious",
+    "revid": 19281,
+    "kw": ["harmonious", "HAR", "fish", "reclaim your destiny"],
+    "h": "🐟 Harmonious කියන්නේ කවුද?",
+    "s": "Harmonious (HAR, ‘Fish’) කියන්නේ සෙල්ලම් කරන්න පුළුවන් factions දෙකෙන් පිට ස්වාධීන කණ්ඩායමක්. ඔවුන් XM දකින්නේ අවස්ථාවක් ලෙස — පාලනය කරලා අධ්‍යයනය කළ යුතු, හැබැයි මනුෂ්‍යත්වය අලුත් තත්ත්වයකට ගෙනයන දෛවයක්. ඔවුන්ට ඕන මනුෂ්‍යත්වය ආරක්ෂා කරන්නත් (PROTECT) පරිණාමය කරන්නත් (EVOLVE).",
+    "p": ["Motto: ‘Reclaim your destiny.’", "සාමාජිකයන් නිල වශයෙන් ප්‍රධාන factions දෙකෙන් එකකට අයිති නිසා, ඔවුන්ගේ Portals කොළ හෝ නිල් ලෙස පෙනෙන්න පුළුවන්.", "XM Harmonizer කියන Flip Card එක Portals Harmonious පාලනයට හරවනවා."],
+    "sec": []
+  },
+  {
+    "title": "Unused or Retired Content",
+    "revid": 18428,
+    "kw": ["unused content", "retired items", "extremely rare shield"],
+    "h": "🗄️ පාවිච්චි නොකරන / ඉවත් කළ content",
+    "s": "Game code එකේ තියෙන, දැනට පාවිච්චි නොකරන හෝ ඉවත් කළ items ගැන මේ පිටුවේ සටහන් කරනවා.",
+    "p": ["Extremely Rare Portal Shield — Mitigation 95, Stickiness 0 (සාමාන්‍ය game එකේ නැහැ).", "Code එකේ rarities 6ක් තියෙනවා: Very Common, Common, Rare, Very Rare පාවිච්චි වෙනවා; Less Common සහ Extremely Rare සාමාන්‍ය items වලට පාවිච්චි වෙන්නේ නැහැ.", "Neutral Drone Mk. II design එක game files වල තියෙනවා, හැබැයි ක්‍රියාකාරීව පාවිච්චි වෙන්නේ නැහැ."],
+    "sec": []
+  }
+]

@@ -42,6 +42,7 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 
 import stats
+import wiki_bot
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -717,6 +718,7 @@ def menu_screen(conn, uid: int):
         [("🔍 Search", "search"), ("📊 Stats & goals", "stats")],
         [(switch_label, "switch"), ("➕ New account", "new")],
         [("🧰 More tools", "more"), ("❓ Help", "help")],
+        [("📚 Ingress Wiki (සිංහල)", "wiki")],
     )
     return "\n".join(lines), markup
 
@@ -991,8 +993,11 @@ HELP_TOPICS = [
         "/sync – replace the whole inventory with a pasted list\n"
         "/import – import many accounts at once\n"
         "/items – item names and shortcuts\n"
-        "/cancel – stop what you're doing"
+        "/cancel – stop what you're doing\n\n"
+        "📚 <b>Ingress Wiki (සිංහල)</b>\n"
+        "/wiki · /ask · /item · /compare · /portal · /wsearch"
     )),
+    wiki_bot.HELP_TOPIC,
 ]
 HELP_BY_KEY = {key: (title, body) for key, title, body in HELP_TOPICS}
 
@@ -2741,6 +2746,9 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     context.user_data.pop("awaiting", None)
     action, *args = (query.data or "").split(":")
+    if action in wiki_bot.BUTTON_ACTIONS:
+        await wiki_bot.handle_button(update, context, action, args)
+        return
     handler = BUTTONS.get(action)
 
     try:
@@ -2862,6 +2870,12 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.pop("awaiting", None)
             await respond(update, *stats_saved_screen(conn, uid, text))
             return
+
+    # Typed answers to wiki prompts (/ask, /item, ...) go to the wiki assistant.
+    if kind and await wiki_bot.handle_text(update, context, kind, text):
+        return
+
+    with closing(get_conn()) as conn, conn:
 
         if kind == "stats":
             await respond(
@@ -3129,7 +3143,14 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ))
             return
 
-    await respond(update, DIDNT_UNDERSTAND, keyboard([HOME, ("❓ Help", "help:type")], [("📋 Item names", "catalog")]))
+    wiki_row = wiki_bot.offer_row(context.user_data, text)
+    if wiki_row and wiki_bot.looks_like_question(text):
+        await respond(update, "🤔 This doesn't look like an inventory change. Is it a question about "
+                      "Ingress? I can answer it in Sinhala from the Ingress Wiki.",
+                      keyboard(wiki_row, [HOME, ("❓ Help", "help:type")]))
+        return
+    await respond(update, DIDNT_UNDERSTAND,
+                  keyboard([HOME, ("❓ Help", "help:type")], [("📋 Item names", "catalog")], wiki_row))
 
 
 # ---------------------------------------------------------------------------
@@ -3467,13 +3488,15 @@ async def goal_reminder_loop(bot):
 
 async def post_init(app: Application):
     global _reminder_task
-    await app.bot.set_my_commands([BotCommand(c, d) for c, d in BOT_COMMANDS])
+    await app.bot.set_my_commands([BotCommand(c, d) for c, d in BOT_COMMANDS + wiki_bot.BOT_COMMANDS])
     _reminder_task = asyncio.get_running_loop().create_task(goal_reminder_loop(app.bot))
+    wiki_bot.start_background()
 
 
 async def post_stop(app: Application):
     if _reminder_task:
         _reminder_task.cancel()
+    wiki_bot.stop_background()
 
 
 def main():
@@ -3484,6 +3507,7 @@ def main():
         )
 
     init_db()
+    wiki_bot.setup(BASE_DIR)
 
     app = (
         Application.builder()
@@ -3518,6 +3542,8 @@ def main():
         "delaccount": delaccount_cmd,
         "cancel": cancel_cmd,
     }
+    assert not set(commands) & set(wiki_bot.COMMANDS), "wiki command clashes with an inventory command"
+    commands.update(wiki_bot.COMMANDS)
     for name, handler in commands.items():
         app.add_handler(CommandHandler(name, handler))
     app.add_handler(CallbackQueryHandler(on_button))

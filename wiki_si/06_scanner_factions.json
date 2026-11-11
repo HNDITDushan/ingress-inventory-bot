@@ -1,0 +1,255 @@
+[
+  {
+    "title": "Scanner",
+    "revid": 18908,
+    "kw": [
+      "scanner",
+      "ස්කෑනර්",
+      "app",
+      "ඇප් එක",
+      "map layers",
+      "scanner map"
+    ],
+    "h": "📱 Scanner කියන්නේ මොකක්ද?",
+    "s": "Scanner කියන්නේ Ingress app එක run කරන ඕනෑම device එකක් (phone, tablet). Scanner map එකේ ඔබ ඉන්න ප්‍රදේශය සහ range එක ඇතුළේ තියෙන දේවල් පෙන්නනවා.",
+    "p": [
+      "Map එකේ පෙනෙන දේ: Portals (neutral හෝ පාලනය කරන), Resonators, Shields, දෙපැත්තේම Links සහ Control Fields, බිම තියෙන XM සහ drop කරපු items.",
+      "Decay හෝ ප්‍රහාර වලින් Resonators වලට වෙන damage එකත් Scanner එක පෙන්නනවා.",
+      "Map layers (උඩ දකුණු icon එක): Visited (දම් රවුම), Captured (රතු රවුම), Scout Controlled (තැඹිලි රවුම) වගේ ඔබ ගිය/අල්ලපු Portals සලකුණු කරන්න පුළුවන්.",
+      "OPS menu එකෙන් Drone, Store, Missions, Events, Nominations වගේ දේවල් වලට යන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Faction",
+    "revid": 19576,
+    "kw": [
+      "faction",
+      "factions",
+      "ෆැක්ෂන්",
+      "කණ්ඩායම",
+      "team",
+      "res vs enl",
+      "resistance vs enlightened",
+      "කොළ නිල්",
+      "blue green"
+    ],
+    "h": "⚔️ Factions — Resistance සහ Enlightened",
+    "s": "Factions කියන්නේ Ingress වල කණ්ඩායම්. Enlightened සහ Resistance කියන factions දෙක Portals සහ MU පාලනය කරගන්න නිතරම සටන් කරනවා. XM ගැනත් Shapers ලාගේ අරමුණු ගැනත් දෙපැත්තට තියෙන්නේ විරුද්ධ විශ්වාස.",
+    "p": [
+      "Enlightened (ENL, ‘frogs’) — කොළ පාටින්. Motto: ‘Unlock your Mind’. Roland Jarvis (කලාකරුවෙක්, Niantic Project එකේ හිටපු සාමාජිකයෙක්) ආරම්භ කළා. XM මනුෂ්‍යත්වය ඉදිරියට ගෙනයන ත්‍යාගයක් කියලා විශ්වාස කරනවා.",
+      "Resistance (RES, ‘smurfs’) — නිල් පාටින්. Motto: ‘Protect Humanity’. Niantic Project එකේ හදපු ADA (A Detection Algorithm) කියන AI එක නායකත්වය දෙනවා. ස්ථාවරත්වයට කැමතියි; XM අනතුරුදායක, පාලනය කළ යුතුයි කියලා විශ්වාස කරනවා.",
+      "Game එක දෙපැත්තටම සමානයි — වෙනස ඔබ එකට සෙල්ලම් කරන්නේ කාත් එක්කද, විරුද්ධව කාටද කියන එක.",
+      "Machina කියන AI-පාලිත ‘තුන්වෙනි faction’ එකක්ත් තියෙනවා (රතු පාට)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Resistance",
+    "revid": 19181,
+    "kw": [
+      "resistance",
+      "රෙසිස්ටන්ස්",
+      "RES",
+      "blue",
+      "නිල්",
+      "smurf",
+      "smurfs",
+      "protect humanity"
+    ],
+    "h": "🔵 Resistance කියන්නේ කවුද?",
+    "s": "Resistance (RES, ‘smurfs’) කියන්නේ Ingress වල factions දෙකෙන් එකක්; Scanner එකේ නිල් පාටින් පෙන්නනවා. ඔවුන් XM දිහා බලන්නේ පරෙස්සමෙන් — නොදන්නා මූලාශ්‍රයකින් එන, පාලනය කරලා අධ්‍යයනය කළ යුතු තර්ජනයක් ලෙස. ඔවුන්ගේ අරමුණ මනුෂ්‍යත්වය ආරක්ෂා කිරීම (PROTECT).",
+    "p": [
+      "Motto: ‘Protect humanity.’",
+      "Shapers ලා මෙහෙ ඉන්නේ තමන්ගේම අරමුණු වලට කියලා Resistance විශ්වාස කරනවා; ඒ බලපෑමෙන් මිනිසුන් ආරක්ෂා කරන්න උත්සාහ කරනවා.",
+      "Resistance පාලනය කරන Portals, Links සහ Control Fields නිල් XM වලින් දිලිසෙනවා.",
+      "කවුරු අයිතිකරු වුණත් Portals upgrade කිරීම මුළු කණ්ඩායමටම වාසියි — සතුරාට වැඩිපුර gear වැය කරන්න වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Enlightened",
+    "revid": 19180,
+    "kw": [
+      "enlightened",
+      "එන්ලයිටන්ඩ්",
+      "ENL",
+      "green",
+      "කොළ",
+      "frog",
+      "frogs",
+      "unlock your mind"
+    ],
+    "h": "🟢 Enlightened කියන්නේ කවුද?",
+    "s": "Enlightened (ENL, ‘frogs’) කියන්නේ Ingress වල factions දෙකෙන් එකක්; Scanner එකේ කොළ පාටින් පෙන්නනවා. ඔවුන් XM දකින්නේ ත්‍යාගයක්, දෛවයක් ලෙස — මනස වර්ධනය කරලා මනුෂ්‍යත්වය අලුත් තත්ත්වයකට ගෙනයන ක්‍රමයක්. ඔවුන්ගේ අරමුණ මනුෂ්‍යත්වය පරිණාමය (EVOLVE) කිරීම.",
+    "p": [
+      "Motto: ‘Unlock your mind.’",
+      "Shapers ලා මනුෂ්‍යත්වයේ ආරම්භයේ ඉඳන් හිටියා, ගල් යුගයේ සිට නූතන යුගය දක්වා දියුණුවට හේතුව ඔවුන් කියලා Enlightened විශ්වාස කරනවා.",
+      "කලාව, සංගීතය, විද්‍යාව සහ අධ්‍යාපනය හරහා මනුෂ්‍යත්වය ඉදිරියට ගෙනයන්න උත්සාහ කරනවා.",
+      "Enlightened පාලනය කරන Portals, Links සහ Fields කොළ XM වලින් දිලිසෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Machina",
+    "revid": 19587,
+    "kw": [
+      "machina",
+      "මැකිනා",
+      "මැෂිනා",
+      "red portal",
+      "රතු portal",
+      "රතු පෝටල්",
+      "third faction",
+      "unknown portal"
+    ],
+    "h": "🔴 Machina කියන්නේ මොකක්ද?",
+    "s": "Machina කියන්නේ Resistance සහ Enlightened එක්ක ‘තුන්වෙනි faction’ එකක් වගේ ක්‍රියා කරන entity එකක්. වෙනස Machina AI එකකින් පාලනය වෙන එක — අනෙක් factions දෙකේ Agents මිනිස්සු. Machina Portals සහ Links රතු පාටයි.",
+    "p": [
+      "Machina Portals neutral Portals වලින් ස්වභාවිකව හටගන්නවා (spawn). Septicycle එකක් ඉවර වෙලා විනාඩි 15–45කින් L1 Machina Portals හටගන්න උත්සාහ කරනවා.",
+      "Neutral Portals වලට Links දාලා පැතිරෙනවා — ඒ Portal එක L1 Machina Portal එකක් වෙනවා.",
+      "පැය 5කට වරක් L7ට අඩු Machina Portals සමහරක් level up වෙනවා: Resonators level එකකින් වැඩි වෙලා charge එක 25%ට set වෙනවා. L8 ඒවා charge එක refresh කරනවා.",
+      "Machina Portal එකක් recapture කළොත් 1,331 AP අමතරව ලැබෙනවා (Access Points බලන්න).",
+      "04 February 2023ට කලින් Machina Portals වල අයිතිකරු ‘UNKNOWN’ ලෙස පෙන්නුවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Ingress",
+    "revid": 19051,
+    "kw": [
+      "ingress",
+      "ඉන්ග්‍රෙස්",
+      "ingress kiyanne",
+      "game eka",
+      "how to play",
+      "සෙල්ලම් කරන්නේ කොහොමද",
+      "what is ingress",
+      "ingress game"
+    ],
+    "h": "🌍 Ingress කියන්නේ මොකක්ද?",
+    "s": "Ingress කියන්නේ Niantic Labs හදපු augmented reality, location-based, massively multiplayer online game එකක්. ඇත්ත ලෝකයේ ඇවිදිමින් Portals capture කරලා, Links සහ Control Fields හදලා ඔබේ faction එකට ලකුණු (Mind Units) එකතු කරනවා. ‘The world around you is not what it seems.’",
+    "p": [
+      "Android: 14 December 2013, iOS: 14 July 2014 නිකුත් වුණා. Ingress Prime කියන ලොකු update එක 05 November 2018.",
+      "මුලින්ම faction එකක් තෝරන්න ඕන — Enlightened හෝ Resistance. Game එක දෙපැත්තටම සමානයි.",
+      "Ingress app එක run කරමින් ඇත්ත ලෝකයේ Portals (කලා නිර්මාණ, ස්මාරක, වැදගත් ස්ථාන) වෙත ගිහින් hack, capture, link කරනවා.",
+      "ලකුණු ලබාගන්න Portals තුනක් ත්‍රිකෝණයකට link කරලා Control Fields හදන්න ඕන. ප්‍රදේශය සහ ජන ඝනත්වය වැඩි තරමට MU වැඩියි; පැය 5කට වරක් ලකුණු ගණනය කරනවා.",
+      "කතාව: CERN හිදී Exotic Matter (XM) සොයාගත්තා; NIA ආයතනය Niantic Project එක පටන් ගත්තා; එහිදී ADA කියන AI එක හැදුවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "OPS",
+    "revid": 18412,
+    "kw": [
+      "ops",
+      "ops menu",
+      "ඔප්ස්",
+      "menu",
+      "attack menu"
+    ],
+    "h": "🗂️ OPS menu එක",
+    "s": "Scanner එකේ පහළ මැද තියෙන OPS button එක ඔබපුවම ප්‍රධාන menu එක විවෘත වෙනවා; තදකරගෙන හිටියොත් quick access OPS menu එකක් එනවා. Inventory, Attack, COMM, Store, Dronenet, Missions වගේ කොටස් වලට මෙතනින් යනවා.",
+    "p": [
+      "Inventory – ඔබ සතු items ඔක්කොම (Boosts, Beacons, Lockers, Capsules, Resonators, Weapons...).",
+      "Attack – Hypercubes, Power Cubes සහ weapons carousel එකක පෙන්නනවා; එතනින්ම පාවිච්චි කරන්න/fire කරන්න පුළුවන්.",
+      "COMM – පණිවිඩ සහ activity බලන්න. පෙන්නන radius එක 5 km සිට 1,000 km දක්වා වෙනස් කරන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Inventory (OPS)",
+    "revid": 18539,
+    "kw": [
+      "inventory",
+      "ඉන්වෙන්ටරි",
+      "inventory limit",
+      "inventory cap",
+      "2000 items",
+      "item limit",
+      "drop item",
+      "inventory full"
+    ],
+    "h": "🎒 Inventory එක",
+    "s": "Inventory tab එකේ ඔබ සතු items ඔක්කොම තියෙනවා. මෙතනින් items drop කරන්න, recycle කරන්න සහ Capsules වලට දාන්න පුළුවන්. Item ගණනත් මෙතන පෙන්නනවා.",
+    "p": [
+      "Inventory limit එක items 2,000යි. C.O.R.E. සාමාජිකයන්ට තවත් 500ක් (2,500).",
+      "Item කාණ්ඩ අනුව බෙදලා තියෙනවා; item නැති කාණ්ඩ පෙන්නන්නේ නැහැ.",
+      "Portal Keys දුර හෝ නම අනුව sort කරන්න පුළුවන්.",
+      "Items එකපාර ගොඩක් recycle කරන්න පුළුවන්, හැබැයි drop කරන්න ඕන එකින් එක.",
+      "Drop කරපු items අනෙක් Agents ලගේ Scanners වල පැය ~12ක් පෙනෙනවා, ඊට පස්සේ නැති වෙනවා.",
+      "Key Locker එකක් ඇතුළේ තියෙන Keys inventory limit එකට ගණන් වෙන්නේ නැහැ."
+    ],
+    "sec": []
+  },
+  {
+    "title": "COMM",
+    "revid": 18051,
+    "kw": [
+      "comm",
+      "chat",
+      "චැට්",
+      "messages",
+      "alerts",
+      "notifications",
+      "faction chat"
+    ],
+    "h": "💬 COMM කියන්නේ මොකක්ද?",
+    "s": "COMM කියන්නේ Scanner එකේ සහ Intel Map එකේ notifications බලන්න සහ Agents අතර chat කරන්න තියෙන feature එක. (Wiki එක සඳහන් කරනවා මේ පිටුවේ සමහර තොරතුරු පරණයි කියලා.)",
+    "p": [
+      "‘All’ tab එකේ පණිවිඩ public — දෙපැත්තේම Agents ලට පේනවා.",
+      "‘Faction’ tab එකේ පණිවිඩ ඔබේ faction එකට විතරයි; ‘All’ tab එකේ [secure] කියලා පෙන්නනවා. හැබැයි අත්දැකීම් ඇති අය වැදගත් operations වලට Faction COMM විශ්වාස කරන්නේ නැහැ.",
+      "ළඟ ඉන්න Agents ලගේ ක්‍රියා ‘Activities’ tab එකේ, ඔබට අදාළ notifications ‘Alerts’ tab එකේ.",
+      "Notifications නොයවා Mods විනාශ කරන්න පුළුවන් (උදා: Resonators වලට නොවදින පොඩි Ultra Strikes) — සමහර වෙලාවට නිහඬව පහර දීම වාසියක්.",
+      "Push notifications on/off කරන්නේ OPS > Device tab එකෙන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Dronenet",
+    "revid": 18125,
+    "kw": [
+      "drone",
+      "drones",
+      "ඩ්‍රෝන්",
+      "dronenet",
+      "drone hack",
+      "drone hacks"
+    ],
+    "h": "🛸 Dronenet (Drone) කියන්නේ මොකක්ද?",
+    "s": "Dronenet කියන්නේ Ingress Prime 2.48 එකේ (05 June 2020, Drone Mark I) ආපු feature එකක්; 03 May 2021 Drone Mark II ලෙස update වුණා. ඔබේ Drone එක Portal එකකට යවලා ඒ Portal එක hack කරලා items ගන්න පුළුවන් — Portal Keys විතරක් ලැබෙන්නේ නැහැ.",
+    "p": [
+      "Drone එක deploy කරනකම් ඔබේ ස්ථානය පසුපස එනවා.",
+      "Drone එක move කරන්න සූදානම් වුණාම OPS button එක ළඟ රතු තිතක් (●) පෙනෙනවා.",
+      "Drone hacks Sojourner සහ Hacker medals වලට ගණන් වෙනවා — streak එක තියාගන්න ප්‍රයෝජනවත්.",
+      "Drone එකේ පෙනුම faction එක අනුව වෙනස්, ක්‍රියාකාරිත්වය සමානයි.",
+      "අලුත් stats: Unique Portals Drone Visited, Furthest Drone Distance, Drone Hacks (Maverick medal එකට)."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "L7, L8 Portals ළඟට ගිහින් Drone එක ඒවා උඩ තියලා high-level gear ගන්න පුළුවන්. Drone එක move කරන්න පුළුවන් වෙලාව ගැන Ingress notification එකක් එවන්නේ නැති නිසා සමහරු පැයේ timer එකක් තියාගන්නවා."
+      ]
+    ]
+  },
+  {
+    "title": "Overclock",
+    "revid": 19596,
+    "kw": [
+      "overclock",
+      "ඕවර්ක්ලොක්",
+      "overclock crystal",
+      "VPS",
+      "AR hack"
+    ],
+    "h": "💎 Overclock කියන්නේ මොකක්ද? (දැන් නැහැ)",
+    "s": "Overclock කියන්නේ AR සහ Niantic Lightship VPS (Visual Positioning System) පාවිච්චි කරලා Portal එකක් hack කරන්න තිබුණ විශේෂ ක්‍රමයක්. Wiki එකට අනුව 2026 March 11 සිට Overclock ඉවත් කරලා — දැන් game එකේ නැහැ.",
+    "p": [
+      "Overclock තිබුණ Portals උඩ octahedral ‘Overclock Crystal’ එකක් පෙනුණා.",
+      "Overclock range එක මීටර 20යි (සාමාන්‍ය Scanner range එක 40m).",
+      "Camera එකෙන් වටපිටාව පෙන්නලා, කලින් upload කරපු Portal Scans එක්ක සසඳලා ‘Localization’ කරන්න ඕන වුණා.",
+      "VPS-enabled Portals වල විතරයි තිබුණේ; Portal Scans වලින් VPS enable කරන්න පුළුවන් වුණා."
+    ],
+    "sec": []
+  }
+]

@@ -1,0 +1,367 @@
+[
+  {
+    "title": "Special Accounts",
+    "revid": 18230,
+    "kw": [
+      "special account",
+      "unknown owner",
+      "portal owner"
+    ],
+    "h": "👤 Special Accounts කියන්නේ මොනවද?",
+    "s": "සමහර අවස්ථාවලදී Portals, Resonators හෝ Mods විශේෂ accounts වලට අයිති වෙනවා. ඒවා සාමාන්‍ය Agents නෙවෙයි.",
+    "p": [
+      "Unknown – decay වෙලා හෝ විනාශ වෙලා neutral වුණ Portals වල අයිතිකරු ලෙස පෙනෙනවා.",
+      "__ADA__ – Enlightened Agent කෙනෙක් ADA Refactor එකකින් flip කරපු Portals (සහ ඒවායේ Resonators/Mods) අයිති වෙන්නේ මේකට.",
+      "__JARVIS__ – Resistance Agent කෙනෙක් JARVIS Virus එකකින් flip කරපු Portals අයිති වෙන්නේ මේකට.",
+      "NIASection14 – Niantic game එකට මැදිහත් වෙන්න පාවිච්චි කරන account එක (උදා: spoofer කෙනෙක් විනාශ කරපු Portals යථා තත්ත්වයට ගේන්න)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Linking Patterns",
+    "revid": 18049,
+    "kw": [
+      "linking pattern",
+      "fielding pattern",
+      "fan field",
+      "fanfield",
+      "cobweb",
+      "pyramid field",
+      "link star",
+      "homogeneous",
+      "fielding plan"
+    ],
+    "h": "🕸️ Linking / Fielding Patterns",
+    "s": "Linking patterns (fielding patterns) කියන්නේ Links සහ Control Fields සකස් කරන විවිධ ක්‍රම. Portals ටිකකින් වැඩිම Fields හෝ Field layers ගණනක් ගන්න pattern කිහිපයක් හදලා තියෙනවා.",
+    "p": [
+      "Field වැඩිම කරගන්න patterns: Pyramid Fields, Cobweb Fields, Fan Fields සහ තවත්.",
+      "Link Star – බොහෝ Links එකම destination Portal එකකට. Portal එකකින් පිටතට Links 8ක සීමාව (SBUL එක්ක 40) නිසා සාමාන්‍යයෙන් පිටතින් ඇතුළට link කරනවා; ඒකට Keys ගොඩක් farm කරන්න ඕන.",
+      "Layering ගැන Control Field පිටුවේ ‘Layering’ කොටස බලන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Metrics",
+    "revid": 17448,
+    "kw": [
+      "metrics",
+      "speed limit",
+      "trekker speed",
+      "8 km/h"
+    ],
+    "h": "📏 Ingress Metrics",
+    "s": "Ingress වල දුර මනින්නේ meters වලින්. වේග සීමා දෙකක් වැදගත්:",
+    "p": [
+      "Trekker badge එකට ඇවිදින දුර ගණන් වෙන්න ඔබ 8 km/h ට වඩා අඩු වේගයකින් යන්න ඕන.",
+      "Speed Lock: 60 km/h ට වඩා වේගයෙන් යනකොට ක්‍රියා fail වෙනවා.",
+      "Checkpoints පැය 5කට වරක්; Cycle එකකට checkpoints 35යි."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Global Scores",
+    "revid": 19331,
+    "kw": [
+      "global score",
+      "global scores",
+      "world score",
+      "ලෝක ලකුණු",
+      "who is winning",
+      "කවුද දිනන්නේ"
+    ],
+    "h": "🌐 Global Scores",
+    "s": "Global Scores පිටුවේ හැම Cycle එකකම Enlightened සහ Resistance ලෝක මට්ටමේ MU ලකුණු සටහන් කරනවා.",
+    "p": [
+      "උදා: Cycle 2025.15 — ENL 1,809M, RES 4,894M.",
+      "Cycle 2025.10 — ENL 1,197M, RES 6,041M.",
+      "Wiki එකේ 2025 cycles වල Resistance ලකුණු Enlightened ට වඩා වැඩියි.",
+      "නවතම ලකුණු Scanner එකේ OPS > Intel tab එකේ බලන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Intel (Ops)",
+    "revid": 18055,
+    "kw": [
+      "intel tab",
+      "regional scores",
+      "top agents",
+      "leaderboard"
+    ],
+    "h": "📊 Intel tab එක (OPS)",
+    "s": "OPS menu එකේ Intel tab එකේ ප්‍රාදේශීය සහ ලෝක Mind Unit (MU) ලකුණු සහ ප්‍රාදේශීය leaderboard එක පෙන්නනවා. දැනට තියෙන Checkpoint එකට සහ Cycle එකට ඉතුරු කාලයත් පෙන්නනවා.",
+    "p": [
+      "Global View – කැරකෙන ගෝලයක්, ලකුණු bars, faction MU කාල ප්‍රස්තාරය සහ ලකුණු ඉතිහාසය.",
+      "Regional Scores – ඔබ ඉන්න ප්‍රදේශයේ MU පාලනය සහ Agents ලගේ ලකුණු.",
+      "Top-Agent ලකුණු කලින් checkpoint එක දක්වා එකතු වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Agent Avatars",
+    "revid": 17188,
+    "kw": [
+      "avatar",
+      "avatars",
+      "ඇවටාර්",
+      "agent avatar"
+    ],
+    "h": "🧍 Agent Avatars",
+    "s": "Avatars Ingress Prime version 2.39 එකේදී ආවා. Scanner map එකේ ඔබේ පෙනුම customize කරන්න පුළුවන්. අනෙක් අයට ඔබේ Agent Profile එකෙන් ඔබේ avatar එක බලන්න පුළුවන්.",
+    "p": [
+      "Prime – හැම අලුත් Agent කෙනෙකුටම ලැබෙන default avatar එක.",
+      "Aerodyne – 5,000 CMU; map එකේ පාවෙන effect එකක් තියෙනවා.",
+      "Events වලදී තාවකාලික avatars ලැබෙන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Agent Icon",
+    "revid": 17478,
+    "kw": [
+      "agent icon",
+      "profile icon",
+      "icon"
+    ],
+    "h": "🔰 Agent Icon",
+    "s": "Agent Icon කියන්නේ Agent Profile එකේ customize කරන්න පුළුවන් කොටසක් — ඔබේ profile එකට එන අයට මුලින්ම පෙනෙන නිසා ඔබේ ‘business card’ එක වගේ.",
+    "p": [
+      "Foreground/Background සංයෝජන 315ක් තියෙනවා.",
+      "වර්ණ එක්ක unique Agent Icons 20,160ක් හදන්න පුළුවන්.",
+      "Foreground වර්ණ 8ක් තියෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Agent Profile",
+    "revid": 18781,
+    "kw": [
+      "profile",
+      "agent profile",
+      "ප්‍රොෆයිල්",
+      "stats",
+      "medals view",
+      "private profile"
+    ],
+    "h": "🪪 Agent Profile",
+    "s": "හැම Agent කෙනෙකුටම unique Agent Profile එකක් තියෙනවා. Scanner එකේ උඩ දකුණු කෙළවරේ Codename එක හෝ උඩ වම් කෙළවරේ Agent icon එක tap කරලා යන්න පුළුවන්.",
+    "p": [
+      "COMM, Portal තිරය හෝ Top Agents ලැයිස්තුවේ Codename එකක් tap කරලා ‘View Agent Profile’ තෝරලා වෙන අයගේ profiles බලන්න පුළුවන්.",
+      "Profile එකේ හැමවෙලේම Medals සහ මුළු AP පෙන්නනවා.",
+      "සවිස්තර Stats පෙනෙන්නේ profile එක private කරලා නැත්නම් විතරයි."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Ingress Prime",
+    "revid": 17756,
+    "kw": [
+      "ingress prime",
+      "prime",
+      "ප්‍රයිම්"
+    ],
+    "h": "🆕 Ingress Prime කියන්නේ මොකක්ද?",
+    "s": "Ingress Prime කියන්නේ Ingress game එකේ redesign කරපු Scanner (app) එක — 05 November 2018 නිකුත් වුණා (Niantic Labs, Android සහ iOS). අලුත් game එකක් නෙවෙයි, දැනට තියෙන game එකේ ලොකු update එකක්.",
+    "p": [
+      "අලුත් graphics සහ user interface එකක්.",
+      "අනෙක් Agents ලගේ ක්‍රියා game world එකේ වේගයෙන් update වෙනවා.",
+      "අලුත් sounds, features සහ කතා මාලාවක් ආවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Shard",
+    "revid": 19591,
+    "kw": [
+      "shard",
+      "shards",
+      "ෂාඩ්",
+      "shard event"
+    ],
+    "h": "💠 Shards කියන්නේ මොනවද?",
+    "s": "Shards කියන්නේ Scanner එකේ Portal එකක් උඩ කැරකෙන පොඩි කෑලි ලෙස පෙනෙන objects. සාමාන්‍යයෙන් anomaly events වලදී පෙනෙනවා. Links දාලා Shards ඉලක්ක Portal එකක් දක්වා ගෙනයන එක තමයි අරමුණ.",
+    "p": [
+      "කලින් කලට Portal එකේ තියෙන shard එක ප්‍රමාණවත් level එකක් තියෙන linked Portal එකකට ගමන් කරනවා.",
+      "Shards ආපසු යනවට වඩා අලුත් Portals වලට යන්න කැමතියි.",
+      "කාලයක් ගමන් නොකළොත් ළඟ link නැති Portal එකකට ‘teleport’ වෙන්න අවස්ථාවක් තියෙනවා.",
+      "ඉලක්ක Portal එකට ආවම shard එක capture වුණා ලෙස සලකනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "XM Harmonizer",
+    "revid": 19033,
+    "kw": [
+      "harmonizer",
+      "xm harmonizer",
+      "හාමොනයිසර්"
+    ],
+    "h": "☯️ XM Harmonizer කියන්නේ මොකක්ද?",
+    "s": "XM Harmonizer කියන්නේ Harmonious Flip Card එක — Resistance හෝ Enlightened Portal එකක් එකපාරටම Harmonious පාලනයට හරවනවා; එතකොට Portal එක factions දෙකටම එකට අයිති වෙනවා.",
+    "p": [
+      "Rarity: Unobtainable (සාමාන්‍යයෙන් ලබාගන්න බැහැ).",
+      "XM වැය Portal level එක අනුව 1,000 – 8,000 XM. Recycle 100 XM.",
+      "ADA/JARVIS වගේමයි, හැබැයි Enlightened සහ Resistance Portals දෙකටම පාවිච්චි කරන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Agent Protocol",
+    "revid": 18069,
+    "kw": [
+      "agent protocol",
+      "rules",
+      "නීති",
+      "protocol"
+    ],
+    "h": "🤝 Agent Protocol",
+    "s": "Ingress හැමෝටම සතුටින් සෙල්ලම් කරන්න පුළුවන් game එකක් වෙන්න ඕන. Agent Protocol එකේ සරල මාර්ගෝපදේශ:",
+    "p": [
+      "වචන වලින් සහ ක්‍රියා වලින් උතුම් වෙන්න.",
+      "Game එකේදීත් ඇත්ත ජීවිතයේදීත් ගෞරවයෙන් හැසිරෙන්න.",
+      "Players ලගේ පෞද්ගලිකත්වයට ගරු කරන්න.",
+      "මිනිස් ලෝකයේ නීති වලට අනුකූල වෙන්න.",
+      "උල්ලංඝනය කිරීම් Help Center එකේ ‘Submit a Request’ හරහා Niantic ට report කරන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Ingress Game Community Guidelines",
+    "revid": 18070,
+    "kw": [
+      "community guidelines",
+      "guidelines",
+      "harassment",
+      "report player",
+      "spoofer",
+      "trespass"
+    ],
+    "h": "📜 Ingress Community Guidelines",
+    "s": "Agents අනෙක් Agents සහ සෙල්ලම් නොකරන අය එක්ක හැසිරෙන විදිහ ගැන Niantic community guidelines ප්‍රකාශ කරලා තියෙනවා.",
+    "p": [
+      "Community එකට ගරු කරන්න; අනෙක් players සහ අවට ඉන්න අය එක්ක ගෞරවයෙන් හැසිරෙන්න.",
+      "හිරිහැරයක් ලෙස තේරුම් ගන්න පුළුවන් කිසිවක් කරන්න එපා.",
+      "පෞද්ගලිකත්වයට ගරු කරන්න — ඇත්ත නම්, ලිපිනයන් හෙළි කරන්න එපා.",
+      "Ingress සෙල්ලම් කරනකොට අවසරයක් නැතුව ඉඩම් වලට ඇතුළු වෙන්න එපා.",
+      "Trolls එක්ක පැටලෙන්න එපා — block කරලා Niantic ට හෝ අදාළ බලධාරීන්ට report කරන්න.",
+      "ශාරීරික අනතුරක් නම් ආරක්ෂිත තැනකට ගිහින් බලධාරීන්ට දැනුම් දෙන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Glyph Sequences",
+    "revid": 18540,
+    "kw": [
+      "glyph sequence",
+      "glyph sequences",
+      "glyph list",
+      "glyph meaning"
+    ],
+    "h": "🔤 Glyph Sequences",
+    "s": "Glyph Sequences පිටුවේ Glyph Hacking වලදී එන Glyph වාක්‍ය ලැයිස්තුව තියෙනවා. Glyphs 3, 4 සහ 5 වාක්‍ය තියෙනවා — Glyphs 3 සහ 5 ලැයිස්තු සම්පූර්ණයි, 4 ලැයිස්තුව බොහෝ දුරට සම්පූර්ණයි.",
+    "p": [
+      "උදා: ‘Accept Human Weak’, ‘Advance Pure Truth’, ‘Attack Capture Link’, ‘Avoid Chaos Soul’.",
+      "වාක්‍ය Shapers, N'Zeer, Enlightened, Resistance සහ මනුෂ්‍යත්වය සඳහා යුද්ධය වගේ Lore එකට අදාළයි.",
+      "සම්පූර්ණ ලැයිස්තුවට Wiki පිටුව බලන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "NIASection14",
+    "revid": 18798,
+    "kw": [
+      "NIASection14",
+      "NIAGameMaster",
+      "niantic account",
+      "spoofing"
+    ],
+    "h": "🏛️ NIASection14 කියන්නේ කවුද?",
+    "s": "NIASection14 (කලින් NIAGameMaster) කියන්නේ Niantic game එකට මැදිහත් වෙන්න ඕන වුණාම පාවිච්චි කරන Special Account එක — උදා: spoofer account එකක් විනාශ කරපු Portals යථා තත්ත්වයට ගේන්න.",
+    "p": [
+      "Niantic spoofing reports වලට ප්‍රතිචාර දක්වන්නේ යන්න අමාරු වැදගත් Portals ගැන විතරයි.",
+      "අවශ්‍යතාවය අනුව Resistance හෝ Enlightened ලෙස පෙනෙන්න පුළුවන්.",
+      "Events සඳහා Battle Beacons deploy කරන්නත්, Cycle එක අවසානයේ Portal Scans 7ක් ලැබුණු Portals වලට reward එකක් ලෙසත් පාවිච්චි වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Intel Map",
+    "revid": 18669,
+    "kw": [
+      "intel map",
+      "intel",
+      "ඉන්ටෙල්",
+      "intel.ingress.com",
+      "iitc",
+      "map website"
+    ],
+    "h": "🗺️ Intel Map කියන්නේ මොකක්ද?",
+    "s": "Intel Map (intel.ingress.com) කියන්නේ Scanner එකේ visual range එකෙන් සීමා නොවී ලෝක Ingress map එක බලන්න පුළුවන් website එක. Passcodes redeem කරන්නත් පාවිච්චි කරන්න පුළුවන්.",
+    "p": [
+      "Computer එකක Passcodes copy-paste කරන්න සහ iPhone users ලට ප්‍රයෝජනවත්.",
+      "IITC (Ingress Intel Total Conversion, iitc.app) – Intel Map එකට අමතර features දෙන third-party add-ons. මේවා official නැහැ."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Glossary",
+    "revid": 18053,
+    "kw": [
+      "glossary",
+      "acronyms",
+      "abbreviation",
+      "කෙටි නම්",
+      "meaning of",
+      "තේරුම"
+    ],
+    "h": "📖 Ingress කෙටි නම් (Glossary)",
+    "s": "Ingress community එකේ ගොඩක් කෙටි නම් සහ acronyms පාවිච්චි කරනවා. කිහිපයක්:",
+    "p": [
+      "ADA – ADA Refactor weapon එක, නැත්නම් ADA චරිතය.",
+      "AP – Access Points (සමහර games වල XP වගේ).",
+      "AXA – Aegis Shield එකේ පරණ නම.",
+      "CMU – Chaotic Matter Units (ඇත්ත මුදල් වලින් ගන්න currency එක).",
+      "COMM – Communications: Scanner එකේ chat සහ notifications.",
+      "XF – Cross-faction (දෙපැත්තම එකට).",
+      "Items වල කෙටි නම් (VRHS, RMH, SBUL...) එක් එක් item පිටුවේ තියෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Cross-faction",
+    "revid": 16837,
+    "kw": [
+      "cross faction",
+      "cross-faction",
+      "XF"
+    ],
+    "h": "🤝 Cross-faction (XF) කියන්නේ මොකක්ද?",
+    "s": "Cross-faction (XF) කියන්නේ Resistance සහ Enlightened දෙපැත්තේම සාමාජිකයන් ඉන්න community සහ, factions දෙක පොදු අරමුණක් වෙනුවෙන් එකට වැඩ කරන events/ක්‍රියාකාරකම්.",
+    "p": [
+      "Agents සංවිධානය කරන Field Art ව්‍යාපෘති බොහෝ විට cross-faction — factions ‘වර්ණ’ ලෙස design එකට පාවිච්චි කරනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "C.O.R.E. Subscription",
+    "revid": 18804,
+    "kw": [
+      "core",
+      "c.o.r.e",
+      "core subscription",
+      "subscription",
+      "සබ්ස්ක්‍රිප්ෂන්",
+      "loadout kit"
+    ],
+    "h": "💳 C.O.R.E. Subscription කියන්නේ මොකක්ද?",
+    "s": "C.O.R.E. (Community, Offers, Recognition, Expansion) කියන්නේ Ingress Agents ලට තියෙන optional මාසික subscription එකක්. 05 February 2021 නිවේදනය කරලා 09 February 2021 Store එකේ ලබා දුන්නා. මාසයකට USD 7.99.",
+    "p": [
+      "Inventory එකට අමතර ඉඩ 500ක්.",
+      "C.O.R.E. Profile Badge සහ Codename Flair එකක්.",
+      "මාසිකව 10,000 CMU grant එකක්.",
+      "මාසිකව C.O.R.E. Loadout Kit 1ක්: 10,000 CMU, Apex 2, Kinetic Capsule 2, XMP 20, Resonator 20, Hypercube 10, ITO EN (+) 1, ITO EN (−) 1, SoftBank Ultra Link 1.",
+      "Intel Map එකට වැඩිපුර calls."
+    ],
+    "sec": []
+  }
+]

@@ -1,0 +1,679 @@
+[
+  {
+    "title": "Medal",
+    "revid": 19597,
+    "kw": [
+      "medal",
+      "medals",
+      "මෙඩල්",
+      "මෙඩල්ස්",
+      "badge",
+      "badges",
+      "onyx",
+      "platinum",
+      "tiers"
+    ],
+    "h": "🏅 Medals කියන්නේ මොනවද?",
+    "s": "Medals ලැබෙන්නේ Agents නිශ්චිත ඉලක්ක (milestones) වලට ළඟා වුණාම. බොහෝ medals වලට tiers 5ක් තියෙනවා: Bronze, Silver, Gold, Platinum සහ Onyx (Black). හැම tier එකකටම කලින් එකට වඩා වැඩිපුර වැඩ කරන්න ඕන.",
+    "p": [
+      "L9–L16 levels ගන්න medals ඕන (Access Level පිටුව බලන්න).",
+      "සාමාන්‍යයෙන් L11–L13 සඳහා ප්‍රමාණවත් Gold medals ගැනීම තමයි අමාරුම කොටස.",
+      "agent-stats.com වගේ sites ඔබේ ප්‍රගතිය අනුව ඊළඟ medals කවදා ලැබේද කියලා අනුමාන කරනවා.",
+      "එක් එක් medal එක ගැන විස්තර: /ask <medal නම> medal — උදා: /ask Trekker medal"
+    ],
+    "sec": []
+  },
+  {
+    "title": "Guardian",
+    "revid": 15170,
+    "kw": [
+      "guardian",
+      "guardian medal"
+    ],
+    "h": "🎖 Guardian medal එක මොකක්ද?",
+    "s": "Guardian medal එක ලැබුණේ එක Portal එකක් දිගු කාලයක් අල්ලාගෙන ඉඳීමෙන් (‘Longest Portal Held’ stat එක).",
+    "p": [
+      "Bronze 3 · Silver 10 · Gold 20 · Platinum 90 · Onyx 150 days",
+      "හඳුන්වා දුන්නේ: 12 September 2013.",
+      "⚠️ දැන් නැහැ — 02 April 2018 නතර කළා.",
+      "Portal එක ඔබට අයිති වෙන්න ඕන වුණා; අයිතිය නැති වුණාම streak එක reset වුණා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Anomaly Medals",
+    "revid": 15580,
+    "kw": [
+      "anomaly medal",
+      "anomaly badge"
+    ],
+    "h": "🎖 Anomaly Medals",
+    "s": "Anomaly Medals ලැබෙන්නේ ලෝක මට්ටමේ anomaly events වලට සහභාගී වීමෙන්. ඒවා Agent profile එකේ පෙන්නනවා.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Catalyst",
+    "revid": 19379,
+    "kw": [
+      "catalyst medal"
+    ],
+    "h": "🎖 Catalyst medal එක මොකක්ද?",
+    "s": "Catalyst medal එක Ingress හි දොළොස්වෙනි (Year Twelve) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Epoch",
+    "revid": 17882,
+    "kw": [
+      "epoch",
+      "weekly hackstreak",
+      "epoch medal"
+    ],
+    "h": "🎖 Epoch medal එක මොකක්ද?",
+    "s": "Epoch medal එක ලැබෙන්නේ සතියේ දින 7ම hack කරන weekly Hackstreaks පවත්වාගෙන යාමෙන්. Sojourner වගේ පැය 24 කාලයක් නෙවෙයි — ඔබේ local වේලාවෙන් 00:00:00 සිට 23:59:59 දක්වා දවසක් ගණන් කරනවා.",
+    "p": [
+      "Bronze 2 · Silver 4 · Gold 8 · Platinum 30 · Onyx 60 streaks",
+      "හඳුන්වා දුන්නේ: 19 April 2021."
+    ],
+    "sec": []
+  },
+  {
+    "title": "First Saturday",
+    "revid": 17054,
+    "kw": [
+      "first saturday",
+      "IFS",
+      "FS",
+      "ingressfs",
+      "first saturday medal"
+    ],
+    "h": "🎖 First Saturday medal එක මොකක්ද?",
+    "s": "First Saturday medal එක ලැබෙන්නේ First Saturday (IFS) events වලට සහභාගී වීමෙන්. මේවා හැම මාසයකම පළමු සෙනසුරාදා community එක සංවිධානය කරන cross-faction events.",
+    "p": [
+      "Bronze 1 · Silver 6 · Gold 12 · Platinum 24 · Onyx 36 events",
+      "හඳුන්වා දුන්නේ: 12 November 2018."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Founder",
+    "revid": 15169,
+    "kw": [
+      "founder",
+      "founder medal"
+    ],
+    "h": "🎖 Founder medal එක මොකක්ද?",
+    "s": "Founder medal එක 14 December 2013 Level 5+ Agents ලට දුන්නා — Ingress Android වල නිල වශයෙන් නිකුත් වෙලා ‘beta’ ලේබලය අයින් කළ දවස.",
+    "p": [
+      "⚠️ දැන් නැහැ — 14 December 2013 නතර කළා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Hacker",
+    "revid": 15171,
+    "kw": [
+      "hacker medal",
+      "hacker medal"
+    ],
+    "h": "🎖 Hacker medal එක මොකක්ද?",
+    "s": "Hacker medal එක ලැබෙන්නේ Portals hack කිරීමෙන්. ලේසියෙන්ම ගන්න පුළුවන් medals වලින් එකක් (ලේසිම එක Recharger). Dronenet hacks ත් ගණන් වෙනවා.",
+    "p": [
+      "Bronze 2,000 · Silver 10,000 · Gold 30,000 · Platinum 100,000 · Onyx 200,000 hacks",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Illuminator",
+    "revid": 15172,
+    "kw": [
+      "illuminator",
+      "mu medal",
+      "illuminator medal"
+    ],
+    "h": "🎖 Illuminator medal එක මොකක්ද?",
+    "s": "Illuminator medal එක ලැබෙන්නේ ජනාකීර්ණ ප්‍රදේශ හරහා Control Fields හදලා Mind Units (MU) අල්ලාගැනීමෙන්. Field එක යට ජන ඝනත්වය වැඩි තරමට MU වැඩියි.",
+    "p": [
+      "Bronze 2,000 · Silver 50,000 · Gold 250,000 · Platinum 1,000,000 · Onyx 4,000,000 MU",
+      "හඳුන්වා දුන්නේ: 26 February 2015."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Innovator",
+    "revid": 17047,
+    "kw": [
+      "innovator medal"
+    ],
+    "h": "🎖 Innovator medal එක මොකක්ද?",
+    "s": "Innovator medal එක Ingress හි දෙවෙනි (Year Two) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 15 November 2014 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Luminary",
+    "revid": 15175,
+    "kw": [
+      "luminary medal"
+    ],
+    "h": "🎖 Luminary medal එක මොකක්ද?",
+    "s": "Luminary medal එක Ingress හි හතරවෙනි (Year Four) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 01 December 2016 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Mind Controller",
+    "revid": 15176,
+    "kw": [
+      "mind controller",
+      "mind controller medal"
+    ],
+    "h": "🎖 Mind Controller medal එක මොකක්ද?",
+    "s": "Mind Controller medal එක ලැබෙන්නේ Control Fields හැදීමෙන්.",
+    "p": [
+      "Bronze 100 · Silver 500 · Gold 2,000 · Platinum 10,000 · Onyx 40,000 Fields",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Mission Day",
+    "revid": 15177,
+    "kw": [
+      "mission day medal",
+      "mission day medal"
+    ],
+    "h": "🎖 Mission Day medal එක මොකක්ද?",
+    "s": "Mission Day medal එක ලැබෙන්නේ Mission Day events වලට සහභාගී වීමෙන්.",
+    "p": [
+      "Bronze 1 · Silver 3 · Gold 6 · Platinum 10 · Onyx 20 Mission Days",
+      "හඳුන්වා දුන්නේ: 12 March 2016."
+    ],
+    "sec": []
+  },
+  {
+    "title": "NL-1331 Meetups",
+    "revid": 19504,
+    "kw": [
+      "meetup medal",
+      "nl-1331 meetups medal"
+    ],
+    "h": "🎖 NL-1331 Meetups medal එක මොකක්ද?",
+    "s": "NL-1331 Meetups medal එක ලැබෙන්නේ NL-1331 events වලට සහභාගී වීමෙන්.",
+    "p": [
+      "Bronze 1 · Silver 3 · Gold 5 · Platinum 10 · Onyx 15 events"
+    ],
+    "sec": []
+  },
+  {
+    "title": "Ouroboros",
+    "revid": 17338,
+    "kw": [
+      "ouroboros medal"
+    ],
+    "h": "🎖 Ouroboros medal එක මොකක්ද?",
+    "s": "Ouroboros medal එක Ingress හි හයවෙනි (Year Six) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 26 November 2018 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Paragon",
+    "revid": 18532,
+    "kw": [
+      "paragon medal"
+    ],
+    "h": "🎖 Paragon medal එක මොකක්ද?",
+    "s": "Paragon medal එක Ingress හි එකොළොස්වෙනි (Year Eleven) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 20 November 2023 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Pathfinder",
+    "revid": 18531,
+    "kw": [
+      "pathfinder medal"
+    ],
+    "h": "🎖 Pathfinder medal එක මොකක්ද?",
+    "s": "Pathfinder medal එක Ingress හි දහවෙනි (Year Ten) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 21 November 2022 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Persistence",
+    "revid": 17341,
+    "kw": [
+      "persistence medal"
+    ],
+    "h": "🎖 Persistence medal එක මොකක්ද?",
+    "s": "Persistence medal එක Ingress හි නවවෙනි (Year Nine) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 2021 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Purifier",
+    "revid": 18460,
+    "kw": [
+      "purifier",
+      "destroy resonators",
+      "purifier medal"
+    ],
+    "h": "🎖 Purifier medal එක මොකක්ද?",
+    "s": "Purifier medal එක ලැබෙන්නේ සතුරු Resonators විනාශ කිරීමෙන් — Machina Resonators ත් ගණන් වෙනවා.",
+    "p": [
+      "Bronze 2,000 · Silver 10,000 · Gold 30,000 · Platinum 100,000 · Onyx 300,000 Resonators",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Recharger",
+    "revid": 17593,
+    "kw": [
+      "recharger medal",
+      "recharger medal"
+    ],
+    "h": "🎖 Recharger medal එක මොකක්ද?",
+    "s": "Recharger medal එක ලැබෙන්නේ තමන්ගේ පැත්තේ Portals recharge කිරීමෙන්.",
+    "p": [
+      "Bronze 100,000 · Silver 1,000,000 · Gold 3,000,000 · Platinum 10,000,000 · Onyx 25,000,000 XM",
+      "හඳුන්වා දුන්නේ: 06 February 2014.",
+      "බොහෝ අය කියන විදිහට ලේසියෙන්ම ගන්න පුළුවන් Onyx medal එක."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Recon",
+    "revid": 15791,
+    "kw": [
+      "recon medal",
+      "wayfarer medal",
+      "opr medal",
+      "recon medal"
+    ],
+    "h": "🎖 Recon medal එක මොකක්ද?",
+    "s": "Recon medal එක ලැබෙන්නේ Niantic Wayfarer website එකේ Portal nominations සහ edits review කිරීමෙන්. ඔබේ rating එක අවසාන තීරණයට ගැළපෙන reviews (agreements) විතරයි ගණන් වෙන්නේ.",
+    "p": [
+      "Bronze 100 · Silver 750 · Gold 2,500 · Platinum 5,000 · Onyx 10,000 agreements",
+      "හඳුන්වා දුන්නේ: 25 July 2017."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Recruiter",
+    "revid": 15185,
+    "kw": [
+      "recruiter",
+      "recruiter medal"
+    ],
+    "h": "🎖 Recruiter medal එක මොකක්ද?",
+    "s": "Recruiter medal එක ලැබුණේ අලුත් Agents invite කරලා උදව් කිරීමෙන්; අලුත් Agent L3 වුණාම විතරයි ගණන් වුණේ.",
+    "p": [
+      "Bronze 2 · Silver 10 · Gold 25 · Platinum 50 · Onyx 100 Agents",
+      "හඳුන්වා දුන්නේ: 15 January 2015.",
+      "⚠️ දැන් නැහැ — 05 June 2019 නතර කළා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Resonance",
+    "revid": 17340,
+    "kw": [
+      "resonance medal"
+    ],
+    "h": "🎖 Resonance medal එක මොකක්ද?",
+    "s": "Resonance medal එක Ingress හි අටවෙනි (Year Eight) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 17 November 2020 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Resurgence",
+    "revid": 17339,
+    "kw": [
+      "resurgence medal"
+    ],
+    "h": "🎖 Resurgence medal එක මොකක්ද?",
+    "s": "Resurgence medal එක Ingress හි හත්වෙනි (Year Seven) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 22 November 2019 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Sage",
+    "revid": 15190,
+    "kw": [
+      "sage medal"
+    ],
+    "h": "🎖 Sage medal එක මොකක්ද?",
+    "s": "Sage medal එක Ingress හි පස්වෙනි (Year Five) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 29 November 2017 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Scout",
+    "revid": 15191,
+    "kw": [
+      "scout medal",
+      "portal scans medal",
+      "scout medal"
+    ],
+    "h": "🎖 Scout medal එක මොකක්ද?",
+    "s": "Scout medal එක ලැබෙන්නේ Portal Scans upload කරලා AR පර්යේෂණ වලට උදව් කිරීමෙන්.",
+    "p": [
+      "Bronze 50 · Silver 250 · Gold 1,000 · Platinum 3,000 · Onyx 6,000 scans",
+      "හඳුන්වා දුන්නේ: 26 February 2020."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Scout Controller",
+    "revid": 18649,
+    "kw": [
+      "scout controller",
+      "SC"
+    ],
+    "h": "🎖 Scout Controller කියන්නේ මොකක්ද?",
+    "s": "Scout Controller (SC) කියන්නේ Portal එකක ගුණාංගයක් (attribute) සහ medal එකක් දෙකම. Portal එකක් වැඩියෙන්ම scan කරපු Agent ට ඒ Portal එකේ Scout Controller ranking එක ලැබෙනවා (Portal Scanning පිටුව බලන්න).",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Second Sunday",
+    "revid": 19589,
+    "kw": [
+      "second sunday",
+      "second sunday medal"
+    ],
+    "h": "🎖 Second Sunday medal එක මොකක්ද?",
+    "s": "Second Sunday medal එක ලැබෙන්නේ හැම මාසයකම දෙවෙනි ඉරිදා පැවැත්වෙන Second Sunday events වලට සහභාගී වීමෙන්.",
+    "p": [
+      "Bronze 1 · Silver 6 · Gold 12 · Platinum 24 · Onyx 36 events",
+      "හඳුන්වා දුන්නේ: 13 February 2022."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Seer",
+    "revid": 16290,
+    "kw": [
+      "seer",
+      "portal submit medal",
+      "seer medal"
+    ],
+    "h": "🎖 Seer medal එක මොකක්ද?",
+    "s": "Seer medal එක ලැබුණේ අලුත් Portals submit කරලා අනුමත කරගැනීමෙන්. Trekker, Engineer, SpecOps හඳුන්වා දුන්න දවසේම නතර කළා.",
+    "p": [
+      "Bronze 10 · Silver 50 · Gold 200 · Platinum 500 · Onyx 5,000 Portals",
+      "හඳුන්වා දුන්නේ: 12 September 2013.",
+      "⚠️ දැන් නැහැ — 31 December 2014 නතර කළා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Simulacrum",
+    "revid": 15194,
+    "kw": [
+      "simulacrum",
+      "recursion medal"
+    ],
+    "h": "🎖 Simulacrum medal එක මොකක්ද?",
+    "s": "Simulacrum medal එක Recursion කරන ඕනෑම Agent කෙනෙකුට ලැබෙනවා (L16 වලදී unlock වෙනවා). Agent කී පාරක් recurse කළාද කියලා medal එකෙන් ගණන් කරනවා; tiers නැහැ.",
+    "p": [
+      "හඳුන්වා දුන්නේ: 05 November 2018."
+    ],
+    "sec": []
+  },
+  {
+    "title": "SpecOps",
+    "revid": 15197,
+    "kw": [
+      "specops",
+      "spec ops",
+      "mission medal",
+      "specops medal"
+    ],
+    "h": "🎖 SpecOps medal එක මොකක්ද?",
+    "s": "SpecOps medal එක ලැබෙන්නේ unique Missions සම්පූර්ණ කිරීමෙන්.",
+    "p": [
+      "Bronze 5 · Silver 25 · Gold 100 · Platinum 200 · Onyx 500 Missions",
+      "හඳුන්වා දුන්නේ: 31 December 2014."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Translator",
+    "revid": 15198,
+    "kw": [
+      "translator",
+      "glyph medal",
+      "translator medal"
+    ],
+    "h": "🎖 Translator medal එක මොකක්ද?",
+    "s": "Translator medal එක Glyph Hacking ප්‍රගුණ කරපු Agents ලට — Glyph Points එකතු කිරීමෙන් ලැබෙනවා.",
+    "p": [
+      "Bronze 200 · Silver 2,000 · Gold 6,000 · Platinum 20,000 · Onyx 50,000 points",
+      "හඳුන්වා දුන්නේ: 29 January 2015."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Trekker",
+    "revid": 18677,
+    "kw": [
+      "trekker",
+      "walk",
+      "walking",
+      "distance walked",
+      "ඇවිදීම",
+      "km",
+      "trekker medal"
+    ],
+    "h": "🎖 Trekker medal එක මොකක්ද?",
+    "s": "Trekker medal එක ලැබෙන්නේ දිගු දුර ඇවිදීමෙන්. Scanner එකේ ක්‍රියා කරන ස්ථාන අතර සෘජු රේඛා දුර මනිනවා — වේගය 6 km/h නොඉක්මවන තාක්.",
+    "p": [
+      "Bronze 10 · Silver 100 · Gold 300 · Platinum 1,000 · Onyx 2,500 km",
+      "හඳුන්වා දුන්නේ: 31 December 2014.",
+      "දුර වැඩියෙන් ගණන් වෙන්න ඇවිදින අතරතුර නිතර Scanner ක්‍රියා කරන එක උදව් වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Vanguard",
+    "revid": 15200,
+    "kw": [
+      "vanguard medal"
+    ],
+    "h": "🎖 Vanguard medal එක මොකක්ද?",
+    "s": "Vanguard medal එක Ingress හි තුන්වෙනි (Year Three) වසර තුළ අවම වශයෙන් Level 3 හිටපු Agents ලට එක පාරක් දුන්න medal එකක් (one-time). Tier එක තීරණය වුණේ ඒ දවසේ Agent ගේ level එක අනුව.",
+    "p": [
+      "Bronze L3 · Silver L9 · Gold L13 · Platinum L15 · Onyx L16",
+      "⚠️ දැන් නැහැ — 01 December 2015 නතර කළා.",
+      "Bronze = Level 3, Silver = Level 9, Gold = Level 13, Platinum = Level 15, Onyx = Level 16 (recursed Agents ලටත්)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Verified",
+    "revid": 19383,
+    "kw": [
+      "verified medal",
+      "phone verify"
+    ],
+    "h": "🎖 Verified medal එක මොකක්ද?",
+    "s": "Verified medal එක දුන්නේ SMS හෝ ස්වයංක්‍රීය voice call එකකින් phone number එක තහවුරු කරපු Agents ලට.",
+    "p": [
+      "හඳුන්වා දුන්නේ: 11 February 2014.",
+      "⚠️ දැන් නැහැ — September 2015 නතර කළා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Builder",
+    "revid": 17052,
+    "kw": [
+      "builder",
+      "deploy resonators medal",
+      "builder medal"
+    ],
+    "h": "🎖 Builder medal එක මොකක්ද?",
+    "s": "Builder medal එක ලැබෙන්නේ Portals වලට Resonators deploy හෝ upgrade කිරීමෙන්.",
+    "p": [
+      "Bronze 2,000 · Silver 10,000 · Gold 30,000 · Platinum 100,000 · Onyx 200,000 Resonators",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Connector",
+    "revid": 15164,
+    "kw": [
+      "connector",
+      "links medal",
+      "connector medal"
+    ],
+    "h": "🎖 Connector medal එක මොකක්ද?",
+    "s": "Connector medal එක ලැබෙන්නේ Portals link කිරීමෙන්.",
+    "p": [
+      "Bronze 50 · Silver 1,000 · Gold 5,000 · Platinum 25,000 · Onyx 100,000 Links",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Explorer",
+    "revid": 15166,
+    "kw": [
+      "explorer",
+      "unique portals visited",
+      "UPV",
+      "uniques",
+      "explorer medal"
+    ],
+    "h": "🎖 Explorer medal එක මොකක්ද?",
+    "s": "Explorer medal එක ලැබෙන්නේ unique Portals වලට යාමෙන් (visit).",
+    "p": [
+      "Bronze 100 · Silver 1,000 · Gold 2,000 · Platinum 10,000 · Onyx 30,000 Portals",
+      "හඳුන්වා දුන්නේ: 12 September 2013."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Liberator",
+    "revid": 15174,
+    "kw": [
+      "liberator",
+      "capture medal",
+      "liberator medal"
+    ],
+    "h": "🎖 Liberator medal එක මොකක්ද?",
+    "s": "Liberator medal එක ලැබෙන්නේ Portals capture කිරීමෙන්.",
+    "p": [
+      "Bronze 100 · Silver 1,000 · Gold 5,000 · Platinum 15,000 · Onyx 40,000 Portals",
+      "හඳුන්වා දුන්නේ: 10 January 2014."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Maverick",
+    "revid": 16115,
+    "kw": [
+      "maverick",
+      "drone medal",
+      "maverick medal"
+    ],
+    "h": "🎖 Maverick medal එක මොකක්ද?",
+    "s": "Maverick medal එක ලැබෙන්නේ Drone එකෙන් Portals hack කිරීමෙන්.",
+    "p": [
+      "Bronze 250 · Silver 1,000 · Gold 2,000 · Platinum 5,000 · Onyx 10,000 Drone hacks",
+      "හඳුන්වා දුන්නේ: 03 May 2021."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Pioneer",
+    "revid": 15796,
+    "kw": [
+      "pioneer",
+      "unique captures",
+      "UPC",
+      "pioneer medal"
+    ],
+    "h": "🎖 Pioneer medal එක මොකක්ද?",
+    "s": "Pioneer medal එක ලැබෙන්නේ unique Portals capture කිරීමෙන්.",
+    "p": [
+      "Bronze 20 · Silver 200 · Gold 1,000 · Platinum 5,000 · Onyx 20,000 captures",
+      "හඳුන්වා දුන්නේ: 10 January 2014."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Sojourner",
+    "revid": 16831,
+    "kw": [
+      "sojourner",
+      "hack streak",
+      "streak",
+      "ස්ට්‍රීක්",
+      "sojourner medal"
+    ],
+    "h": "🎖 Sojourner medal එක මොකක්ද?",
+    "s": "Sojourner medal එක ලැබෙන්නේ දිගටම Portals hack කරන streak එකක් පවත්වාගෙන යාමෙන් — හැම පැය 24 කාලයකම අවම වශයෙන් එක hack එකක්.",
+    "p": [
+      "Bronze 15 · Silver 30 · Gold 60 · Platinum 180 · Onyx 360 days",
+      "හඳුන්වා දුන්නේ: 05 March 2015.",
+      "Drone hacks ත් ගණන් වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Journey - Portal - Potential",
+    "revid": 17561,
+    "kw": [
+      "ingress animation episode 5"
+    ],
+    "h": "🎬 Ingress: The Animation — Episode 5",
+    "s": "‘Journey - Portal - Potential’ කියන්නේ Ingress: The Animation Season 1 හි Episode 5. ජපානයේ 15 November 2018, ඇමරිකාවේ 30 April 2019 විකාශය වුණා. අධ්‍යක්ෂණය Furukawa Akira.",
+    "p": [],
+    "sec": []
+  }
+]

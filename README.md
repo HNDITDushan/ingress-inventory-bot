@@ -174,3 +174,97 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
   they won't see each other's accounts/items.
 - To run this continuously, use a process manager (systemd, pm2, NSSM on
   Windows, Task Scheduler, or a Docker container with `restart: always`).
+
+## 📚 Sinhala Ingress Wiki assistant
+
+Any Telegram user can ask questions about Ingress Prime in Sinhala, English or
+a mix, and get an easy Sinhala answer built only from the
+[Ingress Wiki](https://ingress.fandom.com/wiki/Ingress), with the source page link.
+The inventory, stats, goals and leaderboard features are unchanged.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `/wiki` | Introduction and buttons for everything below |
+| `/ask <question>` | Any Ingress question, e.g. `/ask ADA කියන්නේ මොකක්ද?` |
+| `/item <item>` | Structured item details (category, rarity, use, restrictions, tips — only what the wiki supports) |
+| `/compare <A> vs <B>` | Side-by-side comparison, e.g. `/compare Heat Sink vs Multi-Hack` |
+| `/portal [topic]` | Portal mechanics (overview without a topic) |
+| `/wsearch <term>` | Search the wiki knowledge base (no AI needed) |
+| `/updatewiki [full]` | **Admin only.** Download new/changed wiki pages now (`full` re-downloads all) |
+
+`/search` still searches your inventory (it was already taken), so wiki search is `/wsearch`.
+Messages the inventory bot doesn't understand get a "📚 Ask Ingress Wiki" button;
+Sinhala messages and messages ending in `?` are offered to the wiki first.
+Answers have buttons: 📖 Read Full Wiki · 🔍 Related Topics · ⚔️ Compare Items · ❓ Ask another.
+
+### How it works
+
+- `wiki.py` — fetches pages through the official MediaWiki API
+  (`https://ingress.fandom.com/api.php`), at most 1 request/second with timeouts
+  and retries, cleans the HTML to text and stores it in **`wiki.db`** (SQLite,
+  separate from `inventory.db`): pages (title, URL, revision id, categories,
+  our category, content, linked terms, status, fetched time), redirect aliases,
+  an FTS5 full-text index of page sections, an answer cache and a log of failed
+  searches. Updates first fetch every article's latest revision id (a few
+  requests) and download only new/changed pages; deleted pages are marked and
+  removed from search.
+- `wiki_qa.py` — retrieval-augmented answers with Claude (`claude-opus-5-5`,
+  effort `low`, server-side refusal fallback on). Claude searches/reads the local
+  knowledge base through two tools, so Sinhala questions are mapped to English
+  Ingress terms before searching. The prompt forbids facts that aren't in the
+  retrieved wiki text; unknown questions get a clear "not in the wiki" answer.
+  Answers are cached per question until the knowledge base changes (max 14 days).
+- `wiki_bot.py` — Telegram commands, buttons, rate limiting (5 questions/minute,
+  60/day per user; admins exempt), safe splitting of long answers, the daily
+  background update, and friendly Sinhala errors. Nothing in it can crash
+  the inventory bot.
+
+Wiki text is CC BY-SA (Fandom); every answer links its source pages.
+
+### Sinhala content without AI (`wiki_si/`)
+
+`wiki_si/*.json` holds hand-written Sinhala explanations for ~210 wiki pages
+(every item, portal, link/field, basics, mechanics, faction, story, medal and
+event page; old update notes and misc pages are skipped). Each entry has the
+exact wiki title, the wiki revision it was written from, Sinhala keywords
+(so Sinhala questions find it), a heading, a summary, key points and section
+summaries. Without `ANTHROPIC_API_KEY` the bot answers from these: pictures,
+the Sinhala card, the wiki's English facts box and data table, and the source
+link. `/compare` shows two pages side by side. If the wiki page later gets a
+newer revision, the card adds a note that the wiki has changed since.
+With an API key, Claude's answers are used instead (and these files are not needed).
+
+To edit or add a page, change or add an entry in a `wiki_si/*.json` file and
+restart the bot.
+
+### Configuration (`.env`)
+
+| Variable | Needed | Meaning |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | for Sinhala answers | Claude API key from https://console.anthropic.com. Without it, `/ask` shows the matching wiki text in English. |
+| `ADMIN_IDS` | for `/updatewiki` | Comma-separated Telegram user IDs allowed to run admin commands |
+| `WIKI_DB_PATH` | no | Knowledge base file (default `wiki.db` next to `bot.py`) |
+| `WIKI_UPDATE_HOURS` | no | How often to check the wiki for changes (default 24) |
+| `WIKI_AI_MODEL` / `WIKI_AI_EFFORT` | no | Defaults `claude-opus-5-5` / `low` |
+| `WIKI_PER_MINUTE` / `WIKI_PER_DAY` | no | Per-user question limits (default 5 / 60) |
+| `WIKI_AI_CONCURRENCY` | no | Answers generated at the same time (default 3) |
+
+### Setup
+
+```bash
+venv/bin/pip install -r requirements.txt
+```
+
+Add `ANTHROPIC_API_KEY=...` (and `ADMIN_IDS=...`) to `.env`, then restart the bot.
+On first start with an empty `wiki.db` the background updater downloads the wiki
+(~340 articles, about 6 minutes at 1 request/second). To fill it straight away:
+send `/updatewiki` as an admin.
+
+### Cost
+
+Each fresh answer is one Claude conversation with 2–3 model calls over a few
+thousand tokens of wiki text — roughly **US$0.02–0.06 per question** at
+`claude-opus-5-5` prices ($4 / $20 per million input/output tokens). Repeated
+questions come from the cache for free. The wiki itself costs nothing.

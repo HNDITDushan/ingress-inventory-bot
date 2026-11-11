@@ -1,0 +1,263 @@
+[
+  {
+    "title": "Heat Sink",
+    "revid": 19592,
+    "kw": [
+      "heatsink",
+      "heat sink",
+      "හීට් සින්ක්",
+      "හීට්සින්ක්",
+      "HS",
+      "CHS",
+      "RHS",
+      "VRHS"
+    ],
+    "h": "🔥 Heat Sink කියන්නේ මොකක්ද?",
+    "s": "Heat Sink කියන්නේ Portal එකකට දාන Portal Mod එකක්. මේකෙන් Portal එකේ hack cooldown එක (නැවත hack කරන්න බලන් ඉන්න කාලය) අඩු වෙනවා. ඒ වගේම Heat Sink එක දාන Agent ට එකපාරම නැවත hack කරන්න පුළුවන් වෙනවා.",
+    "p": [
+      "Rarity: Common, Rare, Very Rare. June 2013 (1.28.1) හඳුන්වා දුන්නා.",
+      "Deploy කිරීමේ XM: 400 / 800 / 1,000 XM. Recycle: 40 / 80 / 100 XM.",
+      "Cooldown අඩු වීම: Common +20%, Rare +50%, Very Rare +70%.",
+      "සාමාන්‍ය cooldown එක සතුරු/neutral Portal එකකට විනාඩි 5:00, තමන්ගේ Portal එකකට 3:00. Very Rare එකක් එක්ක 1:30 සහ 0:54 දක්වා අඩු වෙනවා.",
+      "Cooldown අඩුවීම හැමෝටම බලපානවා — තමන්ගේ පැත්තේ අයටත් සතුරු Agents ලටත්.",
+      "Heat Sinks වල Stickiness 0යි. කෙටි නම්: CHS, RHS, VRHS."
+    ],
+    "sec": [
+      [
+        "Cooldown/Burnout Reset",
+        "ඕනෑම rarity එකක Heat Sink එකක් දාන Agent ගේ cooldown සහ burnout timers දෙකම reset වෙනවා — එකපාරම ආයේ hack කරන්න පුළුවන්. Portal එකේ burnout count එක (Multi-Hacks අනුව) තරමට hacks කරන්න පුළුවන්; ඊළඟ hack එකෙන් පස්සේ අලුත් පැය 4ක burnout timer එකක් පටන් ගන්නවා. මේ බලපෑම Heat Sink එක දාපු Agent ට විතරයි."
+      ],
+      [
+        "Heat Sinks කිහිපයක් දැම්මොත්",
+        "Rarest Heat Sink එකේ බලපෑම සම්පූර්ණයෙන් ලැබෙනවා. ඊළඟ Heat Sinks වල බලපෑම භාගයක් විතරයි ලැබෙන්නේ (rarity අනුව ඉහළ සිට පහළට)."
+      ],
+      [
+        "Drop rates",
+        "Community අධ්‍යයන අනුව Common, Rare, Very Rare Heat Sinks ලැබෙන්නේ ආසන්න වශයෙන් item rolls 100, 500, 5,500 කින් එක බැගින්."
+      ]
+    ]
+  },
+  {
+    "title": "Multi-Hack",
+    "revid": 18769,
+    "kw": [
+      "multihack",
+      "multi hack",
+      "මල්ටි හැක්",
+      "MH",
+      "CMH",
+      "RMH",
+      "VRMH"
+    ],
+    "h": "🔁 Multi-Hack කියන්නේ මොකක්ද?",
+    "s": "Multi-Hack කියන්නේ Portal එකක් burnout වෙන්න කලින් hack කරන්න පුළුවන් වාර ගණන වැඩි කරන Portal Mod එකක්. සාමාන්‍යයෙන් Portal එකක් 4 පාරක් hack කළාම පැය 4කට burnout වෙනවා; Multi-Hack එකකින් ඒ ගණන වැඩි වෙනවා.",
+    "p": [
+      "Rarity: Common, Rare, Very Rare. June 2013 (1.28.1) හඳුන්වා දුන්නා.",
+      "Multi-Hack එකක් දැම්මම මුළු hacks: නැති විට 4, Common 8 (+4), Rare 12 (+8), Very Rare 16 (+12).",
+      "Deploy XM: Common 400 XM, Rare 800 XM, Very Rare 1,000 XM. Recycle: 40 / 80 / 100 XM.",
+      "Burnout එකක් පැය 4ක් තියෙනවා.",
+      "කෙටි නම්: CMH, RMH, VRMH."
+    ],
+    "sec": [
+      [
+        "Heat Sink එක්ක",
+        "Heat Sink එකක් cooldown එක අඩු කරනවා; Multi-Hack එකක් burnout වෙන්න කලින් hacks ගණන වැඩි කරනවා. Farming වලට දෙකම එකට දාන එක ගොඩක් ප්‍රයෝජනවත්."
+      ]
+    ]
+  },
+  {
+    "title": "Portal Shield",
+    "revid": 18777,
+    "kw": [
+      "shield",
+      "shields",
+      "ශීල්ඩ්",
+      "ශීල්ඩ් එක",
+      "aegis",
+      "ඒජිස්",
+      "aegis shield",
+      "AXA",
+      "CPS",
+      "RPS",
+      "VRPS",
+      "mitigation",
+      "මිටිගේෂන්"
+    ],
+    "h": "🛡️ Portal Shield කියන්නේ මොකක්ද?",
+    "s": "Portal Shield කියන්නේ Portal එකේ Mitigation (ප්‍රහාර damage අඩු කිරීම) වැඩි කරන Portal Mod එකක්. Shield එකක් දැම්මම සතුරු XMP/Ultra Strike ප්‍රහාර වලින් Resonators වලට වෙන damage එක අඩු වෙනවා. Common, Rare, Very Rare සහ Aegis කියලා වර්ග 4ක් තියෙනවා.",
+    "p": [
+      "Common: +30% mitigation, stickiness 0, 400 XM.",
+      "Rare: +40% mitigation, stickiness 15, 800 XM.",
+      "Very Rare: +60% mitigation, stickiness 45, 1,000 XM.",
+      "Aegis Shield: +70% mitigation, stickiness 55, 1,000 XM — Shields අතරින් ඉහළම.",
+      "Shields කිහිපයක් දැම්මොත් එකිනෙකේ mitigation එකතු වෙනවා, හැබැයි damage අඩුවීම උපරිම 95%යි.",
+      "Links වලිනුත් mitigation වැඩි වෙනවා — ආසන්න වශයෙන් Links 4ක් Rare Shield එකකටත්, Links 11ක් Very Rare Shield එකකටත් සමානයි.",
+      "Drop rates (ආසන්න): Common 50න් 1, Rare 500න් 1, Very Rare සහ Aegis 1,500න් 1."
+    ],
+    "sec": [
+      [
+        "Aegis Shield",
+        "Aegis Shield (කලින් AXA Shield) කියන්නේ Very Rare Portal Shield වර්ගයක්. මුලින්ම 15 Dec 2014 (1.65.0) AXA ලෙස ආවා; 11 Dec 2017 (1.129.2) Aegis ලෙස නම වෙනස් වුණා. Deploy කිරීමට 1,000 XM, recycle 100 XM. Shields අතරින් ඉහළම mitigation සහ stickiness මේකේ තියෙනවා."
+      ],
+      [
+        "Stickiness කියන්නේ",
+        "Stickiness කියන්නේ සඟවා ඇති අගයක්. Mod එකක් critical hit එකකින් විනාශ නොවී ඉන්න තියෙන අවස්ථාව මේකෙන් වැඩි වෙනවා. Rare shields වල stickiness වැඩියි."
+      ],
+      [
+        "Strategy",
+        "Shield නැති Portal එකක් Agents කිහිප දෙනෙක් recharge කරද්දිත් attacker කෙනෙකුට ලේසියෙන් විනාශ කරන්න පුළුවන්. හොඳ defence එකකට Shields, Links සැකැස්ම සහ ළඟ ඉන්න තමන්ගේ පැත්තේ Agents යන සියල්ල වැදගත්."
+      ]
+    ]
+  },
+  {
+    "title": "Force Amp",
+    "revid": 18762,
+    "kw": [
+      "force amp",
+      "forceamp",
+      "ෆෝස් ඇම්ප්",
+      "FA",
+      "force amplifier"
+    ],
+    "h": "💪 Force Amp කියන්නේ මොකක්ද?",
+    "s": "Force Amp (Force Amplifier) කියන්නේ Portal එකක counterattack damage එක ගුණ කරන Portal Mod එකක්. සතුරු Agent කෙනෙක් Portal එකට පහර දෙනකොට හෝ hack කරනකොට Portal එක ‘zap’ කරලා ඔවුන්ගේ XM අඩු කරනවා — Force Amp එකක් තියෙනවා නම් ඒ XM අඩුවීම තවත් වැඩියි.",
+    "p": [
+      "Rarity: Rare විතරයි. June 2013 (1.28.1) හඳුන්වා දුන්නා.",
+      "Deploy XM 800, recycle 80 XM. ඕනෑම level එකක Agent කෙනෙකුට දාන්න පුළුවන්.",
+      "Stickiness 0 (Turret එකේ 20).",
+      "Drop rate ආසන්න වශයෙන් item rolls 500 කින් 1යි.",
+      "Force Amps කිහිපයක් එක Portal එකකට දැම්මොත් ලැබෙන වාසිය ක්‍රමයෙන් අඩු වෙනවා (diminishing)."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "හරියට දාපු Force Amps වලින් attacker කෙනෙක් XMP වැද්දූ හැම වතාවකම ඔවුන්ගේ XM tank එක හිස් වෙලා Scanner එක disable වෙන්න පුළුවන්. එතකොට ඔවුන්ට Power Cubes පාවිච්චි කරමින් නැවත නැවත නවතින්න වෙනවා. ඒ කාලය ඇතුළත ඔබේ කණ්ඩායමට Resonators recharge කරන්න අවස්ථාව ලැබෙනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Turret",
+    "revid": 18767,
+    "kw": [
+      "turret",
+      "ටරට්",
+      "ටර්ට්"
+    ],
+    "h": "🎯 Turret කියන්නේ මොකක්ද?",
+    "s": "Turret කියන්නේ Portal එකේ counterattack (සතුරන්ට ආපසු පහර දීම) වැඩි කරන Portal Mod එකක්. මේකෙන් Portal එකේ ප්‍රහාර වාර ගණන සහ critical hit අවස්ථාව වැඩි වෙනවා.",
+    "p": [
+      "Rarity: Rare විතරයි. June 2013 (1.28.1) හඳුන්වා දුන්නා.",
+      "Deploy XM 800, recycle 80 XM. Stickiness 20%.",
+      "Hit Bonus – Portal එකේ critical hit අවස්ථාව වැඩි කරනවා (උදා: 30% වැඩිවීමක් 10% අවස්ථාව 13% දක්වා).",
+      "Strike Factor (කලින් ‘Attack Frequency’) – counterattack damage එකට multiplier එකක් ලෙස ක්‍රියා කරනවා කියලා පරණ පරීක්ෂණ පෙන්නනවා."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "Turrets සහ Force Amps එකට පාවිච්චි කරලා attacker ගේ XM අඩු කරමින් Portal එක ‘active’ ලෙස ආරක්ෂා කරන්න පුළුවන්."
+      ]
+    ]
+  },
+  {
+    "title": "Link Amp",
+    "revid": 19572,
+    "kw": [
+      "link amp",
+      "linkamp",
+      "ලින්ක් ඇම්ප්",
+      "LA",
+      "RLA",
+      "VRLA",
+      "SBUL",
+      "softbank",
+      "softbank ultra link",
+      "සොෆ්ට්බෑන්ක්"
+    ],
+    "h": "📡 Link Amp කියන්නේ මොකක්ද?",
+    "s": "Link Amp (Link Amplifier) කියන්නේ Portal එකකින් යවන Link එකක උපරිම දුර වැඩි කරන Portal Mod එකක්. ගොඩක් දිග Links දාලා විශාල Control Fields හදන්න මේක පාවිච්චි කරනවා. Update 1.28.1 එකේදී හඳුන්වා දුන්නා.",
+    "p": [
+      "සාමාන්‍ය Link Amps: Rare සහ Very Rare. Deploy XM 800, recycle 80 XM. Stickiness 0.",
+      "Rare Link Amp drop rate ආසන්න වශයෙන් item rolls 500 කින් 1යි.",
+      "Very Rare Link Amp Portals වලින් drop වෙන්නේ නැහැ — Passcodes වලින් විතරයි ලැබෙන්නේ.",
+      "SoftBank Ultra Link (SBUL) කියන්නේ Very Rare sponsored Link Amp එකක් (stickiness 15%).",
+      "Link Amps කිහිපයක් දැම්මොත් range වැඩිවීම ක්‍රමයෙන් අඩු වෙනවා (diminishing)."
+    ],
+    "sec": [
+      [
+        "SoftBank Ultra Link",
+        "SBUL එක Scanner update 1.79.0 එකේදී SoftBank සමාගම එක්ක හවුලෙන් ආවා. Link range එක වැඩි කරනවා විතරක් නෙවෙයි, Link එකේ defensive power එක වැඩි කරනවා සහ Portal එකකින් යවන්න පුළුවන් outbound links ගණනත් වැඩි කරනවා. Recycle value 100 XM. Drop rate ආසන්න වශයෙන් 5,000න් 1ක් විය හැකියි."
+      ],
+      [
+        "Strategy",
+        "ප්‍රධාන භාවිතය ගොඩක් දිග Links දාලා ලොකු Control Fields (Mega-Fields) හදන එකයි. ඉහළ level Portals වලට දැනටමත් kilometers සිය ගණනක link range එකක් තියෙනවා, ඒ නිසා බොහෝ Agents ලට එම සීමාවට ළඟා වෙන්න වෙන්නේ නැහැ."
+      ]
+    ]
+  },
+  {
+    "title": "Portal Mod",
+    "revid": 17202,
+    "kw": [
+      "mod",
+      "mods",
+      "මොඩ්",
+      "මොඩ්ස්",
+      "portal mods",
+      "modification"
+    ],
+    "h": "🧩 Portal Mod කියන්නේ මොකක්ද?",
+    "s": "Portal Mod (Portal Modifier) කියන්නේ Portal එකක හැසිරීම වෙනස් කරන item වර්ගයක්. Shields, Force Amps, Turrets, Heat Sinks, Multi-Hacks, Link Amps වගේ ඒවා Mods. Sponsored Mods තුනක් ඇතුළුව Mods වර්ග 7ක් තියෙනවා.",
+    "p": [
+      "එක Portal එකකට Mods 4ක් දාන්න පුළුවන්, හැබැයි එක Agent කෙනෙකුට එක Portal එකකට දාන්න පුළුවන් 2ක් විතරයි.",
+      "දාපු Mod එකක් අයින් කරන්න හෝ upgrade කරන්න බැහැ — සතුරු ප්‍රහාරයකින් විනාශ වුණොත් විතරයි අයින් වෙන්නේ.",
+      "Mods Resonators සහ Portal level එක මත රඳා පවතින්නේ නැහැ.",
+      "Mod එකක් deploy කරන Agent ට 125 AP ලැබෙනවා.",
+      "Portal Shield → damage අඩු කරනවා; Force Amp → counterattack බලය; Turret → counterattack අවස්ථාව; Heat Sink → cooldown අඩු කරනවා; Multi-Hack → hacks ගණන; Link Amp → link range."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Portal Fracker",
+    "revid": 16742,
+    "kw": [
+      "fracker",
+      "frackers",
+      "ෆ්‍රැකර්",
+      "portal fracker",
+      "double hack"
+    ],
+    "h": "⛏️ Portal Fracker කියන්නේ මොකක්ද?",
+    "s": "Portal Fracker කියන්නේ Store එකෙන් මිලදී ගන්න item එකක්. මේකෙන් Portal එකක hack output එක තාවකාලිකව දෙගුණ වෙනවා — hack කරන හැම item එකක්ම duplicate වෙනවා.",
+    "p": [
+      "විනාඩි 10ක් හෝ මුළු hacks 150ක් (සියලු Agents ලගේ) — මුලින් ඉවර වෙන එක දක්වා ක්‍රියාත්මකයි.",
+      "Fracker එක Portal Mod එකක් නෙවෙයි — mod slot එකක් ගන්නේ නැහැ, mods 4ම තියෙන Portal එකකටත් දාන්න පුළුවන්.",
+      "Hack කරන්න, drop කරන්න, recycle කරන්න හෝ Capsule එකකට දාන්න බැහැ — Store එකෙන් විතරයි ලැබෙන්නේ.",
+      "Store මිල: 1ක් = 4,800 CMU, 10ක් = 28,800 CMU, 25ක් = 56,000 CMU.",
+      "Fracker එකක් එක්ක එක hack එකකින් Portal Keys 8ක් දක්වා ලැබෙන්න පුළුවන්. Duplicate items වල rarity එක සමාන නොවෙන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Engineer",
+    "revid": 16521,
+    "kw": [
+      "engineer medal",
+      "එන්ජිනියර්",
+      "mods deployed"
+    ],
+    "h": "🎖 Engineer medal එක මොකක්ද?",
+    "s": "Engineer medal එක ලැබෙන්නේ තමන්ගේ පැත්තේ Portals වලට Portal Mods deploy කිරීමෙන්. Agent profile එකේ Building කොටසේ ‘Mods deployed’ stat එක මේකෙන් ගණන් කරනවා. 31 December 2014 හඳුන්වා දුන්නා.",
+    "p": [
+      "Bronze: Mods 150",
+      "Silver: Mods 1,500",
+      "Gold: Mods 5,000",
+      "Platinum: Mods 20,000",
+      "Onyx (Black): Mods 50,000"
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "Engineer ගන්න අමාරු medal එකක් — Mods deploy කිරීම ලේසි වුණත් Mods එකතු කිරීම අමාරුයි. Onyx එකට Mods 50,000ක් ගන්න අවම වශයෙන් item rolls 2,500,000ක් ඕන. ඒ නිසා Platinum/Onyx ඉලක්ක කරන අය කණ්ඩායමේ අයගෙන් අනවශ්‍ය Mods (Capsules වලින්) ලබාගන්නවා."
+      ]
+    ]
+  }
+]

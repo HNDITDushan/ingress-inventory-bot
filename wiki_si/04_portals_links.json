@@ -1,0 +1,245 @@
+[
+  {
+    "title": "Portal",
+    "revid": 19554,
+    "kw": [
+      "portal",
+      "portals",
+      "පෝටල්",
+      "පෝටල",
+      "පෝටල්ස්",
+      "portal level",
+      "පෝටල් ලෙවල්",
+      "capture",
+      "කැප්චර්",
+      "neutral portal",
+      "decay",
+      "ඩීකේ"
+    ],
+    "h": "🌀 Portal කියන්නේ මොකක්ද?",
+    "s": "Portal කියන්නේ මේ ලෝකයට Exotic Matter (XM) ගොඩක් නිකුත් කරන ස්ථාන. Resonator එකක් deploy කරලා Portal එකක් capture කළාම ඒක ඔබේ faction එකට align වෙනවා. Resonators 8ම තියෙන Portal එකකින් Links දාන්න පුළුවන්. Portal එකේ වර්ණයෙන් පාලනය කරන faction එක පෙන්නනවා.",
+    "p": [
+      "නිල් = Resistance, කොළ = Enlightened, රතු = Machina, අළු/සුදු = කිසිවෙකුට අයිති නැති (neutral).",
+      "Portal level එක L1 – L8 දක්වා; ඒක Resonator slots 8ම levels වල සාමාන්‍යය පහළට round කළ අගය. උදා: L8 7ක් සහ L7 1ක් → 7.875 → L7.",
+      "Hack කළාම drop වෙන items වල level, Link දුර වගේ ගොඩක් දේවල් Portal level එක අනුව වෙනස් වෙනවා.",
+      "තමන්ගේ Portal එකක් hack කළොත් items ලැබෙනවා, AP නැහැ. සතුරු Portal එකක් hack කළොත් 100 AP ලැබෙනවා, හැබැයි Portal එකෙන් ප්‍රහාරයක් එන්න පුළුවන්.",
+      "Resonators වල XM දවසකට 15% බැගින් decay වෙනවා. Resonators ඔක්කොම විනාශ වුණොත් Portal එක neutral වෙනවා."
+    ],
+    "sec": [
+      [
+        "Portal Info තිරය",
+        "Portal එකක් action range එකට ආවම ඒක තෝරලා විස්තර බලන්න පුළුවන්: උඩ වම් පැත්තේ level එක, නම, විස්තරය, පින්තූරය, deploy කරලා තියෙන mods, සහ පහළින් Portal එකේ faction එක අනුව කරන්න පුළුවන් ක්‍රියා (hack, deploy, recharge, link...)."
+      ],
+      [
+        "Decay සහ Recharging",
+        "Resonators full charge එකකින් පටන් අරන්, මුලින්ම capture කළ වෙලාවට අනුව දවසකට 15% බැගින් XM අඩු වෙනවා (Flip Cards මේ වෙලාව වෙනස් කරන්නේ නැහැ). XMP ප්‍රහාර වලිනුත් XM අඩු වෙනවා. Portal එක තියාගන්න නම් නිතර recharge කරන්න ඕන."
+      ]
+    ]
+  },
+  {
+    "title": "Portal Scanning",
+    "revid": 18742,
+    "kw": [
+      "portal scan",
+      "portal scanning",
+      "scan",
+      "scanning",
+      "ස්කෑන්",
+      "3d scan"
+    ],
+    "h": "📸 Portal Scanning කියන්නේ මොකක්ද?",
+    "s": "Portal Scanning කියන්නේ Ingress Prime version 2.41 එකේ ආපු feature එකක්. මේකෙන් Agents ලට තියෙන Portals වල 3D Scans Niantic එකේ අනාගත AR ව්‍යාපෘති සඳහා upload කරන්න පුළුවන්. Upload කරන scans වල මුහුණු, license plate අංක වගේ හඳුනාගන්න පුළුවන් දේවල් blur කරනවා.",
+    "p": [
+      "මුලින් L16 හෝ recursed Agents ලට විතරයි තිබුණේ; දැන් L8 සිට පුළුවන්.",
+      "Scan එකක් සාර්ථකව upload කළොත් 500 AP ලැබෙනවා.",
+      "Portal එකේ Scout Controller ranking එකටත්, Scout medal එකටත් scan එක ගණන් වෙනවා.",
+      "Septicycle එකක් ඇතුළත (දවස් 7යි පැය 7යි) Portal එකට community scans 7ක් ලැබුණොත්, septicycle එක ඉවර වුණාම ඒ Portal එකට Rare Battle Beacon එකක් ලැබෙන්න නියමිතයි.",
+      "Device: iPhone 6S හෝ අලුත් (iOS 14+), නැත්නම් Android 8.0+ සහ Google Play Services for AR (ARCore)."
+    ],
+    "sec": [
+      [
+        "හොඳ scan එකකට ඉඟි",
+        "• වටේට ආරක්ෂිතව ඇවිදින්න පුළුවන් Portals තෝරන්න (පිළිම, කලා නිර්මාණ).\n• තත්පර 20–60ක් scan කරන්න, Portal එක උඩ සිට පහළට සම්පූර්ණයෙන් frame එකේ තියාගන්න.\n• වේගය සහ දුර එක වගේ තියාගන්න.\n• අංශක 360ම scan කරන්න; බැරි නම් 180ත් හරි.\n• විවිධ කාලගුණ තත්ත්ව වලදී scan කිරීමත් ප්‍රයෝජනවත්."
+      ]
+    ]
+  },
+  {
+    "title": "Recharging",
+    "revid": 18443,
+    "kw": [
+      "recharge",
+      "recharging",
+      "රීචාජ්",
+      "රිචාජ්",
+      "charge",
+      "remote recharge",
+      "recharge range"
+    ],
+    "h": "🔌 Recharging (Portals recharge කිරීම)",
+    "s": "හැම Portal එකක්ම දිනපතා decay වෙලා XM නැති වෙනවා — එක් එක් Resonator එක දවසකට උපරිම charge එකෙන් 15% බැගින්. ඒක වළක්වන්න Agents ලා තමන්ගේ XM Resonators වලට දාලා recharge කරනවා. XMP/Ultra Strike ප්‍රහාර වෙලාවට දිගටම recharge කරලා Resonators විනාශ වෙන එක නවත්වන්නත් පුළුවන්.",
+    "p": [
+      "XM 100ක් recharge කරන හැම වාරයකටම 1 AP (අවම වශයෙන් recharge එකකට 1 AP).",
+      "Portal එක ළඟට ගිහින් හෝ Portal Key එකකින් දුර ඉඳන් recharge කරන්න පුළුවන්.",
+      "Remote recharge දුර ඔබේ level එක අනුවයි: L1 = 250 km සිට L16 = 4,000 km දක්වා.",
+      "එක recharge එකකට 1,000 XM වැය වෙනවා (Portal එකට ඊට වඩා අඩුවෙන් ඕන නම් ඒ ප්‍රමාණය). දුර අනුව efficiency එක අඩු වෙනවා.",
+      "Recharger medal: Bronze 100,000 · Silver 1,000,000 · Gold 3,000,000 · Platinum 10,000,000 · Onyx 25,000,000 XM. බොහෝ අය කියන විදිහට ලේසියෙන්ම ගන්න පුළුවන් Onyx medal එක මේකයි."
+    ],
+    "sec": [
+      [
+        "Recharge කරන්න ඕන Portals හොයාගන්න",
+        "OPS > Inventory > Portal Keys ගිහින් ඔබේ පැත්තේ Portals වල Keys බලන්න. Resonators වල energy bars full නැත්නම් දෙපාරක් tap කරලා recharge කරන්න පුළුවන්."
+      ],
+      [
+        "ප්‍රහාරයට ලක්වෙන Portals",
+        "Portal එක ඉහළ level නම් ඔබටම Power Cubes ඕන වෙයි. Attacker බලවත් නම් ඔවුන් එන්න කලින් අනුමාන කරලා සූදානම් වෙන්න ඕන, නැත්නම් ඉක්මනට recharge කරන්න බැරි වෙයි. Alerts වලින් Portal recharge එකට ඉක්මන් link එකක් ලැබෙනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Burnout",
+    "revid": 17297,
+    "kw": [
+      "burnout",
+      "burned out",
+      "burnt out",
+      "බර්න්අවුට්",
+      "බර්න් අවුට්",
+      "portal burned out",
+      "hack limit"
+    ],
+    "h": "🥵 Burnout කියන්නේ මොකක්ද?",
+    "s": "Agent කෙනෙක් පැය 4ක් ඇතුළත එක Portal එකක් 4 පාරක් hack කළාම Portal එක ඒ Agent ට ‘burnout’ වෙනවා. ඊට පස්සේ පළමු hack එකේ ඉඳන් පැය 4ක් යනකම් ඒ Portal එක hack කරන්න බැහැ. (මේක Cooldown එකට වෙනස් — cooldown එක සාමාන්‍යයෙන් විනාඩි 5යි.)",
+    "p": [
+      "Burnout වුණාම ‘Portal burned out! It may take significant time for the Portal to reset.’ කියන alert එක එනවා.",
+      "Multi-Hacks දැම්මම burnout වෙන්න කලින් කරන්න පුළුවන් hacks ගණන වැඩි වෙනවා.",
+      "Heat Sink එකක් install කරන Agent ගේ burnout counter එක එකපාරම reset වෙනවා.",
+      "Burnout එක Agent එක්කෙනාටයි — ඔබට burnout වුණත් අනෙක් Agents ලට hack කරන්න පුළුවන්.",
+      "Physical hacks වලින් burnout වුණොත් Drone hacks වලටත් ඒක බලපානවා, අනෙක් පැත්තටත් එහෙමයි."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Niantic Wayfarer",
+    "revid": 19594,
+    "kw": [
+      "wayfarer",
+      "වේෆෙයාර්",
+      "OPR",
+      "portal submit",
+      "portal submission",
+      "nomination",
+      "නොමිනේෂන්",
+      "අලුත් portal",
+      "wayspot"
+    ],
+    "h": "🗺️ Niantic Wayfarer කියන්නේ මොකක්ද?",
+    "s": "Niantic Wayfarer (කලින් Operation Portal Recon – OPR) කියන්නේ අලුත් Wayspot (Portal) nominations සහ edits community එක විසින් පරීක්ෂා කරන Niantic Labs web application එක (wayfarer.nianticlabs.com). Portal එකක් network එකට එකතු කරන්න සුදුසුද කියලා local Agents ලා vote කරනවා.",
+    "p": [
+      "Level 10 හෝ ඊට ඉහළ Agents ලට nominations කළමනාකරණය කරන්න website එකට යන්න පුළුවන්.",
+      "Wayspot criteria ගැන quiz එකක් pass කළොත් nominations සහ edits review කරන්නත් පුළුවන්.",
+      "Wayfarer වල සහභාගී වෙන අයට Recon medal එක ලැබෙනවා. ඔබේ rating එක ‘Good’ හෝ ‘Great’ නම්, ඔබේ vote එක අවසාන තීරණයට ගැළපෙන හැම වාරයක්ම (agreement) medal එකට ගණන් වෙනවා.",
+      "Wayfarer එකෙන් හදන Wayspots Pokémon GO වල PokéStops/Gyms ලෙසත් පෙනෙන්න පුළුවන්."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Link",
+    "revid": 19578,
+    "kw": [
+      "link",
+      "links",
+      "ලින්ක්",
+      "ලින්ක්ස්",
+      "linking",
+      "ලින්ක් කරන්න",
+      "link range",
+      "link දාන්න",
+      "link rules",
+      "link distance"
+    ],
+    "h": "🔗 Link කියන්නේ මොකක්ද?",
+    "s": "Link එකක් කියන්නේ Portals දෙකක් අතර හදන සම්බන්ධතාවයක්. Link එකක් හදන්න ඈත Portal එකේ Portal Key එක ඕන (ඒ Key එක වැය වෙනවා). Links තුනක් ත්‍රිකෝණයකට සැකසුනාම Control Field එකක් හැදෙනවා.",
+    "p": [
+      "Link එකක් හැදුවම 313 AP ලැබෙනවා, 250 XM වැය වෙනවා.",
+      "Portals දෙකේම Resonators 8 බැගින් තියෙන්න ඕන, දෙකම ඔබේ faction එකේ වෙන්න ඕන.",
+      "ඉලක්ක Portal එක ආරම්භක Portal එකේ link range එක ඇතුළේ තියෙන්න ඕන (Resonators සහ Link Amps අනුව).",
+      "Link එකක් වෙනත් Link එකක් හරහා යන්න (cross) බැහැ — faction එක මොකක් වුණත්.",
+      "මීටර 2,000ට වඩා දිග Links සඳහා ආරම්භක Portal එක දැනට තියෙන Control Field එකක් යට තියෙන්න බැහැ.",
+      "එක Portal එකකින් පිටතට Links 8ක් විතරයි — SoftBank Ultra Links වලින් ඒ සීමාව වැඩි කරන්න පුළුවන්.",
+      "Link medal (Connector): Bronze 50 · Silver 1,000 · Gold 5,000 · Platinum 25,000 · Onyx 100,000."
+    ],
+    "sec": [
+      [
+        "Link එකක් හදන හැටි",
+        "Link කරන්න ඕන Portal එකේ access range එකේ හිටගෙන, Portal එක තෝරලා 'Link' button එක ඔබන්න. Scanner එක ඔබේ Keys අතරින් සුදුසු Portals පෙන්නනවා. එකක් තෝරපුවම Key එක වැය වෙලා Link එක හැදෙනවා, AP ලැබෙනවා. පස්සේ ආයේ ඒ Key එක hack කරලා ගන්න පුළුවන්."
+      ],
+      [
+        "Link Range",
+        "Link range එක රඳා පවතින්නේ Resonators වල levels මත (round කළ Portal level එක මත නෙවෙයි). උදාහරණ: L1 Agent කෙනෙක් (L1×8) → 160 m; L4 → 24 km; L8 Agent කෙනෙක් තනියම → 160.1 km; L8 Resonators 8ම → 655.3 km. Link Amps වලින් මේක ගුණ වෙනවා: Rare Link Amp 1ක් 2x, 4ක් 3x; SoftBank 1ක් 5x; Very Rare 1ක් 7x, 4ක් 10.5x."
+      ]
+    ]
+  },
+  {
+    "title": "Control Field",
+    "revid": 18735,
+    "kw": [
+      "control field",
+      "field",
+      "fields",
+      "ෆීල්ඩ්",
+      "ෆීල්ඩ්ස්",
+      "CF",
+      "triangle",
+      "ත්‍රිකෝණ",
+      "fielding",
+      "layering",
+      "layer"
+    ],
+    "h": "🔺 Control Field කියන්නේ මොකක්ද?",
+    "s": "Control Field (Field) එකක් හැදෙන්නේ එකම faction එකේ Portals තුනක් Links වලින් ත්‍රිකෝණයකට සම්බන්ධ කළාම. Field එකෙන් Ingress වල ප්‍රධාන ලකුණු ක්‍රමය වන Mind Units (MU) එකතු වෙනවා. Field එක හදන faction එකට ලකුණු ලැබෙනවා; විරුද්ධ faction එක Portals වලට පහර දීලා Field එක කඩන්න උත්සාහ කරනවා.",
+    "p": [
+      "Link එකකට 313 AP සහ Field එකක් හැදුනොත් අමතරව 1,250 AP ලැබෙනවා — level වෙන්න හොඳම ක්‍රමයක්.",
+      "Fields මීටර සිය ගණනක පොඩි ඒවා සිට kilometers සිය ගණනක් දක්වා විශාල වෙන්න පුළුවන් (Portal levels සහ Keys අනුව).",
+      "Field එකක් හදන Portals තුනට ‘Anchors’ කියනවා.",
+      "Field එකක් ඇතුළේ තියෙන Portals වලට Link කරන්න පුළුවන් anchor Portals වලින් විතරයි — දුර 500m නොඉක්මවන විට හැර.",
+      "Links cross නොවෙන තාක් Fields එකිනෙක උඩින් (overlap/layer) හදන්න පුළුවන්.",
+      "Mind Controller medal: Bronze 100 · Silver 500 · Gold 2,000 · Platinum 10,000 · Onyx 40,000 Fields."
+    ],
+    "sec": [
+      [
+        "Layering (Fields එක උඩ එක)",
+        "MU වැඩිපුර ගන්න හොඳම ක්‍රමය Fields layer කිරීමයි. කිසිම Link එකකට Fields 2කට වඩා හදන්න බැහැ — එක පැත්තකින් එකක් බැගින්. ඇතුළතම Field එක මුලින්ම හදන්න ඕන; පස්සේ ඒ වටේට ලොකු Fields හදනකොට ඇතුළේ ප්‍රදේශය layers දෙකක්, තුනක් වෙනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Mind Unit",
+    "revid": 18662,
+    "kw": [
+      "MU",
+      "MUs",
+      "mind unit",
+      "mind units",
+      "මයින්ඩ් යුනිට්",
+      "එම්යූ",
+      "score",
+      "scores",
+      "ලකුණු"
+    ],
+    "h": "🧠 Mind Units (MU) කියන්නේ මොකක්ද?",
+    "s": "Mind Units (MU) කියන්නේ Ingress වල ප්‍රධාන ලකුණු ක්‍රමය. MU වලින් Control Field එකක් ඇතුළේ ඉන්න ජනගහනය නියෝජනය කරනවා. පැය 5කට වරක් එන Checkpoint එකකදී Cell scores සඳහා MU ගණනය කරලා Global score එකට එකතු කරනවා.",
+    "p": [
+      "Checkpoint එකක් පැය 5කට වරක්. Cycle එකක් = checkpoints 35ක් = පැය 175යි.",
+      "Checkpoint වෙලාව වෙනකම් Field එක තියාගත්තොත් විතරයි ඒ MU ඒ Cell එකේ faction score එකට එකතු වෙන්නේ.",
+      "Cycle එක ඉවර වෙද්දී වැඩිම සාමාන්‍ය MU score එක තියෙන faction එක Cycle එක දිනනවා.",
+      "Field එකක් Cells කිහිපයක් ආවරණය කරනවා නම්, MU ඒ ඒ Cell එකේ තියෙන ප්‍රදේශ ප්‍රමාණය අනුව බෙදෙනවා.",
+      "Scanner එකේ OPS > Scores ගිහින් Global MU බලන්න පුළුවන්."
+    ],
+    "sec": [
+      [
+        "Top Agents",
+        "Cell view එකේ SEE OTHER AGENTS ඔබලා Cycle එකේ ඒ Cell එකේ faction එකකට Top 50 Agents බලන්න පුළුවන්. Field එක සම්පූර්ණ කරන තුන්වෙනි Link එක හදන Agent ට විතරයි MU credit එක ලැබෙන්නේ. Checkpoint එකට කලින් Field එක විනාශ වුණොත් ඒ MU ගණන් වෙන්නේ නැහැ."
+      ]
+    ]
+  }
+]

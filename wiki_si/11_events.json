@@ -1,0 +1,562 @@
+[
+ {
+  "title": "Anomaly",
+  "revid": 19590,
+  "kw": [
+   "anomaly",
+   "anomalies",
+   "ඇනොමලි",
+   "xm anomaly",
+   "anomaly event"
+  ],
+  "h": "🌋 XM Anomaly කියන්නේ මොකක්ද?",
+  "s": "XM Anomaly (Anomaly) කියන්නේ Niantic විසින්ම පවත්වන නිල event එකක්. රටවල් ගොඩක සති කිහිපයක් පුරා පැවැත්වෙන්න පුළුවන්. සාමාන්‍යයෙන් පැය 4ක් පවතින හැම event එකකදීම factions දෙක සාමාන්‍ය gameplay එකට අමතරව විවිධ ඉලක්ක වෙනුවෙන් තරඟ කරනවා. මුළු series එකේම වැඩිම points ගන්න faction එක Anomaly එක දිනනවා; බොහෝ විට Ingress කතාව ප්‍රතිඵල අනුව වෙනස් වෙනවා.",
+  "p": [
+   "Anomalies කලින්ම ප්‍රචාරය කරනවා; දෙපැත්තෙන්ම Agents දහස් ගණනක් සහභාගී වෙනවා.",
+   "Event එකේදී නියමිත Portals capture කිරීම, විශේෂ Control Fields හැදීම වගේ ඉලක්ක තියෙනවා.",
+   "උදා: Cassandra Anomaly — 11–24 August 2013, Sydney, Milan, Tokyo, Paris, New York ඇතුළු නගර 13ක.",
+   "සහභාගී වීමට Anomaly Medals ලැබෙනවා."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Anomaly and Storyline Events",
+  "revid": 18856,
+  "kw": [
+   "storyline events"
+  ],
+  "h": "🎉 Anomaly and Storyline Events",
+  "s": "මේ පිටුවේ Anomalies සහ වෙනත් Events වල කතා (Lore) පැත්ත ගැන සටහන් කරනවා. Gameplay විස්තර Anomaly පිටුවේ.",
+  "p": [
+   "උදා: Cryptic Memories Anomaly Series එක Enlightened දිනුවා.",
+   "MZFPK: NIA දන්නවා Jarvis Zürich Hauptbahnhof වෙත යනවා කියලා; Agents Machina Portals විනාශ කිරීම chain reaction එකක් ඇති කරනවා."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Anomaly Sequence",
+  "revid": 18367,
+  "kw": [],
+  "h": "🎉 Anomaly Sequence",
+  "s": "Anomaly Sequence එකක් කියන්නේ එකම කතා මාලාවට අයිති, Agents ලාගේ ක්‍රියා හරහා එකිනෙකට බලපාන Events මාලාවක්.",
+  "p": [],
+  "sec": []
+ },
+ {
+  "title": "Kureze Effect",
+  "revid": 18176,
+  "kw": [
+   "kureze"
+  ],
+  "h": "🎉 Kureze Effect",
+  "s": "Kureze Effect කියන්නේ January 2022 සිට මාසයට එක Phase බැගින් Phases 3කින් යුත් Anomaly එකක්. City events පැය 3ක් පැවතුණා. Faction ඉලක්කය: අනෙක් faction එකට වඩා points; පුද්ගලික ඉලක්කය: වෙනස් Battle Beacons 10ක් එක්ක interact වීම.",
+  "p": [
+   "Phase 1 city events: 23 January 2022, 14:30 local time. Phase 2: 19 February 2022.",
+   "Phase 1 ප්‍රතිඵල: ENL 1,147,662 – RES 1,054,633.",
+   "ඊළඟ phases දෙකේත් ENL ඉදිරියෙන් (975,145 – 963,509 සහ 898,916 – 788,550)."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Kythera",
+  "revid": 18188,
+  "kw": [
+   "kythera"
+  ],
+  "h": "🎉 Kythera",
+  "s": "Kythera කියන්නේ April, May, June 2022 මාසයට එක Phase බැගින් Phases 3ක Anomaly එකක්. හැම phase එකකම ස්ථාන 100ක් ‘destabilize’ වෙනවා. පුද්ගලික ඉලක්කය: වෙනස් Battle Beacons 10ක් එක්ක interact වීම.",
+  "p": [
+   "Phase 1: 15 April 2022 1100 UTC සිට පැය 72; maxima 17 April 2022.",
+   "ප්‍රතිඵල: Phase 1 ENL 825 – RES 735, Phase 2 ENL 912 – RES 768, Phase 3 ENL 920.5 – RES 761.5."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Operation Sentinel",
+  "revid": 17289,
+  "kw": [
+   "sentinel"
+  ],
+  "h": "🎉 Operation Sentinel",
+  "s": "Operation Sentinel (21 May – 01 June 2021, දින 11) neutral Portals capture කිරීම කේන්ද්‍ර කරගත් ලෝක event එකක්. Matryoshka Event එකෙන් පස්සේ neutral Portals වටේ වැඩි අවුල් ශක්තියක් NIA නිරීක්ෂණය කළා කියන කතාවක් එක්ක ආවා.",
+  "p": [
+   "ඉලක්කය: Portals 4,000,000ක් capture කිරීම.",
+   "ප්‍රතිඵලය: Portals 4,547,690 (113.69%)."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Optima Kinetic Challenge Event",
+  "revid": 16383,
+  "kw": [
+   "kinetic challenge"
+  ],
+  "h": "🎉 Optima Kinetic Challenge Event",
+  "s": "Optima Kinetic Challenge Event එක Kinetic Capsule Programs සම්පූර්ණ කිරීම කේන්ද්‍ර කරගත්තා. වට දෙකක් (Round 1: 19–29 March 2021, Round 2: 17–27 September 2021, දින 10 බැගින්). Nemesis Sequence එකේ කොටසක්.",
+  "p": [
+   "Bronze: Programs 4 · Silver: 16 · Gold: 50.",
+   "තාවකාලික Programs: JARVIS Virus, ADA Refactor, L4+ XMP Bursters, XM, km."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Perpetua Hexathlon",
+  "revid": 16461,
+  "kw": [
+   "hexathlon"
+  ],
+  "h": "🎉 Perpetua Hexathlon",
+  "s": "Perpetua Hexathlon කියන්නේ Nemesis Sequence එකේ කොටසක් වුණ පළමු නිල Hexathlon එක (පැය 1යි විනාඩි 30). නගර කිහිපයක පැවැත්වුණා.",
+  "p": [
+   "Nemesis: Perpetua medal එකට challenges 6ම: Media Artifacts 6ක් එකතු කිරීම, සාර්ථක hacks 36ක්, Resonators 30ක් deploy, Mods 12ක් deploy, Glyph Points 30ක්, Resonators 6ක් විනාශ කිරීම."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Courier Meet You Out There Challenge",
+  "revid": 17867,
+  "kw": [],
+  "h": "🎉 Courier Meet You Out There Challenge",
+  "s": "Courier Meet You Out There Challenge කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 20 August 2021",
+   "අවසානය: 30 August 2021",
+   "කාලය: දින 10",
+   "ඉලක්කය: AP උපයන්න — Bronze 88,888 · Silver 888,888 · Gold 2,888,888 AP"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Dark XM Cure",
+  "revid": 19255,
+  "kw": [],
+  "h": "🎉 Dark XM Cure",
+  "s": "Dark XM Cure (Dark XM Threat and Response) කියන්නේ 17 March සිට 07 April 2018 දක්වා සෙනසුරාදා 4ක පැවැත්වුණ ලෝක event එකක්. Portal capture, නගර link කිරීම, Link Stars සහ Fukuoka හි Shard Operation එකක් තිබුණා.",
+  "p": [
+   "17 March: Enlightened 14 – Resistance 11."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Drone Hack Weekend event (Jan. 2021)",
+  "revid": 16282,
+  "kw": [],
+  "h": "🎉 Drone Hack Weekend event (Jan. 2021)",
+  "s": "Drone Hack Weekend event (Jan. 2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 15 January 2021, 17:00 UTC",
+   "අවසානය: 19 January 2021, 17:00 UTC",
+   "කාලය: දින 5",
+   "ඉලක්කය: Drone hacks 400,000 (ලෝක මට්ටමින්)",
+   "ප්‍රතිඵලය: Drone hacks 642,324 (160.58%)"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Dronenet Weekend (May 2021)",
+  "revid": 15429,
+  "kw": [],
+  "h": "🎉 Dronenet Weekend (May 2021)",
+  "s": "Dronenet Weekend (May 2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 07 May 2021, 16:00 UTC",
+   "අවසානය: 10 May 2021, 16:00 UTC",
+   "කාලය: දින 3"
+  ],
+  "sec": []
+ },
+ {
+  "title": "EXO5",
+  "revid": 15585,
+  "kw": [],
+  "h": "🎉 EXO5",
+  "s": "EXO5 කියන්නේ 2017 Anomaly series එකක්. ඊට කලින් EXO5 Controller ලෝක fielding challenge එක පැවැත්වුණා.",
+  "p": [],
+  "sec": []
+ },
+ {
+  "title": "Earth Day 2022",
+  "revid": 18217,
+  "kw": [],
+  "h": "🎉 Earth Day 2022",
+  "s": "Earth Day 2022 කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 21 April 2022, 16:00 UTC",
+   "අවසානය: 25 April 2022, 16:00 UTC",
+   "කාලය: දින 4"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Eos Imprint Investigation",
+  "revid": 18218,
+  "kw": [],
+  "h": "🎉 Eos Imprint Investigation",
+  "s": "Eos Imprint Investigation කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 26 May 2022, 16:00 UTC",
+   "අවසානය: 06 June 2022, 16:00 UTC",
+   "කාලය: දින 11",
+   "ඉලක්කය: EOS points — Bronze 2,000 · Silver 4,000 · Gold 8,000"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Eos Protocol",
+  "revid": 16451,
+  "kw": [],
+  "h": "🎉 Eos Protocol",
+  "s": "Eos Protocol කියන්නේ Phases 3කින් යුත් event එකක් (Phase 1 දින 9, Phase 2 සහ 3 දින 10 බැගින්).",
+  "p": [],
+  "sec": []
+ },
+ {
+  "title": "Epiphany Night",
+  "revid": 18892,
+  "kw": [
+   "epiphany"
+  ],
+  "h": "🎉 Epiphany Night",
+  "s": "Epiphany Night කියන්නේ 30 November 2012 CERN පර්යේෂණාගාරයේදී සිදු වුණ, Ingress කතාවේ තීරණාත්මක සිදුවීමක්. මිනිසුන් සහ Exotic Matter (XM) අතර පළමු ලේඛනගත මහා පරිමාණ අන්තර්ක්‍රියාව ලෙස සලකනවා.",
+  "p": [
+   "Devra Bogdanovich සහ Roland Jarvis Niantic එකෙන් පැනගියේ මේ කාලයේ."
+  ],
+  "sec": []
+ },
+ {
+  "title": "February Flash Event (2021)",
+  "revid": 16283,
+  "kw": [],
+  "h": "🎉 February Flash Event (2021)",
+  "s": "February Flash Event (2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 19 February 2021, 17:00 UTC",
+   "අවසානය: 26 February 2021, 17:00 UTC",
+   "කාලය: දින 7"
+  ],
+  "sec": []
+ },
+ {
+  "title": "FieldArt Challenge",
+  "revid": 17866,
+  "kw": [
+   "field art"
+  ],
+  "h": "🎉 FieldArt Challenge",
+  "s": "FieldArt Challenge කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 23 July 2021, 16:00 UTC",
+   "අවසානය: 02 August 2021, 16:00 UTC",
+   "කාලය: දින 10"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Glyph the Planet Event",
+  "revid": 15996,
+  "kw": [],
+  "h": "🎉 Glyph the Planet Event",
+  "s": "Glyph the Planet Event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 17 June 2021, 22:00 UTC",
+   "අවසානය: 25 June 2021, 16:00 UTC",
+   "කාලය: දින 8"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Hack the Planet Weekend event",
+  "revid": 15474,
+  "kw": [],
+  "h": "🎉 Hack the Planet Weekend event",
+  "s": "Hack the Planet Weekend event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 09 April 2021, 16:00 UTC",
+   "අවසානය: 12 April 2021, 18:00 UTC",
+   "කාලය: දින 3",
+   "ඉලක්කය: unique hacks 3,500,000 (එකතුව)",
+   "ප්‍රතිඵලය: 3,598,653 (102.82%)"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Ingress 9th Anniversary",
+  "revid": 16610,
+  "kw": [],
+  "h": "🎉 Ingress 9th Anniversary",
+  "s": "Ingress 9th Anniversary කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 15 November 2021, 17:00 UTC",
+   "අවසානය: 29 November 2021, 17:00 UTC",
+   "කාලය: දින 14"
+  ],
+  "sec": []
+ },
+ {
+  "title": "IngressHalloween2021",
+  "revid": 16429,
+  "kw": [
+   "halloween"
+  ],
+  "h": "🎉 IngressHalloween2021",
+  "s": "IngressHalloween2021 කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 21 October 2021, 16:00 UTC",
+   "අවසානය: 01 November 2021, 16:00 UTC",
+   "කාලය: දින 11"
+  ],
+  "sec": []
+ },
+ {
+  "title": "IngressNewYear2022",
+  "revid": 18219,
+  "kw": [],
+  "h": "🎉 IngressNewYear2022",
+  "s": "IngressNewYear2022 කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 20 December 2021, 17:00 UTC",
+   "අවසානය: 03 January 2022, 17:00 UTC",
+   "කාලය: දින 14"
+  ],
+  "sec": []
+ },
+ {
+  "title": "January Special Event (2021)",
+  "revid": 17036,
+  "kw": [],
+  "h": "🎉 January Special Event (2021)",
+  "s": "January Special Event (2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 29 January 2021, 17:00 UTC",
+   "අවසානය: 08 February 2021, 17:00 UTC",
+   "කාලය: දින 10"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Let's Get Toasty Week",
+  "revid": 18221,
+  "kw": [],
+  "h": "🎉 Let's Get Toasty Week",
+  "s": "Let's Get Toasty Week කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 24 February 2022, 17:00 UTC",
+   "අවසානය: 28 February 2022, 17:00 UTC",
+   "කාලය: දින 4"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Level 8 weekend (2021)",
+  "revid": 17865,
+  "kw": [],
+  "h": "🎉 Level 8 weekend (2021)",
+  "s": "Level 8 weekend (2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 06 August 2021",
+   "අවසානය: 09 August 2021",
+   "කාලය: දින 3"
+  ],
+  "sec": []
+ },
+ {
+  "title": "MOD Madness Weekend Event",
+  "revid": 15718,
+  "kw": [],
+  "h": "🎉 MOD Madness Weekend Event",
+  "s": "MOD Madness Weekend Event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 11 June 2021, 16:00 UTC",
+   "අවසානය: 14 June 2021, 16:00 UTC",
+   "කාලය: දින 3",
+   "ඉලක්කය: Mods 1,500,000ක් deploy කිරීම (ලෝක මට්ටමින්)",
+   "ප්‍රතිඵලය: Mods 1,925,012 (128.33%)"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Matryoshka event",
+  "revid": 15431,
+  "kw": [
+   "matryoshka"
+  ],
+  "h": "🎉 Matryoshka event",
+  "s": "Matryoshka event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 23 April 2021, 16:00 UTC",
+   "අවසානය: 30 April 2021, 16:00 UTC",
+   "කාලය: දින 7"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Resonate the World Weekend event",
+  "revid": 15745,
+  "kw": [],
+  "h": "🎉 Resonate the World Weekend event",
+  "s": "Resonate the World Weekend event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 12 March 2021, 17:00 UTC",
+   "අවසානය: 15 March 2021, 17:00 UTC",
+   "කාලය: දින 3",
+   "ඉලක්කය: අනෙක් faction එකට වඩා Resonators deploy කිරීම",
+   "ප්‍රතිඵලය: Resistance 886,548 – Enlightened 833,388; ජයග්‍රාහකයා Resistance"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Second Sunday Mission Day",
+  "revid": 17383,
+  "kw": [],
+  "h": "🎉 Second Sunday Mission Day",
+  "s": "Second Sunday Mission Days CoViD-19 වසංගතයෙන් පස්සේ Live Events නැවත හඳුන්වා දීමේ කොටසක් ලෙස Niantic නිවේදනය කළා — Agents හදපු Missions බෙදාහැරුණු ආකාරයකින් ගවේෂණය කරන්න.",
+  "p": [
+   "නිවේදනය කළ දින: 11 July, 8 August, 12 September 2021."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Special Lunar New Year Weekend Event",
+  "revid": 15768,
+  "kw": [],
+  "h": "🎉 Special Lunar New Year Weekend Event",
+  "s": "Special Lunar New Year Weekend Event කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 12 February 2021, 17:00 UTC",
+   "අවසානය: 16 February 2021, 17:00 UTC",
+   "කාලය: දින 4"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Summer Solstice 2022",
+  "revid": 18216,
+  "kw": [],
+  "h": "🎉 Summer Solstice 2022",
+  "s": "Summer Solstice 2022 කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 09 June 2022, 16:00 UTC",
+   "අවසානය: 21 June 2022, 16:00 UTC",
+   "කාලය: දින 12",
+   "ඉලක්කය: පුද්ගලික — Bronze: 300,000 XM recharge"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Toast! (April Fools 2019)",
+  "revid": 17076,
+  "kw": [
+   "toast",
+   "april fools"
+  ],
+  "h": "🎉 Toast! (April Fools 2019)",
+  "s": "Toast කියන්නේ 2019 April Fool's Day සඳහා Ingress හි තේමාවයි.",
+  "p": [
+   "‘This is a toast notification’ කියන push notifications ආවා.",
+   "Ingress Prime හි Agent Avatar එක පාන් පෙත්තකින් (toast) ආදේශ වුණා.",
+   "සියලු Beacons තාවකාලිකව toast පින්තූර වුණා."
+  ],
+  "sec": []
+ },
+ {
+  "title": "Trek-or-Treat Weekend (Halloween 2020)",
+  "revid": 16455,
+  "kw": [],
+  "h": "🎉 Trek-or-Treat Weekend (Halloween 2020)",
+  "s": "Trek-or-Treat Weekend (Halloween 2020) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 30 October, 16:00 UTC",
+   "අවසානය: 2 November, 17:00 UTC",
+   "කාලය: දින 4"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Umbra Deploy Challenge",
+  "revid": 16463,
+  "kw": [
+   "umbra"
+  ],
+  "h": "🎉 Umbra Deploy Challenge",
+  "s": "Umbra Deploy Challenge කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 20 December 2019, 18:00 UTC",
+   "අවසානය: 30 December 2019, 18:00 UTC",
+   "කාලය: දින 10",
+   "ඉලක්කය: unique Resonator slots 30,000,000 (ලෝක); පුද්ගලික Bronze 120 · Silver 600 · Gold 1,440",
+   "ප්‍රතිඵලය: slots ~51,000,000"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Via Lux",
+  "revid": 11950,
+  "kw": [],
+  "h": "🎉 Via Lux",
+  "s": "Via Lux කියන්නේ 27 August සහ 24 September 2016 පැවැත්වුණ anomaly series එකක්. සහභාගී වුණ අයට medal එකක් ලැබුණා.",
+  "p": [],
+  "sec": []
+ },
+ {
+  "title": "Via Noir",
+  "revid": 18806,
+  "kw": [],
+  "h": "🎉 Via Noir",
+  "s": "Via Noir කියන්නේ 12/13 November 2016 පැවැත්වුණ Anomaly එකක්.",
+  "p": [],
+  "sec": []
+ },
+ {
+  "title": "Virtual NL-1331 Meetup (April Fools 2020)",
+  "revid": 17077,
+  "kw": [],
+  "h": "🎉 Virtual NL-1331 Meetup (April Fools 2020)",
+  "s": "Virtual NL-1331 Meetup (April Fools 2020) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 31 March 2020, 16:00 UTC",
+   "අවසානය: 02 April 2020",
+   "කාලය: දින 2"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Virtual NL-1331X Meetup (April Fools 2021)",
+  "revid": 15835,
+  "kw": [],
+  "h": "🎉 Virtual NL-1331X Meetup (April Fools 2021)",
+  "s": "Virtual NL-1331X Meetup (April Fools 2021) කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 30 March 2021, 16:00 UTC",
+   "අවසානය: 01 April 2021, 18:00 UTC",
+   "කාලය: දින 2"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Comic Sans Link Challenge",
+  "revid": 18368,
+  "kw": [],
+  "h": "🎉 Comic Sans Link Challenge",
+  "s": "Comic Sans Link Challenge කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 31 March 2022, 16:00 UTC",
+   "අවසානය: 07 April 2022, 16:00 UTC",
+   "කාලය: දින 7",
+   "ඉලක්කය: Links හැදීම — Bronze 4 · Silver 41 · Gold 401 (Nemesis Sequence)"
+  ],
+  "sec": []
+ },
+ {
+  "title": "Link to Your Heart",
+  "revid": 18220,
+  "kw": [],
+  "h": "🎉 Link to Your Heart",
+  "s": "Link to Your Heart කියන්නේ Ingress හි පැවැත්වුණ event එකක්.",
+  "p": [
+   "ආරම්භය: 11 February 2022",
+   "අවසානය: 15 February 2022",
+   "කාලය: දින 5"
+  ],
+  "sec": []
+ }
+]

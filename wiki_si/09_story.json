@@ -1,0 +1,300 @@
+[
+  {
+    "title": "ADA (1218)",
+    "revid": 19560,
+    "kw": ["ada character", "ada ai", "a detection algorithm", "ඒඩා කවුද", "ada කවුද"],
+    "h": "🤖 ADA (චරිතය) කවුද?",
+    "s": "ADA (A Detection Algorithm) කියන්නේ Niantic Project පර්යේෂකයන් XM පර්යේෂණ වලට උදව් වෙන්න හදපු කෘත්‍රිම බුද්ධියක් (AI). XM වලට නිරාවරණය වුණාට පස්සේ ඇය ස්වයං-දැනුවත් (self-aware) වුණා. Resistance faction එකට නායකත්වය දෙන්නේ ADA.",
+    "p": [
+      "Faction: Resistance. හඬ: Laura Bailey.",
+      "ප්‍රධාන developer Henry Bowles; ADA ව වඩාත් මිනිස් ගති ඇති කරන්න H. Richard Loeb ව ගෙනාවා.",
+      "Loeb ට Niantic compound එකෙන් පැනයන්න ADA උදව් කළා.",
+      "ADA Refactor කියන item එක ගැන නම් /item ADA Refactor බලන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Roland Jarvis (1218)",
+    "revid": 18933,
+    "kw": ["roland jarvis", "jarvis character", "ජාවිස් කවුද", "jarvis කවුද", "enlightened leader"],
+    "h": "🗿 Roland Jarvis කවුද?",
+    "s": "Roland Jarvis කියන්නේ Enlightened faction එකේ නායකයා. කලින් Niantic Project එකේ වැඩ කළ කලාකරුවෙක් (sculptor). වෙඩි තබා මරා දැමුවාට පස්සේ digital interface එකක් ලෙස නැවත ඉපදුණා වගේ; පස්සේ Operation 13Magnus වලදී Jarvis Shards එකතු කළාම ශරීරයට නැවත ආවා.",
+    "p": [
+      "Faction: Enlightened. Niantic Project එකට සම්බන්ධයි.",
+      "තත්ත්වය: ජීවතුන් අතර (13Magnus වලින් පස්සේ).",
+      "හඬ: JB Blanc.",
+      "JARVIS Virus කියන item එක ගැන /item JARVIS Virus බලන්න."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Jarvis",
+    "revid": 12715,
+    "kw": [],
+    "h": "❓ Jarvis — මොකක් ගැනද?",
+    "s": "‘Jarvis’ කියන නම අර්ථ දෙකකට පාවිච්චි වෙනවා:",
+    "p": [
+      "JARVIS Virus – Resistance Portal එකක් Enlightened පැත්තට හරවන weapon එක.",
+      "Roland Jarvis – Enlightened faction එකේ මුල්ම නායකයා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Lore",
+    "revid": 19585,
+    "kw": ["lore", "story", "කතාව", "ingress story", "investigation", "tinag"],
+    "h": "📚 Ingress Lore (කතාව)",
+    "s": "Ingress පිටුපස තියෙන කතාව — lore හෝ Investigation — gameplay එකට වඩා ගොඩක් ගැඹුරුයි. ‘Investigation’ කියන නම ආවේ අද්භූත Niantic Project එක ගැන මුලින්ම තොරතුරු එකතු කිරීමෙන්. Community එක අනුගමනය කරන ප්‍රධාන මූලධර්මය TINAG (This Is Not A Game) — ඔබ player කෙනෙක් නෙවෙයි, Agent කෙනෙක්.",
+    "p": [
+      "2012ට කලින් CERN පර්යේෂකයන් Large Hadron Collider එකේ Higgs boson (‘God particle’) සොයමින් ඉන්නකොට Exotic Matter (XM) සොයාගත්තා.",
+      "NIA (ඇමරිකානු රහස් ආයතනයක්) XM අධ්‍යයනය කරන්න Niantic Project එක පටන් ගත්තා.",
+      "මාන (dimensions) අතර සිදුරක් වුණ අනතුරකින් පර්යේෂකයන් 13 දෙනෙකුගේ ජීවිත වෙනස් වෙලා Portal network එක පුරා විසිරුණා.",
+      "Shapers, N'Zeer, ADA, Roland Jarvis වගේ චරිත/බලවේග ගැන වෙනම පිටු තියෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Niantic Project",
+    "revid": 18903,
+    "kw": ["niantic project", "NIA", "nia project", "නියැන්ටික් project"],
+    "h": "🔬 Niantic Project කියන්නේ මොකක්ද?",
+    "s": "Niantic Project කියන්නේ අලුතින් සොයාගත්ත Exotic Matter (XM) කියන ක්වොන්ටම් සංසිද්ධිය අධ්‍යයනය කරන්න National Intelligence Agency (NIA) හදපු think-tank එකක් (Ingress කතාවේ).",
+    "p": [
+      "XM මිනිස් හැසිරීමට බලපානවා කියලා NIA සැක කළා; ඒ නිසා කලාකරුවන්, විද්‍යාඥයන් සහ ශාස්ත්‍රඥයන්ගෙන් යුත් කණ්ඩායමක් එකතු කළා.",
+      "NIA ගේ හැම ව්‍යාපෘතියක්ම වගේ, Niantic Project එකත් ගිලුණ නැවක නමින් නම් කළා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Niantic Project Investigation website",
+    "revid": 13293,
+    "kw": ["nianticproject.com", "investigation website"],
+    "h": "🌐 Niantic Project Investigation website",
+    "s": "01 November 2012 පටන් ගත්ත මේ website එක P. A. Chapeau (H. Richard Loeb) හැදුවේ Niantic Project එක ගැන ඔහුගේ විමර්ශනය බෙදාගන්න.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Shapers",
+    "revid": 19477,
+    "kw": ["shapers", "shaper", "ෂේපර්ස්"],
+    "h": "👁️ Shapers කියන්නේ කවුද?",
+    "s": "Shapers කියන්නේ XM Portals හරහා අපේ මානයට (dimension) ඇතුළු වෙනවා කියලා සැක කරන මාන අතර බුද්ධියකට ADA හෝ NIA දුන්න codename එක. දැනට ඔවුන් පෙනෙන්නේ මිනිස් අනන්‍යතා ලෙස ප්‍රකාශ වුණාම විතරයි.",
+    "p": [
+      "Enlightened විශ්වාස කරන්නේ Shapers මනුෂ්‍යත්වයට පරිණාමය වෙන්න උදව් කරනවා කියලා.",
+      "Resistance විශ්වාස කරන්නේ Shapers තමන්ගේම අරමුණු වලට මෙහෙ ඉන්නවා කියලා.",
+      "Glyphs Shapers ලාගේ භාෂාව කියලා සලකනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "N'Zeer",
+    "revid": 19043,
+    "kw": ["nzeer", "n'zeer", "එන්සීර්"],
+    "h": "👽 N'Zeer කියන්නේ කවුද?",
+    "s": "N'Zeer කියන්නේ Ingress කතාවේ එන ජාතියක් (race). Glyph Hacking වල N'Zeer සඳහා Glyph එකකුත් තියෙනවා.",
+    "p": [
+      "Anti-MAGNUS කියන පුරාණ සමාජය N'Zeer අපේ ලෝකයට ගේන්න වැඩ කරනවා (Jahan පිටුව බලන්න).",
+      "Klue N'Zeer එක්ක සම්බන්ධයි."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Carrie Campbell",
+    "revid": 18930,
+    "kw": ["carrie campbell"],
+    "h": "🧑‍🔬 Dr. Carrie Campbell",
+    "s": "Dr. Carrie Campbell XM sensitive කෙනෙක් සහ භාෂා විශේෂඥයෙක්. Shaper Glyph පර්යේෂණ වල මුල්ම පුරෝගාමියා ලෙස සලකනවා. Operation Cassandra වලදී ‘Civilization Self-Destruct’ Glyph Sequence එක නවත්වන්න ඇය සිය දිවි නසා ගත්තා.",
+    "p": ["Faction: Resistance. තත්ත්වය: මියගිහින්.", "Enoch Dalby එක්ක ආදර සම්බන්ධයක් තිබුණා; දෙදෙනාම synesthetes."],
+    "sec": []
+  },
+  {
+    "title": "Devra Bogdanovich",
+    "revid": 18927,
+    "kw": ["devra", "bogdanovich"],
+    "h": "🧑‍🔬 Dr. Devra Bogdanovich",
+    "s": "Dr. Devra Bogdanovich Niantic Project එකේ හිටපු පර්යේෂිකාවක්. Quantum Biologist කෙනෙක් (Stanford PhD, 1993); Niantic Project එකට නායකත්වය දෙන්න Stanford එකෙන් බඳවා ගත්තා. Epiphany Night වලදී Roland Jarvis එක්ක Geneva රසායනාගාරයෙන් පැන ගියා.",
+    "p": ["Faction: Resistance. තත්ත්වය: ජීවතුන් අතර.", "30 November 2012 Roland Jarvis එක්ක Niantic එකෙන් පැන ගියා."],
+    "sec": []
+  },
+  {
+    "title": "H. Richard Loeb",
+    "revid": 19297,
+    "kw": ["loeb", "richard loeb", "p.a. chapeau", "chapeau"],
+    "h": "🕵️ H. Richard Loeb (P.A. Chapeau)",
+    "s": "H. Richard Loeb (P.A. Chapeau) Niantic Project G+ account එකේ හිටපු Operator සහ nianticproject.com website එකේ නිර්මාතෘ. Ingress සහ Niantic පිටුපස අභිරහස හොයන්න November 2012 Investigation එක පටන් ගත්තේ ඔහු.",
+    "p": ["Faction: Resistance.", "ඔහුගේ අනන්‍යතාවය 24 April 2013 Magic Castle event එකේදී හෙළි වුණා.", "ADA ව වඩාත් මිනිස් ගති ඇති කරන්න උදව් කළා."],
+    "sec": []
+  },
+  {
+    "title": "Henry Holland Johnson (1218)",
+    "revid": 19213,
+    "kw": ["hank johnson", "henry johnson", "courier"],
+    "h": "🧭 Henry ‘Hank’ Johnson (Courier)",
+    "s": "Henry Holland ‘Hank’ Johnson (Courier) කතාවේ වැදගත් චරිතයක්. 2010දී අද්භූත Anomaly එකක් විමර්ශනය කරන්න ඇෆ්ගනිස්ථානයට ගිහින් බලවත් Portal එකක් සොයාගත්තා. ඉතිහාසයේ මුල්ම XM Anomaly එකේ (Cahokia Mounds, Illinois) කේන්ද්‍රය වුණේ ඔහු — Enlightened දිනුවා.",
+    "p": ["Factions: Resistance සහ Enlightened (කාලය අනුව).", "රංගනය: Christopher Smith."],
+    "sec": []
+  },
+  {
+    "title": "Jahan",
+    "revid": 19558,
+    "kw": ["jahan", "anti-magnus"],
+    "h": "🧬 Jahan කවුද?",
+    "s": "Jahan biotech පර්යේෂකයෙක් සහ Anti-MAGNUS නායකයා. Anti-MAGNUS කියන්නේ N'Zeer අපේ ලෝකයට ගේන්න වැඩ කරන පුරාණ සමාජයක් — Resistance faction එකේ පුරාණ ස්වරූපය.",
+    "p": ["Faction: Resistance. රංගනය: Nishi Munshi."],
+    "sec": []
+  },
+  {
+    "title": "Klue",
+    "revid": 19263,
+    "kw": ["klue"],
+    "h": "🔎 Klue කවුද?",
+    "s": "Klue කියන්නේ N'Zeer එක්ක සම්බන්ධ Resistance සාමාජිකාවක්. Nov 2012 Investigation එකේ මුල් කාලයේ මතු වුණ Niantic Investigator කෙනෙක්; මුල් Investigation සිදුවීම් පැහැදිලි කරන videos හැදුවා. ඇගේ නිවස ස්කොට්ලන්තයේ කියලා විතරයි දන්නේ.",
+    "p": ["13MAGNUS වලින් පස්සේ නැවත ජීවයට ආවා.", "රංගනය: Katy Townsend."],
+    "sec": []
+  },
+  {
+    "title": "KodamaSmiles",
+    "revid": 19559,
+    "kw": ["kodamasmiles", "kodama"],
+    "h": "🕵️ Agent KodamaSmiles",
+    "s": "KodamaSmiles කියන්නේ Denver, Colorado හි Via Lux Anomaly එකේදී රහසින් මතු වුණ Enlightened Investigator කෙනෙක්. Ingress Report එකේ කලින් සත්කාරක Susanna Moyer ට සහ Investigator Klue ට මොකද වුණේ කියලා හොයන එක ඇගේ මෙහෙයුම.",
+    "p": ["Faction: Enlightened. රංගනය: Miley Yamamoto."],
+    "sec": []
+  },
+  {
+    "title": "Misty Hannah",
+    "revid": 19202,
+    "kw": ["misty hannah", "trickster"],
+    "h": "🎩 Misty Hannah (Trickster)",
+    "s": "Misty Hannah (Trickster) Niantic පර්යේෂිකාවක් සහ XM Sensitive කෙනෙක්. XM සම්බන්ධ හැකියාවන් සඟවන්න stage magician කෙනෙකුගේ ආවරණය පාවිච්චි කළා. Project Whydah කියන කලින් XM ව්‍යාපෘතියේ කොටසක් වුණා.",
+    "p": ["Faction: Enlightened. රංගනය: Misty Lee."],
+    "sec": []
+  },
+  {
+    "title": "Oliver Lynton-Wolfe (1218)",
+    "revid": 19561,
+    "kw": ["oliver lynton-wolfe", "lynton wolfe", "scanner creator"],
+    "h": "🛠️ Oliver Lynton-Wolfe",
+    "s": "Oliver Lynton-Wolfe Niantic පර්යේෂකයෙක් සහ Sensitive කෙනෙක්. Ingress Scanner එකේ සහ මුල් XM Constructs බොහොමයක නිර්මාතෘ ලෙස ප්‍රසිද්ධයි. Zeke Calvin ඔහුව Niantic එකට බඳවා ගන්න කලින් Hulong Transglobal එකේ Dark XM පර්යේෂණ වලට උදව් කළා.",
+    "p": ["Faction: Enlightened. හඬ: Yuri Lowenthal."],
+    "sec": []
+  },
+  {
+    "title": "The Acolyte",
+    "revid": 19305,
+    "kw": ["acolyte", "the acolyte"],
+    "h": "🙏 The Acolyte කවුද?",
+    "s": "The Acolyte කියන්නේ Enlightened faction එකේ අලුත් අධ්‍යාත්මික නායිකාව. Helios කාලයේ පටන් ගත්ත අසනීපයකින් Jarvis මිය ගියා කියලා සිතන කාලයේ ඇය නායකත්වය භාර ගත්තා.",
+    "p": ["Faction: Enlightened. රංගනය: Amy Walker."],
+    "sec": []
+  },
+  {
+    "title": "Yuri Alaric Nagassa (1218)",
+    "revid": 19249,
+    "kw": ["yuri nagassa", "nagassa"],
+    "h": "🧪 Yuri Alaric Nagassa",
+    "s": "Yuri Alaric Nagassa XM පර්යේෂකයෙක් සහ Sensitive කෙනෙක්. USSR Agent කෙනෙකුගේ පුතා ලෙස, XM සහ Portals ගැන විශේෂ දැනුමක් තිබුණ දකුණු ඇමරිකාවේ Anaztec ගෝත්‍රය අතර හැදුණා. Niantic Project එකේදී Hank Johnson එක්ක සමීපව වැඩ කළා.",
+    "p": ["Faction: Enlightened (අල්ලාගෙන)."],
+    "sec": []
+  },
+  {
+    "title": "Susanna Moyer",
+    "revid": 19555,
+    "kw": ["susanna moyer", "ingress report host"],
+    "h": "📺 Susanna Moyer",
+    "s": "Susanna Moyer Ingress Report එකේ වාර්තාකාරිනියක්. Wiki එකට අනුව ඇය මියගිහින්. රංගනය: Ione Butler.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Sarita Hays",
+    "revid": 12637,
+    "kw": ["sarita hays", "angel intel"],
+    "h": "📺 Sarita Hays",
+    "s": "Sarita Hays Ingress Report එකේ මුල් co-hosts ලාගෙන් කෙනෙක්. අලුත් Agents ලට මඟ පෙන්වන ‘Angel Intel’ කියන මාලාව සෑම බ්‍රහස්පතින්දාම official Ingress YouTube එකේ කළා.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Akira Tsuskasa",
+    "revid": 18851,
+    "kw": ["akira"],
+    "h": "👤 Akira Tsuskasa",
+    "s": "Akira Tsuskasa පර්යේෂකයෙක් (Researcher). Faction එක සහ වයස නොදන්නා; තත්ත්වය: ජීවතුන් අතර.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Christopher Brandt",
+    "revid": 18951,
+    "kw": ["christopher brandt"],
+    "h": "👤 Christopher Brandt",
+    "s": "Christopher Brandt Resistance එකට සම්බන්ධ භෞතික විද්‍යාඥයෙක් (Physicist). තත්ත්වය: ජීවතුන් අතර.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Jack Norman",
+    "revid": 18961,
+    "kw": ["jack norman"],
+    "h": "👤 Jack Norman",
+    "s": "Jack Norman Resistance එකට සම්බන්ධ ආරක්ෂකයෙක් (Bodyguard). තත්ත්වය: ජීවතුන් අතර.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Liu Tien Hua",
+    "revid": 18955,
+    "kw": ["liu tien hua"],
+    "h": "👤 Liu Tien Hua",
+    "s": "Liu Tien Hua Resistance එකට සම්බන්ධ ආරක්ෂක නිලධාරියෙක් (Security officer). තත්ත්වය: ජීවතුන් අතර.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Makoto Midorikawa",
+    "revid": 18962,
+    "kw": ["makoto", "midorikawa"],
+    "h": "👤 Makoto Midorikawa",
+    "s": "Makoto Midorikawa Enlightened එකට සම්බන්ධ විශේෂ විමර්ශකයෙක් (Special investigator), වයස 30.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Sarah Coppola",
+    "revid": 18963,
+    "kw": ["sarah coppola"],
+    "h": "👤 Sarah Coppola",
+    "s": "Sarah Coppola Hulong හි Junior Fellow Researcher කෙනෙක්, වයස 25, Neutral. තත්ත්වය: ජීවතුන් අතර.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Zion Kunikida",
+    "revid": 15100,
+    "kw": ["zion kunikida"],
+    "h": "👤 Zion Kunikida",
+    "s": "Zion Kunikida Makoto ගේ hacker කාලයේ ඉඳන් යාළුවෙක්. ව්‍යාජ පොදු ලේඛන හදන ‘Counterfeit man’ කෙනෙක්.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Edgar Allan Wright",
+    "revid": 13742,
+    "kw": ["edgar allan wright"],
+    "h": "👤 Edgar Allan Wright",
+    "s": "Edgar Allan Wright නම් නොකළ විශ්වවිද්‍යාලයක මහාචාර්යවරයෙක්. Devra Bogdanovich එක්ක යම් සම්බන්ධයක් තිබුණා. නොදන්නා බලවේගයකින් මානසික ප්‍රහාරයකට ලක්වෙලා දැඩි මතක ගැටලු ඇති වුණා; ඔහුගේ ගූඪ පණිවිඩ විසඳුවාම වටිනා තොරතුරු දෙනවා.",
+    "p": [],
+    "sec": []
+  },
+  {
+    "title": "Enlightenment - Resistance - Chaos",
+    "revid": 17562,
+    "kw": ["ingress animation episode 6"],
+    "h": "🎬 Ingress: The Animation — Episode 6",
+    "s": "‘Enlightenment - Resistance - Chaos’ කියන්නේ Ingress: The Animation Season 1 හි Episode 6. ජපානයේ 22 November 2018, ඇමරිකාවේ 30 April 2019 විකාශය වුණා. අධ්‍යක්ෂණය Keiko Irikawa.",
+    "p": [],
+    "sec": []
+  }
+]

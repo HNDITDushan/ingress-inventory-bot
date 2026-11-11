@@ -1,0 +1,288 @@
+[
+  {
+    "title": "Passcode",
+    "revid": 18898,
+    "kw": [
+      "passcode",
+      "passcodes",
+      "පාස්කෝඩ්",
+      "code",
+      "redeem",
+      "free items",
+      "නොමිලේ items"
+    ],
+    "h": "🎟️ Passcode කියන්නේ මොකක්ද?",
+    "s": "Passcodes කියන්නේ redeem කරලා inventory items ලබාගන්න පුළුවන් codes. බොහෝ විට ටිකක් XM සහ AP ත් ලැබෙනවා.",
+    "p": [
+      "Items වල level වෙනස් වෙනවා; දැන් තියෙන බොහෝ codes ඔබේ level එකේ items දෙනවා (L8 දක්වා).",
+      "Mods සහ level නැති items සාමාන්‍යයෙන් Common–Rare. JARVIS Virus, ADA Refactor වගේ Very Rare items දෙන codes ඉතාම ටිකයි.",
+      "Ingress සහ Niantic නිකුත් කරන දේවල් (videos, media, events) අතර Passcodes සඟවලා තියෙනවා.",
+      "Very Rare Link Amp එක ලැබෙන්නේ Passcodes වලින් විතරයි (Link Amp පිටුව බලන්න)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Store",
+    "revid": 18750,
+    "kw": [
+      "store",
+      "shop",
+      "ස්ටෝර්",
+      "CMU",
+      "සී එම් යූ",
+      "buy",
+      "මිලදී",
+      "powerups",
+      "chaotic matter"
+    ],
+    "h": "🛒 Ingress Store",
+    "s": "Ingress Store එකෙන් Powerups කියන විශේෂ items මිලදී ගන්න පුළුවන්. මේවා hack කරලා ගන්න බැහැ; ඒ වගේම hack කරන items store එකේ විකුණන්නෙත් නැහැ. Store එකෙන් ගත්ත items drop කරන්න හෝ වෙන Agents ලට දෙන්න බැහැ. (Wiki එක සඳහන් කරනවා මේ පිටුවේ සමහර තොරතුරු පරණයි කියලා.)",
+    "p": [
+      "Store එකට යන්නේ OPS තිරයේ ‘Store’ tab එකෙන්.",
+      "මුදල් ඒකකය Chaotic Matter Units (CMU) — ඇත්ත මුදල් වලින් මිලදී ගන්නවා.",
+      "Wiki එකේ උදාහරණ මිල: 2,500 CMU ≈ USD 1.99, 7,000 CMU ≈ USD 4.99, 15,000 CMU ≈ USD 9.99.",
+      "Store items: Key Locker, Portal Fracker, Beacons, Apex, Battle Beacons, Fireworks වගේ ඒවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Device",
+    "revid": 16834,
+    "kw": [
+      "device settings",
+      "settings",
+      "සෙටින්ග්ස්",
+      "device tab"
+    ],
+    "h": "⚙️ Device තිරය (Settings)",
+    "s": "Device තිරය OPS menu එකේ දකුණු කෙළවරේම තියෙන්නේ — Ingress වල settings තිරයට ළඟම දේ. නම device එකට විතරක් අදාළ වගේ පෙනුණත් බොහෝ settings ඔබ log වෙලා ඉන්න හැම device එකකම sync වෙනවා.",
+    "p": [
+      "User කොටසේ Ingress account එකට සම්බන්ධ Gmail address එක පෙන්නනවා — වෙනස් කරන්න බැහැ.",
+      "Push notifications on/off කරන්නේ මෙතනින්.",
+      "Identity තහවුරු කිරීම දැන් කරන්නේ Verified Agent ක්‍රමයෙන් (පරණ Google+ ක්‍රමය වෙනුවට)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Mission",
+    "revid": 17773,
+    "kw": [
+      "mission",
+      "missions",
+      "මිෂන්",
+      "මිෂන්ස්",
+      "banner",
+      "බැනර්",
+      "waypoint"
+    ],
+    "h": "🎯 Missions කියන්නේ මොකක්ද?",
+    "s": "Missions කියන්නේ Ingress වල ගවේෂණ මෙහෙයුම්. බොහෝ විට Agents ලා විසින්ම හදන, නිශ්චිත Waypoints මාලාවක් හරහා ගෙනයන ගමන්. Waypoints වලදී hack කිරීම, field කිරීම, code එකක් ඇතුළත් කිරීම වගේ objectives සම්පූර්ණ කරන්න ඕන.",
+    "p": [
+      "Mission එකක් ඉවර කළාම ඒ Mission එකේම medal/badge එකක් ලැබෙනවා. හැම Mission medal එකක්ම ලැබෙන්නේ එක පාරයි.",
+      "Mission medals වලින් AP, level හෝ හැකියාවන් වලට අමතර වාසියක් නැහැ.",
+      "ඔබේ completion time එක Mission එකේ සාමාන්‍ය කාලය ගණනය කරන්න සටහන් වෙනවා. Missions upvote/downvote කරන්නත් පුළුවන්.",
+      "Mission එකක් සම්පූර්ණ කිරීමෙන් AP ලැබෙන්නේ නැහැ (Access Points බලන්න)."
+    ],
+    "sec": [
+      [
+        "Mission වර්ග",
+        "• SEQUENTIAL – VISIBLE: Waypoints කොහෙද කියලා පෙන්නනවා, නිශ්චිත පිළිවෙළකට යන්න ඕන.\n• SEQUENTIAL – HIDDEN: මුල් Waypoint එක විතරයි පෙන්නන්නේ; ඊළඟ ඒවා එකින් එක හෙළි වෙනවා.\n• ඕනෑම පිළිවෙළකට යන්න පුළුවන් Missions ත් තියෙනවා."
+      ]
+    ]
+  },
+  {
+    "title": "Recursion",
+    "revid": 19571,
+    "kw": [
+      "recursion",
+      "recurse",
+      "recursed",
+      "රිකර්ෂන්",
+      "faction change",
+      "faction මාරු",
+      "level 1 again",
+      "wings"
+    ],
+    "h": "🔁 Recursion කියන්නේ මොකක්ද?",
+    "s": "Recursion කියන්නේ Agent කෙනෙක් තමන්ගේ Scanner එක ‘reset’ කරලා ආයේ faction එකක් තෝරගන්න (faction change) ක්‍රියාවලිය. L16 ලැබුණාම තමයි recursion කරන්න පුළුවන් වෙන්නේ.",
+    "p": [
+      "Recurse කළාම Level 1ට, 0 AP වලට යනවා; XM tank එක 3,000 XM වෙනවා; hack කරන items ඔබේ අලුත් level එකේ ඉඳන් ලැබෙනවා.",
+      "Recursed Agents ලගේ නම ළඟ wings පෙනෙනවා, Simulacrum medal එක ලැබෙනවා, profile එකේ Lifetime AP පෙන්නනවා.",
+      "Onyx medals කිහිප වතාවක් (multiples) ගන්න පුළුවන් වෙනවා.",
+      "Profile එකේ පහළම තියෙන Recurse button එකෙන් පටන් ගන්නවා; confirmation පිටු කිහිපයකට පස්සේ පැය 4ක countdown එකක් තියෙනවා.",
+      "ඉඟිය: Recurse කරන්න කලින් Hypercube එකක් පාවිච්චි කළොත් 52,800 XM secondary tank එක රැඳිලා තියෙනවා — මුල් levels ලේසි වෙනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Bounties",
+    "revid": 19593,
+    "kw": [
+      "bounties",
+      "bounty",
+      "බවුන්ටි",
+      "research bounties",
+      "daily task",
+      "daily tasks",
+      "grants",
+      "දිනපතා"
+    ],
+    "h": "📋 Research Bounties කියන්නේ මොකක්ද?",
+    "s": "Research Bounties කියන්නේ දිනපතා tasks (‘grants’) සම්පූර්ණ කරලා resources ලබාගන්න ක්‍රමයක්. හැම Agent කෙනෙකුටම දවසකට tasks 4ක් ලැබෙනවා; මධ්‍යම රාත්‍රියේ අලුත් වෙනවා. OPS menu එකෙන් යන්න පුළුවන්.",
+    "p": [
+      "Tasks 2ක් ඉවර කළොත් bonus 2,000 AP, 4ම ඉවර කළොත් bonus 4,000 AP.",
+      "Task rewards සහ bonus AP manually claim කරන්න ඕන.",
+      "උදා tasks: Resonators 8ක් විනාශ කිරීම → Very Rare Multi-Hack 1ක් + L7 Ultra Strike 16ක්; Portal 1ක් Drone hack කිරීම → Common Shield 2ක් + L7 Resonator 3ක්.",
+      "Tasks fixed pool එකකින් තෝරනවා වගේ; Niantic ඉඳලා හිටලා pool එක වෙනස් කරනවා."
+    ],
+    "sec": [
+      [
+        "Strategy",
+        "ඉඳහිට සෙල්ලම් කරන අයට resources සහ AP ගන්න හොඳ ක්‍රමයක්. නිතර සෙල්ලම් කරන අයටත් ලැබෙන L7 Ultra Strikes ගොඩ ප්‍රයෝජනවත්."
+      ]
+    ]
+  },
+  {
+    "title": "Boosts",
+    "revid": 17861,
+    "kw": [
+      "boost",
+      "boosts",
+      "බූස්ට්",
+      "field kit"
+    ],
+    "h": "🚀 Boosts කියන්නේ මොකක්ද?",
+    "s": "Boosts කියන්නේ hack කරලා ගන්න බැරි item කාණ්ඩයක්. Store එකෙන් හෝ events වලදී ලැබෙනවා. Boost එකක් activate/deploy කළාම 500 AP ලැබෙනවා.",
+    "p": [
+      "Portal Fracker – Portal එකක hack output එක විනාඩි 10ක් හෝ hacks 150ක් දෙගුණ කරනවා. Mod slot එකක් ගන්නේ නැහැ (තවත් Fracker එකක් ක්‍රියාත්මක නැත්නම්).",
+      "Apex – විනාඩි 30කට AP 2x. Activate කිරීමට 1,000 AP (සාමාන්‍ය 500 වෙනුවට).",
+      "Apex එක Level 2 සිට Level 8 දක්වා Field Kits වලත් ලැබෙනවා.",
+      "Battle Beacons, Beacons, Fireworks ත් Boost කාණ්ඩයේ."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Cell",
+    "revid": 18632,
+    "kw": [
+      "cell",
+      "cells",
+      "සෙල්",
+      "cell score",
+      "regional score",
+      "AS20",
+      "cell name"
+    ],
+    "h": "🗺️ Cell කියන්නේ මොකක්ද?",
+    "s": "Cells කියන්නේ ප්‍රාදේශීය ලකුණු ගණනය කරන්න පෘථිවිය බෙදලා තියෙන කොටස්. ලෝකයේ මුළු cells 24,576ක් තියෙනවා; හැම එකකටම AM01-CHARLIE-07 වගේ unique codename එකක් තියෙනවා.",
+    "p": [
+      "Cell බෙදීම S2 cell system එක පදනම් කරගෙන.",
+      "Codename එකේ කොටස් 3ක්: ප්‍රධාන zone එක (NR, AM, AF, AS, PA, ST), subarea අංකය, සහ cell නම/අංකය.",
+      "Zones 6: NR (North), AM (American), AF (African), AS (Asian), PA (Pacific), ST (South).",
+      "Cell scores Mind Units (MU) වලින් ගණනය කරනවා (Mind Unit පිටුව බලන්න)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Cycle",
+    "revid": 17044,
+    "kw": [
+      "cycle",
+      "septicycle",
+      "සයිකල්",
+      "සෙප්ටිසයිකල්",
+      "175 hours"
+    ],
+    "h": "🔄 Cycle (Septicycle) කියන්නේ මොකක්ද?",
+    "s": "Cycle (septi-cycle) කියන්නේ Checkpoints 35ක MU සාමාන්‍යය ගන්න පැය 175ක ‘finish line’ එකක්. ලකුණු Global සහ Cell මට්ටම් දෙකේම ගණන් කරනවා.",
+    "p": [
+      "දැනට තියෙන ලකුණු OPS menu එකේ ‘Intel’ tab එකේ බලන්න පුළුවන්; පරණ cycles ‘History’ ඔබලා.",
+      "Cycle එක පුරා MU පාලනය අනුව faction එකකට Top 50 Agents පෙන්නනවා (‘See other agents’).",
+      "Cycles ලකුණු පුවරුවක් විතරයි — gameplay එකට වෙන බලපෑමක් නැති තරම් (සමහර anomalies වලදී හැර)."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Checkpoint",
+    "revid": 14965,
+    "kw": [
+      "checkpoint",
+      "checkpoints",
+      "චෙක්පොයින්ට්",
+      "cp",
+      "5 hours"
+    ],
+    "h": "⏰ Checkpoint කියන්නේ මොකක්ද?",
+    "s": "Checkpoints කියන්නේ Global සහ Cell මට්ටම් වල පැය 5කට වරක් කරන MU ප්‍රගති පරීක්ෂණ. හැම checkpoint එකකදීම තියෙන Fields වල MU එකතු කරනවා; ඒවා කලින් checkpoints වලට එකතු වෙන්නේ නැහැ.",
+    "p": [
+      "Cycle එකකට checkpoints 35ක් — අවසාන ලකුණ ඒවායේ MU සාමාන්‍යය.",
+      "OPS menu එකේ Intel tab එකේ checkpoints බලන්න පුළුවන්.",
+      "Checkpoint වෙලාව වෙනකම් Field එක තියාගන්න ඕන — නැත්නම් ඒ MU ගණන් වෙන්නේ නැහැ."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Counterattack",
+    "revid": 18455,
+    "kw": [
+      "counterattack",
+      "zap",
+      "zapped",
+      "සැප්",
+      "portal attack me",
+      "XM අඩු වුණා",
+      "you've been hit"
+    ],
+    "h": "⚡ Counterattack (Zap) කියන්නේ මොකක්ද?",
+    "s": "Counterattack (zap) එකක් කියන්නේ සතුරු Portal එකක් hack කරනකොට හෝ පහර දෙනකොට ඔබේ XM අඩු වෙන සිදුවීමක්. උපරිම දුර සහ අඩු වෙන XM ප්‍රමාණය Portal level එක අනුවයි.",
+    "p": [
+      "Force Amps වලින් counterattack එක ශක්තිමත් වෙනවා; Turrets වලින් සිද්ධ වෙන අවස්ථාව වැඩි වෙනවා.",
+      "ක්‍රියාව ඉවර වෙන්න කලින් Portal එක ඔබේ Action Radius එකෙන් පිටට යන්න ඈත් වුණොත් counterattack වළක්වන්න පුළුවන්.",
+      "Critical counterattacks සාමාන්‍ය ඒවට වඩා 3 ගුණයක් බලවත්.",
+      "Portal එක උඩින් ඔබේ avatar එකට රතු කිරණ පෙනෙනවා; ‘You've been hit and lost ### XM!’ කියන alert එක එනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Speed Lock",
+    "revid": 18269,
+    "kw": [
+      "speed lock",
+      "speedlock",
+      "ස්පීඩ් ලොක්",
+      "driving",
+      "bus",
+      "train",
+      "action failed",
+      "60 km"
+    ],
+    "h": "🚗 Speed Lock කියන්නේ මොකක්ද?",
+    "s": "Speed lock කියන්නේ වේගයෙන් ගමන් කරන Agents ලට බලපාන anti-cheat ක්‍රමයක්. ක්‍රියා දෙකක් අතර මනින ලද වේගය 60 km/h (≈ 37 mph) ඉක්මවුවොත් ඒ ක්‍රියාව fail වෙනවා.",
+    "p": [
+      "Niantic anti-cheat ක්‍රම ගැන කවදාවත් කියන්නේ නැහැ — පහත දේවල් Agents ලාගේ අනුමාන.",
+      "සාර්ථක ක්‍රියාවකදී ඔබේ ස්ථානය සටහන් වෙලා, ඊළඟ ක්‍රියාවට ඒ දුර සහ කාලය අනුව වේගය ගණනය කරනවා කියලා සිතනවා."
+    ],
+    "sec": []
+  },
+  {
+    "title": "Area of Influence",
+    "revid": 14066,
+    "kw": [
+      "area of influence",
+      "action range",
+      "range circle",
+      "40m",
+      "40 m",
+      "range එක",
+      "රේන්ජ්"
+    ],
+    "h": "⭕ Area of Influence (Action range) කියන්නේ මොකක්ද?",
+    "s": "Area of Influence (action range) කියන්නේ Scanner එකේ objects එක්ක ඔබට වැඩ කරන්න පුළුවන් ප්‍රදේශය. Scanner තිරයේ ඔබ වටේ තියෙන තැඹිලි රවුමෙන් පෙන්නනවා; අරය මීටර 40යි.",
+    "p": [
+      "Portal එකක් මේ රවුම ඇතුළේ නම් Key එකක් නැතුව hack, Resonators deploy/upgrade, mods දැමීම සහ recharge කරන්න පුළුවන්.",
+      "XM bar එක full නැත්නම් රවුම ඇතුළේ තියෙන XM ස්වයංක්‍රීයව එකතු වෙනවා.",
+      "රවුම ඇතුළේ drop කරපු items pick up කරන්න පුළුවන්."
+    ],
+    "sec": []
+  }
+]
