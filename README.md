@@ -163,6 +163,36 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |
 
+## 🔄 Sync stats from the-grid
+
+If you upload your stats to [the-grid.blue](https://the-grid.blue) or the old
+[the-grid.org](https://the-grid.org), the bot can pull them all in, so you don't
+need to paste each one.
+
+1. Open **📊 Stats & goals → 🌐 Sync the-grid**.
+2. Tap **🔑 Add .blue key** and/or **🔑 Add .org key**, and send the key as a
+   message. For the-grid.org you can paste the whole export link; the bot takes
+   the `key=` part. The bot checks the key, saves it for your Telegram account,
+   and deletes your message.
+3. Pick:
+   - **🔄 New uploads**: everything since your latest stats in the bot.
+   - **📜 Full history**: every upload, from every site you have a key for.
+
+| Site | API | Notes |
+|---|---|---|
+| the-grid.blue | `api_public.php?action=uploads&from=…&to=…` with `X-API-Key` | 100 uploads per call; the bot pages back through older days |
+| the-grid.org | `r/export/?key=…&t0=…&t1=…&dir=asc` | Fetched a year at a time. No agent name or level, so uploads go to your agent and Level is carried over from your earlier stats |
+
+Every user adds their own keys. **Change** and **Remove** buttons are on the
+same screen. Keys are stored in `inventory.db`, which is never committed. For
+admins without a .blue key in the bot, `STATS_API_KEY` in `.env` is used as a
+fallback.
+
+Uploads already saved are skipped, whether they're at the same time or have the
+same Lifetime AP within 15 minutes. the-grid.org stamps uploads with the upload
+time, which differs slightly from the paste's own time. The bot waits 1 second
+between calls.
+
 ## Notes
 
 - Quantities accumulate: adding U3 twice (5, then 3) results in 8.

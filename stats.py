@@ -247,6 +247,26 @@ def init_stats_db(conn):
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS grid_keys (
+            owner_id INTEGER PRIMARY KEY,
+            api_key TEXT NOT NULL,
+            agent_name TEXT NOT NULL,
+            added_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS grid_org_keys (
+            owner_id INTEGER PRIMARY KEY,
+            api_key TEXT NOT NULL,
+            agent_name TEXT NOT NULL,
+            added_at TEXT NOT NULL
+        )
+        """
+    )
     agent_columns = {row["name"] for row in conn.execute("PRAGMA table_info(agents)")}
     if "started_on" not in agent_columns:
         # The day the agent started playing (YYYY-MM-DD), for lifetime averages.
@@ -336,6 +356,83 @@ def save_snapshot(conn, owner_id: int, parsed: dict, now: datetime):
         (agent["id"], _ts(parsed["taken_at"]), _ts(now), json.dumps(parsed["values"])),
     )
     return agent, previous, cur.rowcount == 1
+
+
+DUPLICATE_MINUTES = 15
+
+
+def _near_duplicate(conn, agent_id: int, snap) -> bool:
+    """Is the same upload already saved? (Same Lifetime AP within a few minutes.)
+
+    the-grid.org stamps uploads with the upload time, which can differ from the
+    paste's own time by seconds or minutes.
+    """
+    ap = snap["values"].get("Lifetime AP")
+    if ap is None:
+        return False
+    window = timedelta(minutes=DUPLICATE_MINUTES)
+    return conn.execute(
+        "SELECT 1 FROM stat_snapshots WHERE agent_id = ? AND taken_at BETWEEN ? AND ? "
+        "AND json_extract(data, '$.\"Lifetime AP\"') = ? LIMIT 1",
+        (agent_id, _ts(snap["taken_at"] - window), _ts(snap["taken_at"] + window), ap),
+    ).fetchone() is not None
+
+
+def import_snapshots(conn, owner_id: int, agent_name: str, snapshots, now: datetime):
+    """Store many snapshots (e.g. from the-grid). Returns (agent, previous latest, added).
+
+    Snapshots already stored (same time, or same Lifetime AP a few minutes
+    apart) are skipped. Missing Level is taken from the snapshot before. The agent's faction
+    is left as it is (the-grid's upload list doesn't include it).
+    """
+    agent = conn.execute(
+        "SELECT * FROM agents WHERE owner_id = ? AND name = ? COLLATE NOCASE", (owner_id, agent_name)
+    ).fetchone()
+    if agent is None:
+        conn.execute("INSERT INTO agents (owner_id, name) VALUES (?, ?)", (owner_id, agent_name))
+        agent = conn.execute(
+            "SELECT * FROM agents WHERE owner_id = ? AND name = ?", (owner_id, agent_name)
+        ).fetchone()
+    previous = latest_snapshot(conn, agent["id"])
+    added = 0
+    for snap in snapshots:
+        if _near_duplicate(conn, agent["id"], snap):
+            continue
+        if "Level" not in snap["values"]:
+            before = conn.execute(
+                "SELECT data FROM stat_snapshots WHERE agent_id = ? AND taken_at < ? "
+                "AND json_extract(data, '$.Level') IS NOT NULL ORDER BY taken_at DESC LIMIT 1",
+                (agent["id"], _ts(snap["taken_at"])),
+            ).fetchone()
+            if before:
+                snap = {**snap, "values": {"Level": json.loads(before["data"])["Level"], **snap["values"]}}
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO stat_snapshots (agent_id, taken_at, saved_at, data) VALUES (?, ?, ?, ?)",
+            (agent["id"], _ts(snap["taken_at"]), _ts(now), json.dumps(snap["values"])),
+        )
+        added += cur.rowcount
+    return agent, previous, added
+
+
+# the-grid.blue keys live in grid_keys, the old the-grid.org keys in grid_org_keys.
+_KEY_TABLES = {"blue": "grid_keys", "org": "grid_org_keys"}
+
+
+def get_grid_key(conn, owner_id: int, source: str = "blue"):
+    return conn.execute(f"SELECT * FROM {_KEY_TABLES[source]} WHERE owner_id = ?", (owner_id,)).fetchone()
+
+
+def set_grid_key(conn, owner_id: int, api_key: str, agent_name: str, now: datetime, source: str = "blue"):
+    conn.execute(
+        f"INSERT INTO {_KEY_TABLES[source]} (owner_id, api_key, agent_name, added_at) VALUES (?, ?, ?, ?) "
+        "ON CONFLICT(owner_id) DO UPDATE SET api_key = excluded.api_key, "
+        "agent_name = excluded.agent_name, added_at = excluded.added_at",
+        (owner_id, api_key, agent_name, _ts(now)),
+    )
+
+
+def delete_grid_key(conn, owner_id: int, source: str = "blue"):
+    conn.execute(f"DELETE FROM {_KEY_TABLES[source]} WHERE owner_id = ?", (owner_id,))
 
 
 def stat_choices(snapshot):
@@ -429,6 +526,36 @@ def set_start_date(conn, agent_id: int, day: datetime):
     conn.execute("UPDATE agents SET started_on = ? WHERE id = ?", (day.strftime("%Y-%m-%d"), agent_id))
 
 
+def stat_daily_rate(conn, agent, stat: str):
+    """(per day, since, basis) for one stat, or None.
+
+    With the agent's start date set: the latest value over the whole career
+    ("career"). Otherwise the growth between the first and latest pastes that
+    have the stat, if they are at least a day apart ("tracked").
+    """
+    latest = latest_snapshot(conn, agent["id"])
+    total = latest["values"].get(stat) if latest else None
+    if not total:
+        return None
+    started = agent["started_on"] if "started_on" in agent.keys() else None
+    if started:
+        since = datetime.strptime(started, "%Y-%m-%d")
+        days = max(1.0, (latest["taken_at"] - since).total_seconds() / 86400)
+        return total / days, since, "career"
+    for row in conn.execute(
+        "SELECT * FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at", (agent["id"],)
+    ):
+        first = _snapshot(row)
+        if stat in first["values"]:
+            break
+    else:
+        return None
+    days = (latest["taken_at"] - first["taken_at"]).total_seconds() / 86400
+    if days < 1:
+        return None
+    return (total - first["values"][stat]) / days, first["taken_at"], "tracked"
+
+
 def ap_report(conn, agent, now: datetime):
     """AP gained today / this week / this month, and AP averages.
 
@@ -440,25 +567,8 @@ def ap_report(conn, agent, now: datetime):
         start, end, _ = period_window(period, now)
         report[period] = gain_between(conn, agent["id"], "Lifetime AP", start, end)
 
-    latest = latest_snapshot(conn, agent["id"])
-    total = latest["values"].get("Lifetime AP") if latest else None
-    per_day, since, basis = None, None, None
-    started = agent["started_on"] if "started_on" in agent.keys() else None
-    if started and total:
-        since = datetime.strptime(started, "%Y-%m-%d")
-        days = max(1.0, (latest["taken_at"] - since).total_seconds() / 86400)
-        per_day, basis = total / days, "career"
-    else:
-        first = conn.execute(
-            "SELECT * FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at LIMIT 1",
-            (agent["id"],),
-        ).fetchone()
-        first = _snapshot(first) if first else None
-        if first and latest and "Lifetime AP" in first["values"] and total:
-            days = (latest["taken_at"] - first["taken_at"]).total_seconds() / 86400
-            if days >= 1:
-                per_day = (total - first["values"]["Lifetime AP"]) / days
-                since, basis = first["taken_at"], "tracked"
+    rate = stat_daily_rate(conn, agent, "Lifetime AP")
+    per_day, since, basis = rate if rate else (None, None, None)
     report["avg"] = None if per_day is None else {
         "day": round(per_day), "month": round(per_day * 30.44), "year": round(per_day * 365.25),
         "since": since, "basis": basis,
@@ -566,6 +676,39 @@ def medal_progress(values: dict):
         nxt = thresholds[tier + 1] if tier + 1 < len(thresholds) else None
         out.append((medal, stat, v, tier, nxt))
     return out
+
+
+# Streak medals: the stat is a running streak, so it grows one per day while kept up.
+STREAK_STATS = {"Longest Sojourner Streak"}
+# Monthly events: at most one a month, so pace is one per month, not the measured rate.
+MONTHLY_EVENT_STATS = {"First Saturday Events", "Second Sunday Events"}
+
+
+def near_medals(conn, agent, values: dict, limit: int = 5):
+    """Medals closest to their next tier, with an estimate from the agent's daily pace.
+
+    [{"medal", "stat", "value", "next", "tier", "left", "pct", "per_day", "days"}]
+    "days" is None when there is no pace yet (or no growth); "per_day" is None then too.
+    """
+    out = []
+    for medal, stat, value, tier, nxt in medal_progress(values):
+        if nxt is None:
+            continue
+        if stat in STREAK_STATS:
+            per_day = 1.0
+        elif stat in MONTHLY_EVENT_STATS:
+            per_day = 1 / 30.44
+        else:
+            rate = stat_daily_rate(conn, agent, stat)
+            per_day = rate[0] if rate and rate[0] > 0 else None
+        left = nxt - value
+        out.append({
+            "medal": medal, "stat": stat, "value": value, "next": nxt,
+            "tier": TIERS[tier + 1], "left": left, "pct": int(value * 100 / nxt),
+            "per_day": per_day, "days": math.ceil(left / per_day) if per_day else None,
+        })
+    out.sort(key=lambda m: m["value"] / m["next"], reverse=True)
+    return out[:limit]
 
 
 def next_level(values: dict):

@@ -41,6 +41,7 @@ from telegram import (
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 
+import grid_api
 import stats
 import wiki_bot
 from telegram.ext import (
@@ -1463,8 +1464,9 @@ def stats_prompt_screen(note: str = ""):
         "3️⃣ Copy your stats.\n"
         "4️⃣ Paste them here as one message.\n\n"
         "<i>The paste starts with</i> <code>Time Span  Agent Name  …</code>\n"
-        "<i>You can paste stats any time — you don't need to open this screen first.</i>",
-        keyboard([("✖️ Cancel", "menu")]),
+        "<i>You can paste stats any time — you don't need to open this screen first.</i>\n\n"
+        "🌐 <i>Upload to the-grid.blue? Tap Sync the-grid to pull in all your stats with your API key.</i>",
+        keyboard([("🌐 Sync the-grid", "grid")], [("✖️ Cancel", "menu")]),
     )
 
 
@@ -1528,12 +1530,62 @@ def next_level_section(conn, agent, values, now: datetime) -> str:
     notes = []
     if avg:
         notes.append("average over your whole career" if avg["basis"] == "career"
-                     else f"average since your first paste ({avg['since']:%Y-%m-%d})")
+                     else f"average since your first saved stats ({avg['since']:%Y-%m-%d})")
     if nl["reqs"]:
         notes.append("medals are counted from your stats only; event, anniversary and retired medals "
                      "also count in Ingress, so you may already have more")
     return (f"🎚 <b>NEXT LEVEL</b> · L{nl['level']} → L{nl['target']}\n<blockquote>" + "\n".join(rows)
             + "</blockquote>\n" + "\n".join(f"<i>{n}</i>" for n in notes))
+
+
+TIER_EMOJI = {"Bronze": "🥉", "Silver": "🥈", "Gold": "🥇", "Platinum": "💠", "Onyx": "⚫"}
+STATS_SCREEN_MEDALS = 5
+
+
+def fmt_rate(stat: str, per_day: float) -> str:
+    """'273/day', '4.1/day', '2.5/week' or '1.2/month' — whichever reads best."""
+    for amount, per in ((per_day, "day"), (per_day * 7, "week"), (per_day * 30.44, "month")):
+        if amount >= 1 or per == "month":
+            break
+    n = f"{amount:,.0f}" if amount >= 10 else f"{amount:.1f}".rstrip("0").rstrip(".")
+    unit = stats.STAT_UNITS.get(stat)
+    return f"{n} {unit}/{per}" if unit else f"{n}/{per}"
+
+
+def medals_section(conn, agent, values, now: datetime) -> str:
+    """The 🏅 NEAR MEDALS block: medals closest to the next tier, and when at your pace."""
+    medals = stats.near_medals(conn, agent, values, STATS_SCREEN_MEDALS)
+    if not medals:
+        return ""
+    entries, no_pace = [], False
+    for m in medals:
+        head = (f"{TIER_EMOJI[m['tier']]} <b>{esc(m['medal'])}</b> → {m['tier']} · {m['pct']}%\n"
+                f"   Need <b>{fmt_stat(m['stat'], m['left'])}</b> more "
+                f"({fmt_stat(m['stat'], m['value'])} / {fmt_stat(m['stat'], m['next'])})")
+        if m["days"] is not None:
+            when = now + timedelta(days=m["days"])
+            if m["stat"] in stats.STREAK_STATS:
+                pace = "keeping your streak"
+            elif m["stat"] in stats.MONTHLY_EVENT_STATS:
+                pace = "1 event a month"
+            else:
+                pace = fmt_rate(m["stat"], m["per_day"])
+            days = f"{m['days']:,} day{'' if m['days'] == 1 else 's'}"
+            head += f"\n   ⏳ ~{days} · ~{when:%d %b %Y} <i>({pace})</i>"
+        else:
+            head += "\n   ⏳ <i>— no progress measured yet</i>"
+            no_pace = True
+        entries.append(head)
+    notes = ["closest to the next tier first"]
+    avg = stats.ap_report(conn, agent, now)["avg"]
+    if avg and avg["basis"] == "career":
+        notes.append("dates use your daily average over your whole career")
+    else:
+        notes.append("dates use your daily average since your first saved stats")
+    if no_pace:
+        notes.append("— paste stats again after playing to get an estimate")
+    return ("🏅 <b>NEAR MEDALS</b>\n<blockquote>" + "\n\n".join(entries) + "</blockquote>\n"
+            + "\n".join(f"<i>{n}</i>" for n in notes))
 
 
 def ap_section(conn, agent, now: datetime):
@@ -1573,18 +1625,132 @@ def ap_section(conn, agent, now: datetime):
         rows.append(f"🏆 {label}: <b>{fmt_num(b['gain'])}</b>{star} AP · {when}{tag}")
     notes = []
     if partial:
-        notes.append(f"* counted from your first paste, {partial:%Y-%m-%d %H:%M}")
+        notes.append(f"* counted from your first saved stats, {partial:%Y-%m-%d %H:%M}")
     if any(report[p] is None or not report[p]["measured"] for p in ("daily", "weekly", "monthly")):
         notes.append("— paste stats at least twice in a period to measure it")
     if avg and avg["basis"] == "career":
         notes.append(f"averages over your whole career, since {avg['since']:%Y-%m-%d}")
     elif avg:
-        notes.append(f"averages since your first paste ({avg['since']:%Y-%m-%d}) — "
+        notes.append(f"averages since your first saved stats ({avg['since']:%Y-%m-%d}) — "
                      "tap 📅 Start date for career averages")
     else:
         notes.append("averages need a day of pasted stats, or tap 📅 Start date")
     return ("⚡ <b>AP</b>\n<blockquote>" + "\n".join(rows) + "</blockquote>\n"
             + "\n".join(f"<i>{esc(n)}</i>" for n in notes))
+
+
+GRID_FIRST_DAY = datetime(2012, 11, 15)
+
+
+GRID_SOURCES = {
+    "blue": ("🌐", "the-grid.blue"),
+    "org": ("🕰", "the-grid.org (old)"),
+}
+
+
+def grid_key_for(conn, uid: int, source: str = "blue"):
+    """(api key, agent name or None, where it came from) — or (None, None, None)."""
+    row = stats.get_grid_key(conn, uid, source)
+    if row:
+        return row["api_key"], row["agent_name"], "bot"
+    if source == "blue" and grid_api.env_key() and uid in wiki_bot.ADMIN_IDS:
+        return grid_api.env_key(), None, "env"
+    return None, None, None
+
+
+def _agent_named(conn, uid: int, name):
+    agent = None
+    if name:
+        agent = conn.execute("SELECT * FROM agents WHERE owner_id = ? AND name = ? COLLATE NOCASE",
+                             (uid, name)).fetchone()
+    return agent or (stats.list_agents(conn, uid) or [None])[0]
+
+
+def grid_sync_screen(conn, uid: int, note: str = ""):
+    keys = {src: grid_key_for(conn, uid, src) for src in GRID_SOURCES}
+    blocks, key_rows = [], []
+    for src, (emoji, label) in GRID_SOURCES.items():
+        key, name, origin = keys[src]
+        if key:
+            rows = [f"🔑 <code>{grid_api.mask(key)}</code>" + (" <i>(from .env)</i>" if origin == "env" else "")]
+            if name:
+                rows.append(f"👤 {esc(name)}")
+        else:
+            rows = ["🔑 <i>no key yet</i>"]
+        blocks.append(f"{emoji} <b>{label}</b>\n<blockquote>" + "\n".join(rows) + "</blockquote>")
+        short = "blue" if src == "blue" else "org"
+        if origin == "bot":
+            key_rows.append([(f"🔑 Change .{short} key", f"gridkey:{src}"),
+                             (f"🗑 Remove .{short} key", f"gridkeydel:{src}")])
+        else:
+            key_rows.append([(f"🔑 Add .{short} key", f"gridkey:{src}")])
+    agent = _agent_named(conn, uid, keys["blue"][1] or keys["org"][1])
+    saved = ""
+    if agent:
+        count = conn.execute("SELECT COUNT(*) FROM stat_snapshots WHERE agent_id = ?",
+                             (agent["id"],)).fetchone()[0]
+        snap = stats.latest_snapshot(conn, agent["id"])
+        saved = f"📦 Saved here: <b>{plural(count, 'snapshot')}</b>"
+        if snap:
+            saved += f" · latest <b>{snap['taken_at']:%Y-%m-%d %H:%M}</b>"
+    has_key = any(k[0] for k in keys.values())
+    lines = ([note] if note else []) + ["🔄 <b>SYNC STATS FROM THE-GRID</b>", ""] + blocks
+    if saved:
+        lines.append(saved)
+    lines.append("")
+    if has_key:
+        lines += [
+            "🔄 <b>New uploads</b> — everything since your latest stats here.",
+            "📜 <b>Full history</b> — every upload, from every site you have a key for.",
+            "",
+            "<i>Stats already saved are skipped, so syncing twice is safe.</i>",
+        ]
+    else:
+        lines += [
+            "Add your API key and I'll pull in all your uploaded stats — no need to paste each one.",
+            "",
+            "<i>I check the key, then delete your message so it doesn't stay in the chat. "
+            "Keys are kept only in this bot's database and used only to fetch your uploads.</i>",
+        ]
+    return "\n".join(lines), keyboard(
+        [("🔄 New uploads", "gridgo:new"), ("📜 Full history", "gridgo:all")] if has_key else [],
+        *key_rows,
+        [("⬅️ Stats", "stats"), HOME],
+    )
+
+
+def grid_key_ask_screen(source: str):
+    emoji, label = GRID_SOURCES[source]
+    hint = ("" if source == "blue" else
+            "\n<i>It's the <code>key=</code> part of your the-grid.org export link. "
+            "You can also paste the whole link.</i>")
+    return (f"{emoji} <b>Send your {label} API key</b>\n\n"
+            f"Paste the key as a message. I'll check it, save it, and delete your message.{hint}",
+            keyboard([("✖️ Cancel", "grid")]))
+
+
+def grid_result_screen(conn, agent, results, last):
+    """results: [(source, fetched snapshots, added, complete, error or None)]"""
+    lines = [f"✅ <b>SYNCED</b> · {esc(agent['name'])}" if agent else "⚠️ <b>SYNC</b>"]
+    for src, fetched, added, complete, error in results:
+        emoji, label = GRID_SOURCES[src]
+        if error:
+            lines.append(f"{emoji} <b>{label}</b>\n<blockquote>⚠️ {esc(error)}</blockquote>")
+            continue
+        rows = [f"📥 Fetched: <b>{plural(len(fetched), 'upload')}</b>"]
+        if fetched:
+            rows.append(f"🗓 {fetched[0]['taken_at']:%Y-%m-%d} → {fetched[-1]['taken_at']:%Y-%m-%d}")
+        rows += [f"➕ New: <b>{plural(added, 'snapshot')}</b>",
+                 f"♻️ Already here: <b>{len(fetched) - added}</b>"]
+        if not complete:
+            rows.append("⚠️ <i>Not everything fetched — tap 📜 Full history again later.</i>")
+        lines.append(f"{emoji} <b>{label}</b>\n<blockquote>" + "\n".join(rows) + "</blockquote>")
+    if last:
+        lines.append(f"🕒 Latest stats now: <b>{last:%Y-%m-%d %H:%M}</b>")
+    return "\n".join(lines), keyboard(
+        [("📊 Stats", f"stats:{agent['id']}" if agent else "stats"), ("🔄 Sync again", "grid")],
+        [HOME],
+    )
 
 
 def start_date_prompt_screen(agent):
@@ -1630,6 +1796,9 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
     level_block = next_level_section(conn, agent, values, now)
     if level_block:
         lines += ["", level_block]
+    medal_block = medals_section(conn, agent, values, now)
+    if medal_block:
+        lines += ["", medal_block]
 
     goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")
@@ -1675,7 +1844,7 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
         [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else [],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
-        [("📅 Start date", f"astart:{agent['id']}")],
+        [("📅 Start date", f"astart:{agent['id']}"), ("🌐 Sync the-grid", "grid")],
         *others[:5],
         [HOME],
     )
@@ -2638,6 +2807,27 @@ def btn_agent_start(conn, uid, ud, args):
     return (*start_date_prompt_screen(agent), None)
 
 
+def btn_grid(conn, uid, ud, args):
+    return (*grid_sync_screen(conn, uid), None)
+
+
+def btn_grid_key(conn, uid, ud, args):
+    source = args[0] if args and args[0] in GRID_SOURCES else "blue"
+    if source == "org" and not stats.list_agents(conn, uid) and not stats.get_grid_key(conn, uid, "blue"):
+        note = ("ℹ️ the-grid.org doesn't tell me your agent name — paste your stats once "
+                "(or add a the-grid.blue key) first.\n")
+        return (*grid_sync_screen(conn, uid, note), None)
+    ud["awaiting"] = {"kind": "grid_key", "source": source}
+    return (*grid_key_ask_screen(source), None)
+
+
+def btn_grid_key_delete(conn, uid, ud, args):
+    source = args[0] if args and args[0] in GRID_SOURCES else "blue"
+    stats.delete_grid_key(conn, uid, source)
+    note = f"🗑 <b>{GRID_SOURCES[source][1]} key removed.</b> Your saved stats stay.\n"
+    return (*grid_sync_screen(conn, uid, note), "Key removed")
+
+
 def btn_stats_in(conn, uid, ud, args):
     ud["awaiting"] = {"kind": "stats"}
     return (*stats_prompt_screen(), None)
@@ -2806,6 +2996,9 @@ BUTTONS = {
     "search": btn_search,
     "stats": btn_stats,
     "astart": btn_agent_start,
+    "grid": btn_grid,
+    "gridkey": btn_grid_key,
+    "gridkeydel": btn_grid_key_delete,
     "statsin": btn_stats_in,
     "statsall": btn_stats_all,
     "goals": btn_goals,
@@ -2834,6 +3027,121 @@ BUTTONS = {
 }
 
 
+_grid_lock = asyncio.Lock()
+_grid_running: set = set()
+
+
+async def grid_sync(update: Update, args):
+    """🔄 Fetch uploads from the-grid.blue and the-grid.org, and save them as stats history."""
+    query = update.callback_query
+    uid = update.effective_user.id
+    mode = args[-1]  # older buttons were gridgo:<agent>:<mode>
+    with closing(get_conn()) as conn:
+        keys = {src: grid_key_for(conn, uid, src) for src in GRID_SOURCES}
+        keys = {src: k for src, k in keys.items() if k[0]}
+        agent = _agent_named(conn, uid, (keys.get("blue") or keys.get("org") or (None, None))[1])
+        latest = stats.latest_snapshot(conn, agent["id"]) if agent else None
+    if not keys:
+        await query.answer("Add your API key first.")
+        with closing(get_conn()) as conn:
+            await respond(update, *grid_sync_screen(conn, uid))
+        return
+    if uid in _grid_running:
+        await query.answer("A sync is already running — one moment.")
+        return
+    _grid_running.add(uid)
+    try:
+        await query.answer("Fetching from the-grid…")
+        await respond(update, "🔄 <b>SYNC STATS FROM THE-GRID</b>\n\n⏳ <i>Fetching your uploads…</i>")
+        start = latest["taken_at"] - timedelta(hours=1) if mode == "new" and latest else GRID_FIRST_DAY
+        end = datetime.now() + timedelta(days=1)
+        results, target = [], None
+        for src, (key, name, _) in keys.items():
+            try:
+                async with _grid_lock:  # one request stream at a time, to be gentle on the-grid
+                    if src == "blue":
+                        name, snaps, complete = await asyncio.to_thread(
+                            grid_api.fetch_uploads, key, start.date(), end.date())
+                    else:
+                        snaps = await asyncio.to_thread(grid_api.fetch_old_uploads, key, start, end)
+                        complete = True
+            except grid_api.GridAPIError as e:
+                results.append((src, [], 0, True, str(e)))
+                continue
+            except Exception:
+                logger.exception("the-grid sync failed (%s)", src)
+                results.append((src, [], 0, True, "Something went wrong while syncing."))
+                continue
+            name = name or (agent["name"] if agent else None)
+            if not name:
+                results.append((src, [], 0, True, "I don't know your agent name yet — paste your stats once."))
+                continue
+            with closing(get_conn()) as conn, conn:
+                target, previous, added = stats.import_snapshots(conn, uid, name, snaps, datetime.now())
+                newest = stats.latest_snapshot(conn, target["id"])
+                if added and newest and (previous is None or newest["taken_at"] > previous["taken_at"]):
+                    refresh_rival_goals(conn, target)
+            results.append((src, snaps, added, complete, None))
+            logger.info("the-grid sync (%s): %d fetched, %d new", src, len(snaps), added)
+        with closing(get_conn()) as conn:
+            shown = target or agent
+            newest = stats.latest_snapshot(conn, shown["id"]) if shown else None
+            text, markup = grid_result_screen(conn, shown, results, newest["taken_at"] if newest else None)
+        await respond(update, text, markup)
+    finally:
+        _grid_running.discard(uid)
+
+
+async def grid_save_key(update: Update, context, text: str):
+    """A typed API key: check it, save it, delete the message holding it."""
+    uid = update.effective_user.id
+    chat = update.effective_chat
+    source = (context.user_data.get("awaiting") or {}).get("source", "blue")
+    label = GRID_SOURCES[source][1]
+
+    async def reply(text, markup):
+        chunks = split_message(text)
+        for i, chunk in enumerate(chunks):
+            await chat.send_message(chunk, parse_mode=ParseMode.HTML,
+                                    reply_markup=markup if i == len(chunks) - 1 else None)
+
+    try:
+        await update.message.delete()
+        deleted = True
+    except TelegramError:
+        deleted = False
+    gone = "" if deleted else "\n<i>⚠️ I couldn't delete your message — please delete it yourself.</i>"
+    text = text.strip()
+    found = re.search(r"[?&]key=([A-Za-z0-9_\-]+)", text)  # a whole export link
+    key = found.group(1) if found else text
+    if not grid_api.looks_like_key(key):
+        await reply("🤔 That doesn't look like an API key. Paste just the key, or tap Cancel." + gone,
+                    keyboard([("✖️ Cancel", "grid")]))
+        return
+    try:
+        if source == "blue":
+            name = await asyncio.to_thread(grid_api.check_key, key)
+        else:
+            await asyncio.to_thread(grid_api.check_old_key, key)
+            with closing(get_conn()) as conn:
+                blue = stats.get_grid_key(conn, uid, "blue")
+                agent = _agent_named(conn, uid, blue["agent_name"] if blue else None)
+            if agent is None:
+                await reply("ℹ️ Paste your stats once first, so I know which agent this key is for." + gone,
+                            keyboard([("⬅️ Back", "grid")]))
+                return
+            name = agent["name"]
+    except grid_api.GridAPIError as e:
+        await reply(f"⚠️ {esc(str(e))}\nSend the key again, or tap Cancel." + gone,
+                    keyboard([("✖️ Cancel", "grid")]))
+        return
+    context.user_data.pop("awaiting", None)
+    with closing(get_conn()) as conn, conn:
+        stats.set_grid_key(conn, uid, key, name, datetime.now(), source)
+        text, markup = grid_sync_screen(conn, uid, f"✅ <b>{label} key saved</b> for <b>{esc(name)}</b>.{gone}\n")
+    await reply(text, markup)
+
+
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Every button carries all the info it needs, so old buttons keep working."""
     query = update.callback_query
@@ -2842,6 +3150,12 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action, *args = (query.data or "").split(":")
     if action in wiki_bot.BUTTON_ACTIONS:
         await wiki_bot.handle_button(update, context, action, args)
+        return
+    if action == "gridgo":
+        try:
+            await grid_sync(update, args)
+        except (ValueError, IndexError):
+            await query.answer("That button is out of date.")
         return
     handler = BUTTONS.get(action)
 
@@ -2964,6 +3278,10 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.pop("awaiting", None)
             await respond(update, *stats_saved_screen(conn, uid, text))
             return
+
+    if kind == "grid_key":
+        await grid_save_key(update, context, text)
+        return
 
     # Typed answers to wiki prompts (/ask, /item, ...) go to the wiki assistant.
     if kind and await wiki_bot.handle_text(update, context, kind, text):
