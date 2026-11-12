@@ -1483,6 +1483,11 @@ STATS_SCREEN_GOALS = 5
 STATS_SCREEN_BOARDS = 5
 
 
+def first_paste_time(conn, agent_id: int):
+    row = conn.execute("SELECT MIN(taken_at) FROM stat_snapshots WHERE agent_id = ?", (agent_id,)).fetchone()
+    return datetime.strptime(row[0], stats.TS_FORMAT) if row and row[0] else None
+
+
 def next_level_section(conn, agent, values, now: datetime) -> str:
     """The 🎚 NEXT LEVEL block: AP left, daily average, days to go, medals still needed."""
     nl = stats.next_level(values)
@@ -1553,9 +1558,19 @@ def ap_section(conn, agent, now: datetime):
             f"📊 Avg / month: <b>{fmt_num(avg['month'])}</b>",
             f"📊 Avg / year: <b>{fmt_num(avg['year'])}</b>",
         ]
-    best = report.get("best_day")
-    if best:
-        rows.append(f"🏆 Best day: <b>{fmt_num(best['gain'])}</b> AP on {best['date']:%d %b %Y}")
+    best = report.get("best", {})
+    this = {"day": f"{now:%Y-%m-%d}", "month": f"{now:%Y-%m}", "year": f"{now:%Y}"}
+    for kind, label, fmt in (("day", "Best day", "%d %b %Y"), ("month", "Best month", "%B %Y"),
+                             ("year", "Best year", "%Y")):
+        b = best.get(kind)
+        if not b:
+            continue
+        when = datetime.strptime(b["key"], {"day": "%Y-%m-%d", "month": "%Y-%m", "year": "%Y"}[kind]).strftime(fmt)
+        tag = " (so far)" if b["key"] == this[kind] else ""
+        star = "*" if b["partial"] and kind != "day" else ""
+        if star and partial is None:
+            partial = first_paste_time(conn, agent["id"])
+        rows.append(f"🏆 {label}: <b>{fmt_num(b['gain'])}</b>{star} AP · {when}{tag}")
     notes = []
     if partial:
         notes.append(f"* counted from your first paste, {partial:%Y-%m-%d %H:%M}")
