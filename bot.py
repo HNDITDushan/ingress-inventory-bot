@@ -28,7 +28,7 @@ import random
 import re
 import sqlite3
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from telegram import (
@@ -1483,6 +1483,54 @@ STATS_SCREEN_GOALS = 5
 STATS_SCREEN_BOARDS = 5
 
 
+def next_level_section(conn, agent, values, now: datetime) -> str:
+    """The 🎚 NEXT LEVEL block: AP left, daily average, days to go, medals still needed."""
+    nl = stats.next_level(values)
+    if nl is None:
+        if values.get("Level", 0) >= 16:
+            return "🎚 <b>NEXT LEVEL</b>\n<blockquote>🏆 Level 16 — the top level! Recursion is open to you.</blockquote>"
+        return ""
+    avg = stats.ap_report(conn, agent, now)["avg"]
+    per_day = avg["day"] if avg else 0
+    rows = []
+    if nl["ap_left"]:
+        rows.append(f"🎯 AP needed: <b>{fmt_num(nl['ap_left'])}</b> (target {fmt_num(nl['ap_target'])})")
+    else:
+        rows.append(f"🎯 AP needed: <b>0</b> ✅ (target {fmt_num(nl['ap_target'])} reached)")
+    rows.append(f"📊 Daily average: <b>{fmt_num(per_day)}</b> AP" if per_day else "📊 Daily average: <i>—</i>")
+    if nl["ap_left"] and per_day:
+        days = math.ceil(nl["ap_left"] / per_day)
+        when = now + timedelta(days=days)
+        rows.append(f"⏳ Days needed: <b>{plural(days, 'day')}</b> (~{when:%d %b %Y})")
+    elif nl["ap_left"]:
+        rows.append("⏳ Days needed: <i>— (need a daily average first)</i>")
+    else:
+        rows.append("⏳ Days needed: <b>0</b> for AP ✅")
+    if nl["reqs"]:
+        need = " + ".join(f"{n}× {t}" for t, n in nl["reqs"])
+        rows.append(f"🏅 Medals needed: {need}")
+        have = ", ".join(f"{nl['have'][t]}× {t} or better" for t, _ in nl["reqs"])
+        rows.append(f"🏅 From your stats: {have}")
+        if nl["missing"]:
+            short = " + ".join(f"{n}× {t}" for t, n in nl["missing"])
+            rows.append(f"➡️ Still to get: <b>{short}</b>")
+            for medal, stat, value, nxt, tier in nl["closest"][:3]:
+                rows.append(f"💡 {esc(medal)}: {fmt_stat(stat, value)} / {fmt_stat(stat, nxt)} → {tier}")
+        elif nl["ap_left"]:
+            rows.append(f"✅ You already have the medals for L{nl['target']} — only AP left.")
+        else:
+            rows.append("✅ AP and medals look complete — the level-up should show with your next stats.")
+    notes = []
+    if avg:
+        notes.append("average over your whole career" if avg["basis"] == "career"
+                     else f"average since your first paste ({avg['since']:%Y-%m-%d})")
+    if nl["reqs"]:
+        notes.append("medals are counted from your stats only; event, anniversary and retired medals "
+                     "also count in Ingress, so you may already have more")
+    return (f"🎚 <b>NEXT LEVEL</b> · L{nl['level']} → L{nl['target']}\n<blockquote>" + "\n".join(rows)
+            + "</blockquote>\n" + "\n".join(f"<i>{n}</i>" for n in notes))
+
+
 def ap_section(conn, agent, now: datetime):
     """The ⚡ AP block on the stats page."""
     report = stats.ap_report(conn, agent, now)
@@ -1561,6 +1609,9 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         for stat, emoji, label in SUMMARY_LABELS if stat in values
     ]
     lines += ["", ap_section(conn, agent, now)]
+    level_block = next_level_section(conn, agent, values, now)
+    if level_block:
+        lines += ["", level_block]
 
     goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")

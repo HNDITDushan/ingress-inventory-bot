@@ -466,6 +466,94 @@ def ap_report(conn, agent, now: datetime):
     return report
 
 
+# ---------------------------------------------------------------------------
+# Levels and medals (from the Ingress Wiki)
+# ---------------------------------------------------------------------------
+
+TIERS = ["Bronze", "Silver", "Gold", "Platinum", "Onyx"]
+
+# level: (AP needed, [(tier, how many medals of that tier or better)])
+LEVELS = {
+    1: (0, []), 2: (2_500, []), 3: (20_000, []), 4: (70_000, []), 5: (150_000, []),
+    6: (300_000, []), 7: (600_000, []), 8: (1_200_000, []),
+    9: (2_400_000, [("Gold", 1), ("Silver", 4)]),
+    10: (4_000_000, [("Gold", 2), ("Silver", 5)]),
+    11: (6_000_000, [("Gold", 4), ("Silver", 6)]),
+    12: (8_400_000, [("Gold", 6), ("Silver", 7)]),
+    13: (12_000_000, [("Platinum", 1), ("Gold", 7)]),
+    14: (17_000_000, [("Platinum", 2)]),
+    15: (24_000_000, [("Platinum", 3)]),
+    16: (40_000_000, [("Onyx", 2), ("Platinum", 4)]),
+}
+
+# Medals that can be read from the stats paste: (medal, stat, tier thresholds).
+MEDAL_STATS = [
+    ("Explorer", "Unique Portals Visited", [100, 1_000, 2_000, 10_000, 30_000]),
+    ("Pioneer", "Unique Portals Captured", [20, 200, 1_000, 5_000, 20_000]),
+    ("Liberator", "Portals Captured", [100, 1_000, 5_000, 15_000, 40_000]),
+    ("Builder", "Resonators Deployed", [2_000, 10_000, 30_000, 100_000, 200_000]),
+    ("Connector", "Links Created", [50, 1_000, 5_000, 25_000, 100_000]),
+    ("Mind Controller", "Control Fields Created", [100, 500, 2_000, 10_000, 40_000]),
+    ("Illuminator", "Mind Units Captured", [2_000, 50_000, 250_000, 1_000_000, 4_000_000]),
+    ("Recharger", "XM Recharged", [100_000, 1_000_000, 3_000_000, 10_000_000, 25_000_000]),
+    ("Hacker", "Hacks", [2_000, 10_000, 30_000, 100_000, 200_000]),
+    ("Translator", "Glyph Hack Points", [200, 2_000, 6_000, 20_000, 50_000]),
+    ("Purifier", "Resonators Destroyed", [2_000, 10_000, 30_000, 100_000, 300_000]),
+    ("Engineer", "Mods Deployed", [150, 1_500, 5_000, 20_000, 50_000]),
+    ("Trekker", "Distance Walked", [10, 100, 300, 1_000, 2_500]),
+    ("SpecOps", "Unique Missions Completed", [5, 25, 100, 200, 500]),
+    ("Sojourner", "Longest Sojourner Streak", [15, 30, 60, 180, 360]),
+    ("Maverick", "Drone Hacks", [250, 1_000, 2_000, 5_000, 10_000]),
+    ("Epoch", "Completed Hackstreaks", [2, 4, 8, 30, 60]),
+    ("Scout", "Portal Scans Uploaded", [50, 250, 1_000, 3_000, 6_000]),
+    ("Recon", "OPR Agreements", [100, 750, 2_500, 5_000, 10_000]),
+    ("First Saturday", "First Saturday Events", [1, 6, 12, 24, 36]),
+    ("Second Sunday", "Second Sunday Events", [1, 6, 12, 24, 36]),
+]
+
+
+def medal_progress(values: dict):
+    """[(medal, stat, value, tier index or -1, next threshold or None)] for stats we have."""
+    out = []
+    for medal, stat, thresholds in MEDAL_STATS:
+        if stat not in values:
+            continue
+        v = values[stat]
+        tier = sum(1 for t in thresholds if v >= t) - 1
+        nxt = thresholds[tier + 1] if tier + 1 < len(thresholds) else None
+        out.append((medal, stat, v, tier, nxt))
+    return out
+
+
+def next_level(values: dict):
+    """What the agent still needs for the next level, from their stats.
+
+    Returns None at level 16 (or without a level). Medal counts are only those
+    readable from stats; event, anniversary and retired medals also count in game.
+    """
+    level = values.get("Level")
+    if not level or level >= 16:
+        return None
+    target = level + 1
+    ap_needed, reqs = LEVELS[target]
+    # Levels count Current AP (it restarts at 0 after a Recursion; Lifetime AP doesn't).
+    ap = values.get("Current AP", values.get("Lifetime AP", 0))
+    progress = medal_progress(values)
+    have = {t: sum(1 for p in progress if p[3] >= i) for i, t in enumerate(TIERS)}
+    missing = [(tier, n - have[tier]) for tier, n in reqs if have[tier] < n]
+    closest = []
+    for tier, _short in missing:
+        ti = TIERS.index(tier)
+        candidates = [p for p in progress if p[3] == ti - 1 and p[4]]
+        candidates.sort(key=lambda p: p[2] / p[4], reverse=True)
+        closest += [(p[0], p[1], p[2], p[4], tier) for p in candidates[:2]]
+    return {
+        "level": level, "target": target, "ap": ap, "ap_target": ap_needed,
+        "ap_left": max(0, ap_needed - ap), "reqs": reqs, "have": have,
+        "missing": missing, "closest": closest,
+    }
+
+
 def list_goals(conn, agent_id: int):
     order = " ".join(f"WHEN '{p}' THEN {i}" for i, p in enumerate(PERIODS))
     return conn.execute(
