@@ -463,7 +463,35 @@ def ap_report(conn, agent, now: datetime):
         "day": round(per_day), "month": round(per_day * 30.44), "year": round(per_day * 365.25),
         "since": since, "basis": basis,
     }
+    report["best_day"] = best_ap_day(conn, agent["id"])
     return report
+
+
+def best_ap_day(conn, agent_id: int):
+    """{"date", "gain"} for the calendar day with the most AP gained, or None.
+
+    A day's gain is its last pasted Lifetime AP minus the last paste of the day
+    before (or minus the day's own first paste when there's no paste the day
+    before), so a gap of several days isn't credited to one day.
+    """
+    by_day = {}
+    for row in conn.execute(
+        "SELECT taken_at, data FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at", (agent_id,)
+    ):
+        ap = json.loads(row["data"]).get("Lifetime AP")
+        if ap is None:
+            continue
+        day = row["taken_at"][:10]
+        first, _last = by_day.get(day, (ap, ap))
+        by_day[day] = (first, ap)
+    best = None
+    for day, (first, last) in by_day.items():
+        prev = (datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        base = by_day[prev][1] if prev in by_day else first
+        gain = last - base
+        if gain > 0 and (best is None or gain > best["gain"]):
+            best = {"date": datetime.strptime(day, "%Y-%m-%d"), "gain": gain}
+    return best
 
 
 # ---------------------------------------------------------------------------

@@ -1553,6 +1553,9 @@ def ap_section(conn, agent, now: datetime):
             f"📊 Avg / month: <b>{fmt_num(avg['month'])}</b>",
             f"📊 Avg / year: <b>{fmt_num(avg['year'])}</b>",
         ]
+    best = report.get("best_day")
+    if best:
+        rows.append(f"🏆 Best day: <b>{fmt_num(best['gain'])}</b> AP on {best['date']:%d %b %Y}")
     notes = []
     if partial:
         notes.append(f"* counted from your first paste, {partial:%Y-%m-%d %H:%M}")
