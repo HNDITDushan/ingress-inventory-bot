@@ -1649,7 +1649,8 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         if completed:
             lines.append(f"<i>🏆 {plural(len(completed), 'goal')} completed — tap 🏆 Completed</i>")
 
-    boards = stats.list_leaderboards(conn, agent["id"])
+    ended_events = stats.ended_event_stats(conn, agent["id"], now)
+    boards = [b for b in stats.list_leaderboards(conn, agent["id"]) if b["stat"] not in ended_events]
     lines.append("")
     if boards:
         chasing, top = board_standings(conn, agent, boards, now)
@@ -2084,7 +2085,10 @@ def board_standings(conn, agent, boards, now: datetime):
 def leaderboards_screen(conn, agent, note: str = ""):
     aid = agent["id"]
     now = datetime.now()
-    boards = stats.list_leaderboards(conn, aid)
+    ended = stats.ended_event_stats(conn, aid, now)
+    all_boards = stats.list_leaderboards(conn, aid)
+    boards = [b for b in all_boards if b["stat"] not in ended]
+    hidden = len(all_boards) - len(boards)
     lines = [note] if note else []
     lines.append(f"🏁 <b>LEADERBOARDS</b> · {esc(agent['name'])}")
     if not boards:
@@ -2139,6 +2143,8 @@ def leaderboards_screen(conn, agent, note: str = ""):
     lines += ["", f"🕒 <i>Oldest list: {fmt_ago(now - oldest, now)} · your scores come from your "
                   "latest stats.</i>\n"
                   "✏️ <i>Full lists, Excel upload, add or delete: tap Edit leaderboards.</i>"]
+    if hidden:
+        lines.append(f"🗄 <i>{plural(hidden, 'board')} for ended events hidden — see ✏️ Edit leaderboards.</i>")
     return "\n".join(lines), keyboard(
         [("✏️ Edit leaderboards", f"lbedit:{aid}")],
         [("⬅️ Stats", f"stats:{aid}"), HOME],
@@ -2148,15 +2154,20 @@ def leaderboards_screen(conn, agent, note: str = ""):
 def edit_leaderboards_screen(conn, agent, note: str = ""):
     aid = agent["id"]
     boards = [b for b in stats.list_leaderboards(conn, aid) if b["stat"] in stats.STAT_INDEX]
+    ended = stats.ended_event_stats(conn, aid)
+    old = [b for b in boards if b["stat"] in ended]
     lines = [note] if note else []
     lines += [f"✏️ <b>Edit leaderboards</b> · {esc(agent['name'])}", ""]
     lines.append("📎 <b>Upload Excel</b> updates every board at once from the-grid's export.")
     lines.append("➕ <b>Add leaderboard</b> pastes one list by hand.")
     if boards:
         lines += ["", "Tap a board to see everyone, paste a newer list or delete it."]
-    rows = [[(f"🏁 {b['stat']}", f"lb:{aid}:{stats.STAT_INDEX[b['stat']]}")] for b in boards]
+    if old:
+        lines += ["", f"🗄 {plural(len(old), 'board')} for ended events (marked 🗄) are hidden from the list."]
+    rows = [[(("🗄 " if b in old else "🏁 ") + b["stat"], f"lb:{aid}:{stats.STAT_INDEX[b['stat']]}")] for b in boards]
     return "\n".join(lines), keyboard(
         [("📎 Upload Excel", f"lbfile:{aid}"), ("➕ Add leaderboard", f"lbnew:{aid}")],
+        [(f"🗑 Delete ended-event boards ({len(old)})", f"lbdelold:{aid}")] if old else [],
         *rows,
         [("⬅️ Leaderboards", f"lbs:{aid}"), HOME],
     )
@@ -2210,8 +2221,9 @@ def lb_import_preview_screen(conn, agent, pending):
     aid = agent["id"]
     boards = pending["boards"]
     tracked = {b["stat"] for b in stats.list_leaderboards(conn, aid)}
+    ended = stats.ended_event_stats(conn, aid)
     update = [s for s in boards if s in tracked]
-    new = [s for s in boards if s not in tracked]
+    new = [s for s in boards if s not in tracked and s not in ended]
     lines = [f"📎 <b>Leaderboard file</b> · {esc(agent['name'])}", ""]
     lines.append(f"Found {plural(len(boards), 'leaderboard')}:")
     if update:
@@ -2267,10 +2279,11 @@ def btn_lb_import_save(conn, uid, ud, args):
     agent = _agent(conn, uid, args[0])
     pending = _pending_import(ud)
     tracked = {b["stat"] for b in stats.list_leaderboards(conn, agent["id"])}
+    ended = stats.ended_event_stats(conn, agent["id"])
     now = datetime.now()
     saved = 0
     for stat, entries in pending["boards"].items():
-        if args[1] == "all" or stat in tracked:
+        if stat in tracked or (args[1] == "all" and stat not in ended):
             stats.save_leaderboard(conn, agent["id"], stat, entries, now)
             saved += 1
     ud.pop("lb_import", None)
@@ -2689,6 +2702,17 @@ def btn_leaderboards(conn, uid, ud, args):
     return (*leaderboards_screen(conn, _agent(conn, uid, args[0])), None)
 
 
+def btn_leaderboard_delete_ended(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    ended = stats.ended_event_stats(conn, agent["id"])
+    n = 0
+    for b in stats.list_leaderboards(conn, agent["id"]):
+        if b["stat"] in ended:
+            stats.delete_leaderboard(conn, agent["id"], b["stat"])
+            n += 1
+    return (*edit_leaderboards_screen(conn, agent), f"Deleted {plural(n, 'board')}")
+
+
 def btn_leaderboards_edit(conn, uid, ud, args):
     return (*edit_leaderboards_screen(conn, _agent(conn, uid, args[0])), None)
 
@@ -2795,6 +2819,7 @@ BUTTONS = {
     "lbs": btn_leaderboards,
     "lb": btn_leaderboard,
     "lbedit": btn_leaderboards_edit,
+    "lbdelold": btn_leaderboard_delete_ended,
     "lbnew": btn_leaderboard_new,
     "lbstat": btn_leaderboard_stat,
     "lbgoal": btn_leaderboard_goal,

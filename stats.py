@@ -597,6 +597,45 @@ def next_level(values: dict):
     }
 
 
+# Anomaly/event series that have their own stats. A series counts as ended for
+# an agent when none of its stats grew over the recent stats history.
+EVENT_SERIES = {
+    "Orion": ["Orion Tokens", "Orion Link And Field Points"],
+    "Apollo": ["Apollo Tokens", "Apollo Mod Battle Points"],
+    "Cygnus": ["Cygnus Tokens", "Cygnus Battle Beacons"],
+}
+EVENT_WINDOW_DAYS = 21     # look back this far for growth
+EVENT_MIN_HISTORY_DAYS = 3 # with less history than this, don't judge
+
+
+def ended_event_stats(conn, agent_id: int, now: datetime = None):
+    """Stats of event series that look over (no growth lately, or never in the stats)."""
+    now = now or datetime.now()
+    latest = latest_snapshot(conn, agent_id)
+    if latest is None:
+        return set()
+    first = conn.execute("SELECT MIN(taken_at) FROM stat_snapshots WHERE agent_id = ?", (agent_id,)).fetchone()[0]
+    span = (latest["taken_at"] - datetime.strptime(first, TS_FORMAT)).days if first else 0
+    base = latest_snapshot(conn, agent_id, before=now - timedelta(days=EVENT_WINDOW_DAYS))
+    if base is None:
+        row = conn.execute("SELECT * FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at LIMIT 1",
+                           (agent_id,)).fetchone()
+        base = _snapshot(row)
+    ended = set()
+    for series, names in EVENT_SERIES.items():
+        values = [latest["values"].get(n) for n in names]
+        if all(v is None for v in values):
+            ended.update(names)  # not in the stats at all: not running for this agent
+            continue
+        if span < EVENT_MIN_HISTORY_DAYS:
+            continue
+        grew = any(latest["values"].get(n) is not None and latest["values"].get(n, 0) > base["values"].get(n, 0)
+                   for n in names)
+        if not grew:
+            ended.update(names)
+    return ended
+
+
 def list_goals(conn, agent_id: int):
     order = " ".join(f"WHEN '{p}' THEN {i}" for i, p in enumerate(PERIODS))
     return conn.execute(
