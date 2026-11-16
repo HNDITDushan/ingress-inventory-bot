@@ -557,23 +557,34 @@ def stat_daily_rate(conn, agent, stat: str):
 
 
 def ap_report(conn, agent, now: datetime):
-    """AP gained today / this week / this month, and AP averages.
+    return stat_report(conn, agent, "Lifetime AP", now)
+
+
+def load_history(conn, agent_id: int):
+    """[(taken_at text, values)] oldest first — read once, shared by many stat reports."""
+    return [(row["taken_at"], json.loads(row["data"])) for row in conn.execute(
+        "SELECT taken_at, data FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at", (agent_id,))]
+
+
+def stat_report(conn, agent, stat: str, now: datetime, history=None):
+    """How much one stat grew today / this week / this month, its averages and best periods.
 
     Averages use the agent's start date when set (whole career); otherwise
-    the AP gained between the first and latest pasted stats.
+    the growth between the first and latest saved stats.
     """
     report = {}
-    for period in ("daily", "weekly", "monthly"):
+    for period in ("daily", "weekly", "monthly", "yearly"):
         start, end, _ = period_window(period, now)
-        report[period] = gain_between(conn, agent["id"], "Lifetime AP", start, end)
+        report[period] = gain_between(conn, agent["id"], stat, start, end)
 
-    rate = stat_daily_rate(conn, agent, "Lifetime AP")
+    rate = stat_daily_rate(conn, agent, stat)
     per_day, since, basis = rate if rate else (None, None, None)
     report["avg"] = None if per_day is None else {
         "day": round(per_day), "month": round(per_day * 30.44), "year": round(per_day * 365.25),
+        "day_exact": per_day,
         "since": since, "basis": basis,
     }
-    report["best"] = best_ap_periods(conn, agent["id"])
+    report["best"] = best_periods(conn, agent["id"], stat, history)
     return report
 
 
@@ -587,19 +598,19 @@ def _prev_period(key: str, kind: str) -> str:
 
 
 def best_ap_periods(conn, agent_id: int):
-    """{"day"|"month"|"year": {"key", "gain", "partial"}} — the period with the most AP gained.
+    return best_periods(conn, agent_id, "Lifetime AP")
 
-    A period's gain is its last pasted Lifetime AP minus the last paste of the
-    period before; with no paste in the period before, the period's own first
-    paste is used and "partial" is True (AP before your first paste isn't counted).
+
+def best_periods(conn, agent_id: int, stat: str, history=None):
+    """{"day"|"month"|"year": {"key", "gain", "partial"}} — the period where stat grew most.
+
+    A period's gain is its last saved value minus the last value of the period
+    before; with nothing saved in the period before, the period's own first
+    value is used and "partial" is True (growth before your first stats isn't counted).
     """
-    pastes = []
-    for row in conn.execute(
-        "SELECT taken_at, data FROM stat_snapshots WHERE agent_id = ? ORDER BY taken_at", (agent_id,)
-    ):
-        ap = json.loads(row["data"]).get("Lifetime AP")
-        if ap is not None:
-            pastes.append((row["taken_at"], ap))
+    if history is None:
+        history = load_history(conn, agent_id)
+    pastes = [(taken_at, values[stat]) for taken_at, values in history if stat in values]
     out = {}
     for kind, width in (("day", 10), ("month", 7), ("year", 4)):
         periods = {}
@@ -676,6 +687,19 @@ def medal_progress(values: dict):
         nxt = thresholds[tier + 1] if tier + 1 < len(thresholds) else None
         out.append((medal, stat, v, tier, nxt))
     return out
+
+
+def onyx_multiple(values: dict, stat: str):
+    """For a finished (Onyx) medal: (times done, next target, % toward it), counting
+    each further Onyx requirement as one more Onyx (×2, ×3, …). None if not Onyx yet."""
+    for _medal, s, thresholds in MEDAL_STATS:
+        if s == stat:
+            onyx, v = thresholds[-1], values.get(stat, 0)
+            if v < onyx:
+                return None
+            times = v // onyx
+            return times, (times + 1) * onyx, int((v - times * onyx) * 100 / onyx)
+    return None
 
 
 # Streak medals: the stat is a running streak, so it grows one per day while kept up.

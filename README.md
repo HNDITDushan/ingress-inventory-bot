@@ -72,6 +72,9 @@ Send `/start` (or `/menu`). Everything can be done with buttons:
 - **🔄 Switch account / ➕ New account / ⚙️ Manage accounts**: view, rename,
   describe or delete accounts. A description is a short note such as
   "Ambalangoda keys" and shows on the account and inventory screens.
+- **🈵 Mark as full**: on an account's screen or its inventory. Full accounts
+  show 🈵 in every account list, and adding items to one shows a warning.
+  Tap **✅ Not full any more** to clear it.
 - **🔍 Search all accounts**: send an item (`R8`) to see which accounts hold it,
   how many each, and the total. A wider word (`shield`, `res`) covers a whole
   family, with totals per account and per item. Account names and descriptions
@@ -148,7 +151,7 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/menu` | Main menu |
 | `/newaccount [name]` | Create an account (it becomes the active one) |
 | `/use [name]` | Switch the active account (no name → pick from a list) |
-| `/accounts` | Manage accounts (view, rename, delete) |
+| `/accounts` | Manage accounts (view, rename, mark full, delete) |
 | `/add [qty item]` | Quick add, e.g. `/add 5 U3`; no args → tap menu |
 | `/remove [qty item]` | Quick remove; no args → tap menu |
 | `/list [name]` | Show the active (or named) account |

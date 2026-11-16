@@ -317,6 +317,8 @@ def init_db():
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(accounts)")}
         if "description" not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+        if "full" not in columns:
+            conn.execute("ALTER TABLE accounts ADD COLUMN full INTEGER NOT NULL DEFAULT 0")
         stats.init_stats_db(conn)
 
 
@@ -576,16 +578,29 @@ def inventory_lines(counts: dict):
     return lines
 
 
+FULL_BADGE = "🈵 FULL"
+
+
+def full_tag(account) -> str:
+    return f"  {FULL_BADGE}" if account["full"] else ""
+
+
 def account_block(conn, account, active: bool) -> str:
     counts = get_counts(conn, account["id"])
     total = sum(counts.values())
-    header = f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if active else ''}"
+    header = f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if active else ''}{full_tag(account)}"
     if account["description"]:
         header += f"\n📝 {esc(account['description'])}"
     header += f"\n📦 {plural(total)}"
     if not counts:
         return header + "\n<i>Empty — tap 📥 Add items to fill it.</i>"
     return header + "\n\n" + "\n".join(inventory_lines(counts))
+
+
+def full_warning(account, added: bool) -> str:
+    if account["full"] and added:
+        return f"\n⚠️ <b>{esc(account['name'])}</b> is marked as full."
+    return ""
 
 
 def change_note(item: str, op: str, amount: int, old: int, new: int) -> str:
@@ -700,7 +715,7 @@ def menu_screen(conn, uid: int):
     lines = ["🏠 <b>Ingress Inventory</b>", ""]
     if active:
         total = sum(get_counts(conn, active["id"]).values())
-        lines.append(f"👤 Active account: <b>{esc(active['name'])}</b> · {plural(total)}")
+        lines.append(f"👤 Active account: <b>{esc(active['name'])}</b> · {plural(total)}{full_tag(active)}")
         if active["description"]:
             lines.append(f"📝 {esc(active['description'])}")
     else:
@@ -755,6 +770,8 @@ def categories_screen(conn, account, mode: str):
     name = esc(account["name"])
     if mode == "a":
         header = f"📥 <b>Add items</b> to {name}"
+        if account["full"]:
+            header += f"\n⚠️ This account is marked {FULL_BADGE}."
     else:
         header = f"📤 <b>Remove items</b> from {name}"
         if not counts:
@@ -843,6 +860,7 @@ def inventory_screen(conn, uid: int, account, note: str = "", undo: bool = False
             [] if is_active else [("✅ Make this account active", f"use:{account['id']}")],
             [("📥 Add", f"cats:a:{account['id']}"), ("📤 Remove", f"cats:r:{account['id']}")],
             [("🧾 Sync full inventory", f"sync:{account['id']}")],
+            [full_button(account, "inv")],
             [("🔄 Switch account", "switch"), HOME],
         ),
     )
@@ -879,7 +897,7 @@ def switch_screen(conn, uid: int):
     for a in accounts:
         total = sum(get_counts(conn, a["id"]).values())
         mark = "✅" if a["id"] == active_id else "👤"
-        rows.append([(f"{mark} {a['name']} · {total}", f"use:{a['id']}")])
+        rows.append([(f"{mark} {a['name']} · {total}{' · 🈵' if a['full'] else ''}", f"use:{a['id']}")])
     return (
         "🔄 <b>Switch account</b>\n\nWhich account are you playing now?",
         keyboard(*rows, [("➕ New account", "new"), HOME]),
@@ -890,9 +908,9 @@ def manage_screen(conn, uid: int):
     accounts = list_accounts(conn, uid)
     if not accounts:
         return welcome_screen()
-    rows = [[(f"👤 {a['name']}", f"acct:{a['id']}")] for a in accounts]
+    rows = [[(f"👤 {a['name']}{' · 🈵' if a['full'] else ''}", f"acct:{a['id']}")] for a in accounts]
     return (
-        "⚙️ <b>Manage accounts</b>\n\nTap an account to view, rename or delete it.",
+        "⚙️ <b>Manage accounts</b>\n\nTap an account to view, rename, mark as full or delete it.",
         keyboard(*rows, [("➕ New account", "new"), HOME]),
     )
 
@@ -903,16 +921,22 @@ def account_screen(conn, uid: int, account):
     total = sum(get_counts(conn, account["id"]).values())
     description = f"📝 {esc(account['description'])}\n" if account["description"] else ""
     text = (
-        f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if is_active else ''}\n"
+        f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if is_active else ''}{full_tag(account)}\n"
         f"{description}📦 {plural(total)}\n\nWhat would you like to do?"
     )
     return text, keyboard(
         [] if is_active else [("✅ Make active", f"use:{account['id']}")],
         [("📦 View items", f"inv:{account['id']}")],
         [("📝 Edit description" if account["description"] else "📝 Add description", f"desc:{account['id']}")],
+        [full_button(account, "acct")],
         [("✏️ Rename", f"ren:{account['id']}"), ("🗑 Delete", f"del:{account['id']}")],
         [("⬅️ Accounts", "manage"), HOME],
     )
+
+
+def full_button(account, back: str):
+    label = "✅ Not full any more" if account["full"] else "🈵 Mark as full"
+    return (label, f"full:{account['id']}:{back}")
 
 
 def delete_confirm_screen(conn, account):
@@ -1050,7 +1074,7 @@ def new_account_prompt():
 
 def apply_text_changes(conn, account, text: str, default_op: str = "add"):
     """Apply one change per line. Returns a report, or None if nothing was understood."""
-    done, bad = [], []
+    done, bad, added = [], [], False
     for line in (l.strip() for l in text.splitlines()):
         if not line:
             continue
@@ -1060,10 +1084,11 @@ def apply_text_changes(conn, account, text: str, default_op: str = "add"):
             continue
         item, op, amount = parsed
         old, new = apply_change(conn, account["id"], item, op, amount)
+        added = added or new > old
         done.append(f"{CATEGORY_EMOJI[ITEM_CATEGORY[item]]} {esc(item)}: {old} → <b>{new}</b>")
     if not done:
         return None
-    report = f"✅ <b>{esc(account['name'])}</b> updated:\n\n" + "\n".join(done)
+    report = f"✅ <b>{esc(account['name'])}</b> updated:\n\n" + "\n".join(done) + full_warning(account, added)
     if bad:
         report += "\n\n⚠️ I couldn't read:\n" + "\n".join(unreadable_line(b) for b in bad)
         report += "\nSee /items for item names."
@@ -1588,12 +1613,21 @@ def medals_section(conn, agent, values, now: datetime) -> str:
             + "\n".join(f"<i>{n}</i>" for n in notes))
 
 
-def ap_section(conn, agent, now: datetime):
-    """The ⚡ AP block on the stats page."""
-    report = stats.ap_report(conn, agent, now)
+def fmt_avg(stat: str, avg) -> str:
+    """Daily average; one decimal when it's small (0.4 reads better than 0)."""
+    exact = avg.get("day_exact", avg["day"])
+    if 0 < exact < 10:
+        n = f"{exact:.1f}"
+        unit = stats.STAT_UNITS.get(stat)
+        return f"{n} {unit}" if unit else n
+    return fmt_stat(stat, avg["day"])
+
+
+def period_rows(conn, agent, report, stat: str, now: datetime, best_suffix: str = ""):
+    """The ☀️ Today … 🏆 Best year rows for one stat, and the earliest partial start (or None)."""
     rows, partial = [], None
     for period, emoji, label in (("daily", "☀️", "Today"), ("weekly", "📅", "This week"),
-                                 ("monthly", "🗓", "This month")):
+                                 ("monthly", "🗓", "This month"), ("yearly", "🎆", "This year")):
         g = report[period]
         if g is None or not g["measured"]:
             rows.append(f"{emoji} {label}: <i>—</i>")
@@ -1602,31 +1636,42 @@ def ap_section(conn, agent, now: datetime):
         mark = ""
         if g["base_at"] > start:
             mark, partial = "*", min(partial or g["base_at"], g["base_at"])
-        rows.append(f"{emoji} {label}: <b>{fmt_num(g['gain'])}</b>{mark}")
+        rows.append(f"{emoji} {label}: <b>{fmt_stat(stat, g['gain'])}</b>{mark}")
     avg = report["avg"]
     if avg:
         rows += [
-            f"📊 Avg / day: <b>{fmt_num(avg['day'])}</b>",
-            f"📊 Avg / month: <b>{fmt_num(avg['month'])}</b>",
-            f"📊 Avg / year: <b>{fmt_num(avg['year'])}</b>",
+            f"📊 Avg / day: <b>{fmt_avg(stat, avg)}</b>",
+            f"📊 Avg / month: <b>{fmt_stat(stat, avg['month'])}</b>",
+            f"📊 Avg / year: <b>{fmt_stat(stat, avg['year'])}</b>",
         ]
+    else:
+        rows.append("📊 Avg / day: <i>—</i>")
     best = report.get("best", {})
     this = {"day": f"{now:%Y-%m-%d}", "month": f"{now:%Y-%m}", "year": f"{now:%Y}"}
     for kind, label, fmt in (("day", "Best day", "%d %b %Y"), ("month", "Best month", "%B %Y"),
                              ("year", "Best year", "%Y")):
         b = best.get(kind)
         if not b:
+            rows.append(f"🏆 {label}: <i>—</i>")
             continue
         when = datetime.strptime(b["key"], {"day": "%Y-%m-%d", "month": "%Y-%m", "year": "%Y"}[kind]).strftime(fmt)
         tag = " (so far)" if b["key"] == this[kind] else ""
         star = "*" if b["partial"] and kind != "day" else ""
         if star and partial is None:
             partial = first_paste_time(conn, agent["id"])
-        rows.append(f"🏆 {label}: <b>{fmt_num(b['gain'])}</b>{star} AP · {when}{tag}")
+        rows.append(f"🏆 {label}: <b>{fmt_stat(stat, b['gain'])}</b>{star}{best_suffix} · {when}{tag}")
+    return rows, partial
+
+
+def ap_section(conn, agent, now: datetime):
+    """The ⚡ AP block on the stats page."""
+    report = stats.ap_report(conn, agent, now)
+    rows, partial = period_rows(conn, agent, report, "Lifetime AP", now, " AP")
+    avg = report["avg"]
     notes = []
     if partial:
         notes.append(f"* counted from your first saved stats, {partial:%Y-%m-%d %H:%M}")
-    if any(report[p] is None or not report[p]["measured"] for p in ("daily", "weekly", "monthly")):
+    if any(report[p] is None or not report[p]["measured"] for p in ("daily", "weekly", "monthly", "yearly")):
         notes.append("— paste stats at least twice in a period to measure it")
     if avg and avg["basis"] == "career":
         notes.append(f"averages over your whole career, since {avg['since']:%Y-%m-%d}")
@@ -1637,6 +1682,71 @@ def ap_section(conn, agent, now: datetime):
         notes.append("averages need a day of pasted stats, or tap 📅 Start date")
     return ("⚡ <b>AP</b>\n<blockquote>" + "\n".join(rows) + "</blockquote>\n"
             + "\n".join(f"<i>{esc(n)}</i>" for n in notes))
+
+
+FULL_STATS = [
+    ("Unique Portals Visited", "🗺"), ("Unique Portals Drone Visited", "🛸"), ("XM Collected", "💧"),
+    ("Portal Scans Uploaded", "📷"), ("Uniques Scout Controlled", "🔭"), ("Resonators Deployed", "🔌"),
+    ("Links Created", "🔗"), ("Control Fields Created", "🔺"), ("Mind Units Captured", "🧠"),
+    ("XM Recharged", "🔋"), ("Portals Captured", "🏳️"), ("Unique Portals Captured", "🚩"),
+    ("Mods Deployed", "🛡"), ("Hacks", "🔓"), ("Drone Hacks", "🚁"), ("Glyph Hack Points", "✍️"),
+    ("Resonators Destroyed", "💥"), ("Portals Neutralized", "⚔️"), ("Enemy Links Destroyed", "✂️"),
+    ("Enemy Fields Destroyed", "🧨"), ("Kinetic Capsules Completed", "💊"),
+]
+
+
+def full_stats_screen(conn, agent):
+    """📋 Full stats: today / week / month, averages and best periods for each main stat."""
+    now = datetime.now()
+    snap = stats.latest_snapshot(conn, agent["id"])
+    values = snap["values"] if snap else {}
+    history = stats.load_history(conn, agent["id"])
+    lines = [f"📋 <b>FULL STATS</b> · {esc(agent['name'])}",
+             f"🕒 Updated {fmt_ago(snap['taken_at'], now)}" if snap else "", ""]
+    partial_any, avg_basis = None, None
+    medals = {p[1]: p for p in stats.medal_progress(values)}
+    names = {stat: medal for medal, stat, _ in stats.MEDAL_STATS}
+
+    def pct(stat):
+        """% toward the next tier, or toward the next Onyx multiple once Onyx is done."""
+        p = medals[stat]
+        if p[4] is not None:
+            return p[2] / p[4]
+        return stats.onyx_multiple(values, stat)[2] / 100
+
+    def order(item):
+        # Medals first, closest to their next target on top; stats without a medal last.
+        stat = item[0]
+        return (1, 0) if stat not in medals else (0, -pct(stat))
+
+    for stat, emoji in sorted((i for i in FULL_STATS if i[0] in values), key=order):
+        report = stats.stat_report(conn, agent, stat, now, history)
+        rows, partial = period_rows(conn, agent, report, stat, now)
+        if partial:
+            partial_any = min(partial_any or partial, partial)
+        if report["avg"]:
+            avg_basis = avg_basis or report["avg"]
+        head = f"{emoji} <b>{esc(stat)}</b> · {fmt_stat(stat, values[stat])}"
+        p = medals.get(stat)
+        if p and p[4] is not None:
+            tier = stats.TIERS[p[3] + 1]
+            head += (f"\n🏅 {esc(names[stat])} → {TIER_EMOJI[tier]} {tier} {fmt_stat(stat, p[4])}"
+                     f" · <b>{int(p[2] * 100 / p[4])}%</b>")
+        elif p:
+            times, nxt, done = stats.onyx_multiple(values, stat)
+            head += (f"\n🏅 {esc(names[stat])} · {TIER_EMOJI['Onyx']} Onyx ×{times} ✅ → ×{times + 1} "
+                     f"{fmt_stat(stat, nxt)} · <b>{done}%</b>")
+        lines += [head + "\n<blockquote>" + "\n".join(rows) + "</blockquote>", ""]
+    notes = []
+    if partial_any:
+        notes.append(f"* counted from your first saved stats, {partial_any:%Y-%m-%d %H:%M}")
+    notes.append("— paste stats at least twice in a period to measure it")
+    if avg_basis and avg_basis["basis"] == "career":
+        notes.append(f"averages over your whole career, since {avg_basis['since']:%Y-%m-%d}")
+    elif avg_basis:
+        notes.append(f"averages since your first saved stats ({avg_basis['since']:%Y-%m-%d})")
+    lines.append("\n".join(f"<i>{esc(n)}</i>" for n in notes))
+    return "\n".join(lines), keyboard([("⬅️ Stats", f"stats:{agent['id']}"), HOME])
 
 
 GRID_FIRST_DAY = datetime(2012, 11, 15)
@@ -1844,6 +1954,7 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
         [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else [],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
+        [("📋 Full stats", f"statsfull:{agent['id']}")],
         [("📅 Start date", f"astart:{agent['id']}"), ("🌐 Sync the-grid", "grid")],
         *others[:5],
         [HOME],
@@ -2660,7 +2771,7 @@ def btn_quantity(conn, uid, ud, args):
     remember_undo(ud, snapshot(conn, [account["id"]]), item, merge_key=f"{account['id']}:{item}")
     old, new = apply_change(conn, account["id"], item, op, amount)
     ud["awaiting"] = {"kind": "qty", "account_id": account["id"], "item": item, "mode": mode}
-    note = change_note(item, op, amount, old, new)
+    note = change_note(item, op, amount, old, new) + full_warning(account, new > old)
     return (*quantity_screen(conn, account, mode, item, note), f"{item}: {old} → {new}")
 
 
@@ -2696,6 +2807,17 @@ def btn_manage(conn, uid, ud, args):
 
 def btn_account(conn, uid, ud, args):
     return (*account_screen(conn, uid, _owned(conn, uid, args[0])), None)
+
+
+def btn_full(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    full = 0 if account["full"] else 1
+    conn.execute("UPDATE accounts SET full = ? WHERE id = ?", (full, account["id"]))
+    account = _owned(conn, uid, args[0])
+    toast = f"{account['name']} marked as full" if full else f"{account['name']} is not full any more"
+    if len(args) > 1 and args[1] == "inv":
+        return (*inventory_screen(conn, uid, account), toast)
+    return (*account_screen(conn, uid, account), toast)
 
 
 def btn_rename(conn, uid, ud, args):
@@ -2831,6 +2953,10 @@ def btn_grid_key_delete(conn, uid, ud, args):
 def btn_stats_in(conn, uid, ud, args):
     ud["awaiting"] = {"kind": "stats"}
     return (*stats_prompt_screen(), None)
+
+
+def btn_stats_full(conn, uid, ud, args):
+    return (*full_stats_screen(conn, _agent(conn, uid, args[0])), None)
 
 
 def btn_stats_all(conn, uid, ud, args):
@@ -2985,6 +3111,7 @@ BUTTONS = {
     "manage": btn_manage,
     "acct": btn_account,
     "ren": btn_rename,
+    "full": btn_full,
     "del": btn_delete,
     "delok": btn_delete_ok,
     "sync": btn_sync,
@@ -3001,6 +3128,7 @@ BUTTONS = {
     "gridkeydel": btn_grid_key_delete,
     "statsin": btn_stats_in,
     "statsall": btn_stats_all,
+    "statsfull": btn_stats_full,
     "goals": btn_goals,
     "goal": btn_goal,
     "gedit": btn_goals_edit,
@@ -3501,7 +3629,7 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 remember_undo(context.user_data, snapshot(conn, [account["id"]]), item,
                               merge_key=f"{account['id']}:{item}")
                 old, new = apply_change(conn, account["id"], item, op, amount)
-                note = change_note(item, op, amount, old, new)
+                note = change_note(item, op, amount, old, new) + full_warning(account, new > old)
                 await respond(update, *quantity_screen(conn, account, awaiting["mode"], item, note))
                 return
 
