@@ -151,6 +151,9 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/menu` | Main menu |
 | `/newaccount [name]` | Create an account (it becomes the active one) |
 | `/use [name]` | Switch the active account (no name → pick from a list) |
+| `/donations` | 🎁 Items agents donated to you |
+| `/spy` | 🕵️ Open an agent's profile in Ingress |
+| `/mu` | 🧮 MU Calculator for a field |
 | `/accounts` | Manage accounts (view, rename, mark full, delete) |
 | `/add [qty item]` | Quick add, e.g. `/add 5 U3`; no args → tap menu |
 | `/remove [qty item]` | Quick remove; no args → tap menu |
@@ -165,6 +168,38 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 | `/items` | Item names and shortcuts |
 | `/delaccount [name]` | Delete an account (asks for confirmation) |
 | `/cancel` | Stop what you're doing |
+
+## 🎁 Donations
+
+Keep a record of items other agents donate to you. Tap **🎁 Donations** on the
+menu (or `/donations`) → **➕ Record donation**, send the agent name, then the
+items in the usual format (`R8 20`, one per line or split by commas). The name
+and items can also go in one message, name on the first line.
+
+After saving, tap **📥 Add to …** to put the items into one of your inventory
+accounts (once per donation), or leave it as a record only. The Donations page
+shows totals and top donors; **👥 By agent**, **📦 By item** and
+**📜 All donations** break it down, and any donation can be opened or deleted.
+Deleting a donation doesn't remove items already added to an inventory.
+
+## 🕵️ Profile Spy
+
+Tap **🕵️ Profile Spy** on the menu, or send `/spy`, then send an agent name such as
+`LINKY36`. The bot replies with `https://link.ingress.com/agent/LINKY36` and a
+button that opens that agent's profile in the Ingress app. Up to 10 names can be
+sent at once; `/spy LINKY36` works straight away.
+
+## 🧮 MU Calculator
+
+Tap **🧮 MU Calculator** on the menu, or send `/mu`, then send the 3 corners of a
+field: Intel portal links, map links with coordinates (Google Maps, OpenStreetMap),
+plain `lat, lng` pairs or 📍 Telegram locations — in one message or one at a time.
+Every 3 points make one field, so 6, 9… points work out several fields at once
+with a total. Intel portal links are recognised even without opening the calculator.
+
+The numbers come from the free [Ingress MU API](https://mu.investigatexm.com/api.html)
+(`POST https://api.investigatexm.com/getMUbulk`, no key needed). They are estimates
+from an independent reconstruction, not official Niantic numbers.
 
 ## 🔄 Sync stats from the-grid
 

@@ -271,6 +271,10 @@ def init_stats_db(conn):
     if "started_on" not in agent_columns:
         # The day the agent started playing (YYYY-MM-DD), for lifetime averages.
         conn.execute("ALTER TABLE agents ADD COLUMN started_on TEXT")
+    if "other_medals" not in agent_columns:
+        # Profile medals that stats can't show (events, anniversaries…), so the
+        # total keeps up by itself as stat medals are earned.
+        conn.execute("ALTER TABLE agents ADD COLUMN other_medals INTEGER")
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(goals)")}
     if "note" not in columns:
         conn.execute("ALTER TABLE goals ADD COLUMN note TEXT NOT NULL DEFAULT ''")

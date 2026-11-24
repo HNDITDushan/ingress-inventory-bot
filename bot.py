@@ -21,6 +21,7 @@ Setup:
 import asyncio
 import difflib
 import html
+import json
 import logging
 import math
 import os
@@ -42,6 +43,7 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 
 import grid_api
+import mu_api
 import stats
 import wiki_bot
 from telegram.ext import (
@@ -317,6 +319,18 @@ def init_db():
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(accounts)")}
         if "description" not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS donations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                donor TEXT NOT NULL,
+                items TEXT NOT NULL,
+                donated_at TEXT NOT NULL,
+                account_id INTEGER
+            )
+            """
+        )
         if "full" not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN full INTEGER NOT NULL DEFAULT 0")
         stats.init_stats_db(conn)
@@ -482,10 +496,16 @@ def plural(n: int, word: str = "item") -> str:
 
 
 def keyboard(*rows):
-    """keyboard([("Label", "data"), ...], ...) -> InlineKeyboardMarkup; empty rows skipped."""
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(label, callback_data=data) for label, data in row] for row in rows if row]
-    )
+    """keyboard([("Label", "data"), ...], ...) -> InlineKeyboardMarkup; empty rows skipped.
+
+    Data starting with https:// makes a link button instead of a callback button.
+    """
+    def button(label, data):
+        if data.startswith("https://"):
+            return InlineKeyboardButton(label, url=data)
+        return InlineKeyboardButton(label, callback_data=data)
+
+    return InlineKeyboardMarkup([[button(label, data) for label, data in row] for row in rows if row])
 
 
 def chunked(buttons, per_row):
@@ -734,6 +754,8 @@ def menu_screen(conn, uid: int):
         [("🔍 Search", "search"), ("📊 Stats & goals", "stats")],
         [(switch_label, "switch"), ("➕ New account", "new")],
         [("🧰 More tools", "more"), ("❓ Help", "help")],
+        [("🧮 MU Calculator", "mu"), ("🕵️ Profile Spy", "spy")],
+        [("🎁 Donations", "dons")],
         [("📚 Ingress Wiki (සිංහල)", "wiki")],
     )
     return "\n".join(lines), markup
@@ -922,6 +944,7 @@ def account_screen(conn, uid: int, account):
     description = f"📝 {esc(account['description'])}\n" if account["description"] else ""
     text = (
         f"👤 <b>{esc(account['name'])}</b>{'  ✅ active' if is_active else ''}{full_tag(account)}\n"
+        f"📋 <code>{esc(account['name'])}</code> <i>(tap to copy)</i>\n"
         f"{description}📦 {plural(total)}\n\nWhat would you like to do?"
     )
     return text, keyboard(
@@ -1285,7 +1308,7 @@ def description_prompt_screen(account):
     current = account["description"]
     text = f"📝 <b>Description</b> · {esc(account['name'])}\n\n"
     if current:
-        text += f"Now: {esc(current)}\n\nSend a new description to replace it."
+        text += f"Now (tap to copy):\n<code>{esc(current)}</code>\n\nSend a new description to replace it."
     else:
         text += "Send a short note about this account, e.g. <i>Ambalangoda keys, 120 portal keys</i>."
     return text, keyboard(
@@ -1577,6 +1600,72 @@ def fmt_rate(stat: str, per_day: float) -> str:
     return f"{n} {unit}/{per}" if unit else f"{n}/{per}"
 
 
+MEDALS_PER_ROW = 6  # medals per row on the Ingress profile
+
+
+def stat_medals_started(values) -> int:
+    return sum(1 for p in stats.medal_progress(values) if p[3] >= 0)
+
+
+def profile_medals_line(agent, values) -> str:
+    """'🏅 Profile: 79 medals · 13 full rows …' when the agent has told us their total."""
+    if agent is None or agent["other_medals"] is None:
+        return "🏅 <i>Tap 🏅 Medal count to add your profile total and see your medal rows.</i>"
+    total = stat_medals_started(values) + agent["other_medals"]
+    rows, extra = divmod(total, MEDALS_PER_ROW)
+    line = f"🏅 <b>Profile: {total} medals · {rows} full row{'s' if rows != 1 else ''}</b>"
+    if extra:
+        need = MEDALS_PER_ROW - extra
+        line += f"\n   Row {rows + 1}: {extra}/{MEDALS_PER_ROW} · <b>{need}</b> more medal{'s' if need > 1 else ''} to fill it"
+    else:
+        line += f"\n   Every row is full — {MEDALS_PER_ROW} more for row {rows + 1}"
+    return line
+
+
+def my_medals_section(values, agent=None) -> str:
+    """The 🏆 MY MEDALS block: profile total and rows, medals per tier, and which ones."""
+    progress = stats.medal_progress(values)
+    if not progress:
+        return ""
+    # Ingress counts a Gold medal as a Bronze and a Silver too, so each tier row
+    # counts medals at that tier or higher (the way level requirements count them).
+    at_least = [sum(1 for p in progress if p[3] >= i) for i in range(len(stats.TIERS))]
+    row = " · ".join(f"{TIER_EMOJI[t]} {t} {at_least[i]}" for i, t in reversed(list(enumerate(stats.TIERS))))
+    earned = sum(p[3] + 1 for p in progress)
+    started = sum(1 for p in progress if p[3] >= 0)
+    extra_onyx = 0
+    entries = []
+    for i in reversed(range(len(stats.TIERS))):
+        tier = stats.TIERS[i]
+        names = []
+        for medal, stat, _v, t, _n in progress:
+            if t != i:
+                continue
+            multiple = stats.onyx_multiple(values, stat) if i == len(stats.TIERS) - 1 else None
+            if multiple and multiple[0] > 1:
+                extra_onyx += multiple[0] - 1
+                names.append(f"{esc(medal)} ×{multiple[0]}")
+            else:
+                names.append(esc(medal))
+        if names:
+            entries.append(f"{TIER_EMOJI[tier]} <b>{tier}</b> ({len(names)}): " + ", ".join(names))
+    none = [esc(p[0]) for p in progress if p[3] < 0]
+    if none:
+        entries.append(f"➖ <b>Not yet</b> ({len(none)}): " + ", ".join(none))
+    lines = [
+        "🏆 <b>MY MEDALS</b>",
+        profile_medals_line(agent, values),
+        "",
+        f"📊 <b>From stats</b> · {started} of {len(progress)} medals",
+        f"<b>{row}</b>",
+        f"🎖 {earned} tiers earned" + (f" · ⚫ +{extra_onyx} extra Onyx" if extra_onyx else ""),
+        "<blockquote expandable>" + "\n".join(entries) + "</blockquote>",
+        "<i>Each tier counts medals at that tier or higher. Event and anniversary medals "
+        "are only in the profile total.</i>",
+    ]
+    return "\n".join(lines)
+
+
 def medals_section(conn, agent, values, now: datetime) -> str:
     """The 🏅 NEAR MEDALS block: medals closest to the next tier, and when at your pace."""
     medals = stats.near_medals(conn, agent, values, STATS_SCREEN_MEDALS)
@@ -1695,6 +1784,22 @@ FULL_STATS = [
 ]
 
 
+def target_need_line(stat, value, target, avg, now: datetime) -> str:
+    """'🎯 Need 1,220,721 more · ⏳ ~5 days · ~29 Nov 2026' toward a medal target."""
+    left = max(0, target - value)
+    line = f"🎯 Need <b>{fmt_stat(stat, left)}</b> more"
+    if stat in stats.STREAK_STATS:
+        per_day = 1
+    elif stat in stats.MONTHLY_EVENT_STATS:
+        per_day = 1 / 30.44
+    else:
+        per_day = avg["day_exact"] if avg else 0
+    if left and per_day and per_day > 0:
+        days = math.ceil(left / per_day)
+        line += f" · ⏳ ~{days:,} day{'' if days == 1 else 's'} · ~{now + timedelta(days=days):%d %b %Y}"
+    return line
+
+
 def full_stats_screen(conn, agent):
     """📋 Full stats: today / week / month, averages and best periods for each main stat."""
     now = datetime.now()
@@ -1728,14 +1833,19 @@ def full_stats_screen(conn, agent):
             avg_basis = avg_basis or report["avg"]
         head = f"{emoji} <b>{esc(stat)}</b> · {fmt_stat(stat, values[stat])}"
         p = medals.get(stat)
+        target = None
         if p and p[4] is not None:
             tier = stats.TIERS[p[3] + 1]
+            target = p[4]
             head += (f"\n🏅 {esc(names[stat])} → {TIER_EMOJI[tier]} {tier} {fmt_stat(stat, p[4])}"
                      f" · <b>{int(p[2] * 100 / p[4])}%</b>")
         elif p:
             times, nxt, done = stats.onyx_multiple(values, stat)
+            target = nxt
             head += (f"\n🏅 {esc(names[stat])} · {TIER_EMOJI['Onyx']} Onyx ×{times} ✅ → ×{times + 1} "
                      f"{fmt_stat(stat, nxt)} · <b>{done}%</b>")
+        if target is not None:
+            head += "\n" + target_need_line(stat, values[stat], target, report["avg"], now)
         lines += [head + "\n<blockquote>" + "\n".join(rows) + "</blockquote>", ""]
     notes = []
     if partial_any:
@@ -1909,6 +2019,9 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
     medal_block = medals_section(conn, agent, values, now)
     if medal_block:
         lines += ["", medal_block]
+    my_medals = my_medals_section(values, agent)
+    if my_medals:
+        lines += ["", my_medals]
 
     goals, completed = split_goals(goals_by_progress(conn, agent["id"], now))
     lines.append("")
@@ -1954,7 +2067,7 @@ def stats_screen(conn, uid: int, agent=None, note: str = ""):
         [(goals_label, f"goals:{agent['id']}"), ("➕ New goal", f"gnew:{agent['id']}")],
         [(f"🏆 Completed ({len(completed)})", f"gdone:{agent['id']}")] if completed else [],
         [("🏁 Leaderboards", f"lbs:{agent['id']}"), ("📈 All stats", f"statsall:{agent['id']}")],
-        [("📋 Full stats", f"statsfull:{agent['id']}")],
+        [("📋 Full stats", f"statsfull:{agent['id']}"), ("🏅 Medal count", f"amedals:{agent['id']}")],
         [("📅 Start date", f"astart:{agent['id']}"), ("🌐 Sync the-grid", "grid")],
         *others[:5],
         [HOME],
@@ -1970,11 +2083,12 @@ def all_stats_screen(conn, agent):
     return "\n".join(lines), keyboard([("⬅️ Stats", f"stats:{agent['id']}"), HOME])
 
 
-def stats_saved_screen(conn, uid: int, text: str):
+def stats_saved(conn, uid: int, text: str):
+    """Save pasted stats -> (text, keyboard, agent); agent is None when they couldn't be read."""
     try:
         parsed = stats.parse_stats(text)
     except stats.StatsError as e:
-        return f"⚠️ {e}", keyboard([("📋 Try again", "statsin"), HOME])
+        return f"⚠️ {e}", keyboard([("📋 Try again", "statsin"), HOME]), None
     now = datetime.now()
     agent, previous, is_new = stats.save_snapshot(conn, uid, parsed, now)
     aid = agent["id"]
@@ -2072,7 +2186,31 @@ def stats_saved_screen(conn, uid: int, text: str):
         chase_row,
         [("🎯 Goals", f"goals:{aid}"), ("➕ New goal", f"gnew:{aid}")],
         [("📊 Stats", f"stats:{aid}"), HOME],
-    )
+    ), agent
+
+
+async def send_to_chat(chat, text: str, markup=None):
+    """Send a new message (split if long) — for when the user's message is gone."""
+    chunks = split_message(text)
+    for i, chunk in enumerate(chunks):
+        await chat.send_message(chunk, parse_mode=ParseMode.HTML,
+                                reply_markup=markup if i == len(chunks) - 1 else None)
+
+
+async def save_pasted_stats(update: Update, conn, uid: int, text: str):
+    """Save pasted stats, delete the paste to keep the chat tidy, then show the stats page."""
+    reply, markup, agent = stats_saved(conn, uid, text)
+    if agent is None:
+        await respond(update, reply, markup)  # keep the paste so it can be fixed
+        return
+    conn.commit()
+    try:
+        await update.effective_message.delete()
+    except TelegramError as e:
+        logger.info("Couldn't delete pasted stats: %s", e)
+    chat = update.effective_chat
+    await send_to_chat(chat, reply, markup)
+    await send_to_chat(chat, *stats_screen(conn, uid, stats.get_agent(conn, uid, agent["id"])))
 
 
 def split_goals(goals):
@@ -2824,7 +2962,9 @@ def btn_rename(conn, uid, ud, args):
     account = _owned(conn, uid, args[0])
     ud["awaiting"] = {"kind": "rename", "account_id": account["id"]}
     return (
-        f"✏️ Send me the new name for <b>{esc(account['name'])}</b>.",
+        f"✏️ <b>Rename account</b>\n\n"
+        f"Current name (tap to copy):\n<code>{esc(account['name'])}</code>\n\n"
+        "Send me the new name.",
         keyboard([("✖️ Cancel", f"acct:{account['id']}")]),
         None,
     )
@@ -2921,6 +3061,26 @@ def btn_stats(conn, uid, ud, args):
         ud["awaiting"] = {"kind": "stats"}
         return (*stats_prompt_screen(), None)
     return (*stats_screen(conn, uid, agent), None)
+
+
+def medal_count_prompt_screen(conn, agent):
+    snap = stats.latest_snapshot(conn, agent["id"])
+    started = stat_medals_started(snap["values"]) if snap else 0
+    now = (f"\nNow: <b>{started + agent['other_medals']}</b> medals.\n" if agent["other_medals"] is not None else "")
+    text = (
+        f"🏅 <b>Medal count</b> · {esc(agent['name'])}\n{now}\n"
+        "How many medals does your Ingress profile show? Count every medal, events included "
+        "(not the 🔒 locked ones), and send the number, e.g. <code>79</code>.\n\n"
+        f"<i>{started} of them come from your stats. When you earn a new stats medal "
+        "the total goes up by itself; add event medals again when you get them.</i>"
+    )
+    return text, keyboard([("✖️ Cancel", f"stats:{agent['id']}")])
+
+
+def btn_agent_medals(conn, uid, ud, args):
+    agent = _agent(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "agent_medals", "agent_id": agent["id"]}
+    return (*medal_count_prompt_screen(conn, agent), None)
 
 
 def btn_agent_start(conn, uid, ud, args):
@@ -3075,6 +3235,78 @@ def btn_help(conn, uid, ud, args):
     return (*help_screen(args[0] if args else None), None)
 
 
+def btn_donations(conn, uid, ud, args):
+    return (*donations_screen(conn, uid), None)
+
+
+def btn_donation_new(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "donation_donor"}
+    return (*donation_ask_donor_screen(), None)
+
+
+def btn_donation(conn, uid, ud, args):
+    return (*donation_detail_screen(conn, uid, get_donation(conn, uid, args[0])), None)
+
+
+def btn_donation_add(conn, uid, ud, args):
+    donation = get_donation(conn, uid, args[0])
+    if donation["account_id"]:
+        return (*donation_detail_screen(conn, uid, donation), "Already added to an account")
+    account = _owned(conn, uid, args[1])
+    for item, qty in donation["items"].items():
+        apply_change(conn, account["id"], item, "add", qty)
+    conn.execute("UPDATE donations SET account_id = ? WHERE id = ?", (account["id"], donation["id"]))
+    note = (f"📥 Added {plural(sum(donation['items'].values()))} to <b>{esc(account['name'])}</b>."
+            + full_warning(account, True))
+    donation = get_donation(conn, uid, args[0])
+    return (*donation_detail_screen(conn, uid, donation, note), f"Added to {account['name']}")
+
+
+def btn_donation_delete(conn, uid, ud, args):
+    d = get_donation(conn, uid, args[0])
+    extra = ("\n\nThe items already added to your inventory stay there — remove them yourself "
+             "if you need to.") if d["account_id"] else ""
+    return (
+        f"⚠️ Delete the donation from <b>{esc(d['donor'])}</b> on {fmt_day(d['donated_at'])} "
+        f"({plural(sum(d['items'].values()))})?{extra}",
+        keyboard([("🗑 Yes, delete it", f"dondelok:{d['id']}")], [("✖️ No, keep it", f"don:{d['id']}")]),
+        None,
+    )
+
+
+def btn_donation_delete_ok(conn, uid, ud, args):
+    d = get_donation(conn, uid, args[0])
+    conn.execute("DELETE FROM donations WHERE id = ?", (d["id"],))
+    return (*donations_screen(conn, uid), "Donation deleted")
+
+
+def btn_donation_list(conn, uid, ud, args):
+    return (*donation_list_screen(conn, uid, int(args[0]) if args else 0), None)
+
+
+def btn_donation_agents(conn, uid, ud, args):
+    return (*donation_agents_screen(conn, uid), None)
+
+
+def btn_donation_agent(conn, uid, ud, args):
+    return (*donation_agent_screen(conn, uid, args[0]), None)
+
+
+def btn_donation_items(conn, uid, ud, args):
+    return (*donation_items_screen(conn, uid), None)
+
+
+def btn_spy(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "spy"}
+    return (*spy_prompt_screen(), None)
+
+
+def btn_mu(conn, uid, ud, args):
+    ud["awaiting"] = {"kind": "mu"}
+    ud["mu_points"] = []
+    return (*mu_prompt_screen(), None)
+
+
 def btn_more(conn, uid, ud, args):
     return (*more_screen(conn, uid), None)
 
@@ -3111,6 +3343,18 @@ BUTTONS = {
     "manage": btn_manage,
     "acct": btn_account,
     "ren": btn_rename,
+    "mu": btn_mu,
+    "spy": btn_spy,
+    "dons": btn_donations,
+    "donnew": btn_donation_new,
+    "don": btn_donation,
+    "donadd": btn_donation_add,
+    "dondel": btn_donation_delete,
+    "dondelok": btn_donation_delete_ok,
+    "donlist": btn_donation_list,
+    "donagents": btn_donation_agents,
+    "donagent": btn_donation_agent,
+    "donitems": btn_donation_items,
     "full": btn_full,
     "del": btn_delete,
     "delok": btn_delete_ok,
@@ -3123,6 +3367,7 @@ BUTTONS = {
     "search": btn_search,
     "stats": btn_stats,
     "astart": btn_agent_start,
+    "amedals": btn_agent_medals,
     "grid": btn_grid,
     "gridkey": btn_grid_key,
     "gridkeydel": btn_grid_key_delete,
@@ -3157,6 +3402,429 @@ BUTTONS = {
 
 _grid_lock = asyncio.Lock()
 _grid_running: set = set()
+
+
+# ---------------------------------------------------------------------------
+# Donations: items other agents gave you
+# ---------------------------------------------------------------------------
+
+DONATION_PAGE = 10
+DONATION_TS = "%Y-%m-%d %H:%M:%S"
+
+
+def parse_donation_items(text: str):
+    """({item: qty}, [unreadable lines]) from "R8 10" style lines.
+
+    One item per line, or several on a line split by commas or semicolons.
+    """
+    counts, bad = {}, []
+    for line in re.split(r"[\n;]+", text):
+        line = line.strip()
+        if not line:
+            continue
+        parts = [line] if parse_line(line) else [p.strip() for p in line.split(",") if p.strip()]
+        for part in parts:
+            parsed = parse_line(part, "add")
+            if parsed is None or parsed[1] == "remove" or parsed[2] <= 0:
+                bad.append(part)
+                continue
+            item, _op, amount = parsed
+            counts[item] = counts.get(item, 0) + amount
+    return counts, bad
+
+
+def save_donation(conn, uid: int, donor: str, counts: dict, now: datetime) -> int:
+    known = conn.execute(
+        "SELECT donor FROM donations WHERE owner_id = ? AND donor = ? COLLATE NOCASE ORDER BY id LIMIT 1",
+        (uid, donor),
+    ).fetchone()
+    donor = known["donor"] if known else donor  # keep the first spelling of the name
+    cur = conn.execute(
+        "INSERT INTO donations (owner_id, donor, items, donated_at) VALUES (?, ?, ?, ?)",
+        (uid, donor, json.dumps(counts), now.strftime(DONATION_TS)),
+    )
+    return cur.lastrowid
+
+
+def list_donations(conn, uid: int, donor: str = None):
+    sql = "SELECT * FROM donations WHERE owner_id = ?"
+    params = [uid]
+    if donor is not None:
+        sql += " AND donor = ? COLLATE NOCASE"
+        params.append(donor)
+    rows = conn.execute(sql + " ORDER BY donated_at DESC, id DESC", params).fetchall()
+    return [dict(r, items=json.loads(r["items"])) for r in rows]
+
+
+def get_donation(conn, uid: int, donation_id: str):
+    row = conn.execute(
+        "SELECT * FROM donations WHERE id = ? AND owner_id = ?", (int(donation_id), uid)
+    ).fetchone()
+    if row is None:
+        raise StaleButton
+    return dict(row, items=json.loads(row["items"]))
+
+
+def merged_items(donations) -> dict:
+    total = {}
+    for d in donations:
+        for name, qty in d["items"].items():
+            total[name] = total.get(name, 0) + qty
+    return total
+
+
+def donor_totals(donations):
+    """[(donor, donations, items)] most items first; names grouped ignoring case."""
+    by = {}
+    for d in donations:
+        key = d["donor"].lower()
+        name, count, items = by.get(key, (d["donor"], 0, 0))
+        by[key] = (name, count + 1, items + sum(d["items"].values()))
+    return sorted(by.values(), key=lambda t: (-t[2], t[0].lower()))
+
+
+def fmt_day(ts: str) -> str:
+    return datetime.strptime(ts, DONATION_TS).strftime("%d %b %Y")
+
+
+def donation_label(d) -> str:
+    return f"{fmt_day(d['donated_at'])} · {d['donor']} · {sum(d['items'].values())}"
+
+
+def donations_screen(conn, uid: int):
+    donations = list_donations(conn, uid)
+    lines = ["🎁 <b>Donations</b>", ""]
+    if not donations:
+        lines.append("No donations recorded yet. Tap ➕ Record donation when an agent gives you items.")
+        return "\n".join(lines), keyboard([("➕ Record donation", "donnew")], [HOME])
+    donors = donor_totals(donations)
+    total = sum(sum(d["items"].values()) for d in donations)
+    lines.append(f"📊 {plural(len(donations), 'donation')} · {plural(total)} from "
+                 f"{plural(len(donors), 'agent')}")
+    lines.append("🏆 Top donors: " + " · ".join(f"<b>{esc(n)}</b> ({i:,})" for n, _c, i in donors[:3]))
+    lines += ["", "🕒 <b>Recent</b>"]
+    accounts = {a["id"]: a["name"] for a in list_accounts(conn, uid)}
+    for d in donations[:5]:
+        where = f" → 📥 {esc(accounts[d['account_id']])}" if d["account_id"] in accounts else ""
+        lines.append(f"• {fmt_day(d['donated_at'])} · <b>{esc(d['donor'])}</b> · "
+                     f"{plural(sum(d['items'].values()))}{where}")
+    return "\n".join(lines), keyboard(
+        [("➕ Record donation", "donnew")],
+        [("👥 By agent", "donagents"), ("📦 By item", "donitems")],
+        [("📜 All donations", "donlist:0")],
+        [HOME],
+    )
+
+
+def donation_ask_donor_screen():
+    return (
+        "🎁 <b>Record a donation</b>\n\n"
+        "Who donated? Send the agent name, e.g. <code>LINKY36</code>.\n\n"
+        "<i>Tip: you can send the name and the items together — name on the first line, "
+        "one item per line after it.</i>",
+        keyboard([("✖️ Cancel", "dons")]),
+    )
+
+
+def donation_ask_items_screen(donor: str):
+    return (
+        f"🎁 What did <b>{esc(donor)}</b> donate?\n\n"
+        "Send the items like you add them to your inventory, one per line or split by commas:\n"
+        "<code>R8 20\nXMP8 30\nVRPS 2</code>",
+        keyboard([("✖️ Cancel", "dons")]),
+    )
+
+
+def add_to_account_rows(conn, uid: int, donation):
+    rows = []
+    for a in list_accounts(conn, uid):
+        tag = " 🈵" if a["full"] else ""
+        rows.append([(f"📥 Add to {a['name']}{tag}", f"donadd:{donation['id']}:{a['id']}")])
+    return rows
+
+
+def donation_detail_screen(conn, uid: int, donation, note: str = ""):
+    total = sum(donation["items"].values())
+    lines = [note, ""] if note else []
+    lines += [
+        f"🎁 <b>Donation from {esc(donation['donor'])}</b>",
+        f"📅 {fmt_day(donation['donated_at'])} · 📦 {plural(total)}",
+        "",
+        *inventory_lines(donation["items"]),
+        "",
+    ]
+    account = get_owned_account(conn, uid, donation["account_id"]) if donation["account_id"] else None
+    rows = []
+    if account:
+        lines.append(f"✅ Added to <b>{esc(account['name'])}</b>.")
+    else:
+        lines.append("Add these items to one of your inventory accounts?")
+        rows = add_to_account_rows(conn, uid, donation)
+    return "\n".join(lines), keyboard(
+        *rows,
+        [(f"👤 All from {donation['donor']}", f"donagent:{donation['donor']}")],
+        [("🗑 Delete", f"dondel:{donation['id']}"), ("⬅️ Donations", "dons")],
+    )
+
+
+def donation_list_screen(conn, uid: int, page: int):
+    donations = list_donations(conn, uid)
+    pages = max(1, math.ceil(len(donations) / DONATION_PAGE))
+    page = min(max(page, 0), pages - 1)
+    shown = donations[page * DONATION_PAGE:(page + 1) * DONATION_PAGE]
+    rows = [[(("✅ " if d["account_id"] else "🎁 ") + donation_label(d), f"don:{d['id']}")] for d in shown]
+    nav = []
+    if page > 0:
+        nav.append(("⬅️ Newer", f"donlist:{page - 1}"))
+    if page < pages - 1:
+        nav.append(("Older ➡️", f"donlist:{page + 1}"))
+    text = (f"📜 <b>All donations</b> · page {page + 1}/{pages}\n\n"
+            "Tap one to see its items, add it to an account or delete it.\n✅ = added to an account.")
+    return text, keyboard(*rows, nav, [("⬅️ Donations", "dons"), HOME])
+
+
+def donation_agents_screen(conn, uid: int):
+    donors = donor_totals(list_donations(conn, uid))
+    lines = ["👥 <b>Donations by agent</b>", ""]
+    for i, (name, count, items) in enumerate(donors, 1):
+        lines.append(f"{i}. <b>{esc(name)}</b> · {plural(items)} in {plural(count, 'donation')}")
+    rows = [[(f"👤 {name}", f"donagent:{name}")] for name, _c, _i in donors[:30]]
+    return "\n".join(lines), keyboard(*rows, [("⬅️ Donations", "dons"), HOME])
+
+
+def donation_agent_screen(conn, uid: int, donor: str):
+    donations = list_donations(conn, uid, donor)
+    if not donations:
+        raise StaleButton
+    name = donations[0]["donor"]
+    items = merged_items(donations)
+    lines = [
+        f"👤 <b>{esc(name)}</b>",
+        f"🎁 {plural(len(donations), 'donation')} · 📦 {plural(sum(items.values()))}",
+        f"📅 First {fmt_day(donations[-1]['donated_at'])} · last {fmt_day(donations[0]['donated_at'])}",
+        "",
+        *inventory_lines(items),
+    ]
+    rows = [[(donation_label(d), f"don:{d['id']}")] for d in donations[:10]]
+    return "\n".join(lines), keyboard(
+        *rows,
+        [("🕵️ Profile in Ingress", AGENT_PROFILE_URL.format(name))] if AGENT_NAME_RE.fullmatch(name) else [],
+        [("⬅️ By agent", "donagents"), HOME],
+    )
+
+
+def donation_items_screen(conn, uid: int):
+    donations = list_donations(conn, uid)
+    items = merged_items(donations)
+    lines = ["📦 <b>All donated items</b>", f"{plural(sum(items.values()))} in "
+             f"{plural(len(donations), 'donation')}", "", *inventory_lines(items)]
+    return "\n".join(lines), keyboard([("⬅️ Donations", "dons"), HOME])
+
+
+def donation_saved(conn, uid: int, ud, donor: str, counts: dict, bad):
+    donation_id = save_donation(conn, uid, donor, counts, datetime.now())
+    ud.pop("awaiting", None)
+    note = f"✅ Saved a donation from <b>{esc(donor)}</b>."
+    if bad:
+        note += "\n⚠️ I couldn't read: " + ", ".join(f"<code>{esc(b)}</code>" for b in bad[:5])
+    return donation_detail_screen(conn, uid, get_donation(conn, uid, donation_id), note)
+
+
+# ---------------------------------------------------------------------------
+# Profile Spy: a link that opens an agent's profile in the Ingress app
+# ---------------------------------------------------------------------------
+
+AGENT_PROFILE_URL = "https://link.ingress.com/agent/{}"
+AGENT_NAME_RE = re.compile(r"[A-Za-z0-9_]{1,16}")
+SPY_MAX_NAMES = 10
+
+
+def spy_names(text: str):
+    """(agent names, words that aren't names) from a message; @ and commas are fine."""
+    names, bad = [], []
+    for word in re.split(r"[\s,;]+", text.strip()):
+        word = word.lstrip("@")
+        if not word:
+            continue
+        if AGENT_NAME_RE.fullmatch(word):
+            if word.lower() not in (n.lower() for n in names):
+                names.append(word)
+        else:
+            bad.append(word)
+    return names, bad
+
+
+def spy_prompt_screen():
+    text = (
+        "🕵️ <b>Profile Spy</b>\n\n"
+        "Send me an agent name, e.g. <code>LINKY36</code>, and I'll give you a link that opens "
+        "their profile in the Ingress app.\n\n"
+        f"You can send up to {SPY_MAX_NAMES} names at once, separated by spaces or new lines."
+    )
+    return text, keyboard([HOME])
+
+
+def spy_result_screen(names, bad=()):
+    lines = ["🕵️ <b>Profile Spy</b>", ""]
+    rows = []
+    for name in names[:SPY_MAX_NAMES]:
+        url = AGENT_PROFILE_URL.format(name)
+        lines.append(f"👤 <b>{esc(name)}</b>\n🔗 {url}")
+        rows.append([(f"📱 Open {name} in Ingress", url)])
+    if len(names) > SPY_MAX_NAMES:
+        lines.append(f"\n⚠️ Only the first {SPY_MAX_NAMES} names are shown.")
+    if bad:
+        lines.append("\n⚠️ Not agent names: " + ", ".join(f"<code>{esc(b)}</code>" for b in bad[:5]))
+    lines.append("\n<i>Tap a button on your phone with Ingress installed. Send another name to spy again.</i>")
+    return "\n".join(lines), keyboard(*rows, [HOME])
+
+
+async def donations_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    context.user_data.pop("awaiting", None)
+    with closing(get_conn()) as conn, conn:
+        ensure_user(conn, uid)
+        await respond(update, *donations_screen(conn, uid))
+
+
+async def spy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/spy opens Profile Spy; /spy NAME gives the link straight away."""
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    context.user_data["awaiting"] = {"kind": "spy"}
+    names, bad = spy_names(raw)
+    await respond(update, *(spy_result_screen(names, bad) if names else spy_prompt_screen()))
+
+
+# ---------------------------------------------------------------------------
+# MU calculator (mu.investigatexm.com)
+# ---------------------------------------------------------------------------
+
+MU_MAX_POINTS = mu_api.MAX_FIELDS * 3
+
+
+def intel_link(point) -> str:
+    p = mu_api.fmt_point(point)
+    return f'<a href="https://intel.ingress.com/?pll={p}">{p}</a>'
+
+
+def mu_prompt_screen():
+    text = (
+        "🧮 <b>MU Calculator</b>\n\n"
+        "Send me the 3 corners of a field, all in one message or one at a time:\n"
+        "• 🔗 Intel portal links (tap a portal → Link)\n"
+        "• 🗺 Map links with coordinates (Google Maps, OpenStreetMap)\n"
+        "• 🔢 Coordinates like <code>6.927079, 79.861244</code>\n"
+        "• 📍 Telegram locations (📎 → Location)\n\n"
+        "Send 6, 9… points to work out several fields at once — every 3 points make one field.\n\n"
+        "<i>Estimates from mu.investigatexm.com, not official Niantic numbers.</i>"
+    )
+    return text, keyboard([HOME])
+
+
+def mu_partial_screen(points, unread: int = 0):
+    full = len(points) // 3
+    need = 3 - len(points) % 3
+    lines = ["🧮 <b>MU Calculator</b>", ""]
+    for i, p in enumerate(points):
+        if i % 3 == 0 and len(points) > 3:
+            lines.append(f"🔺 <b>Field {i // 3 + 1}</b>")
+        lines.append(f"📍 {i % 3 + 1}. {intel_link(p)}")
+    lines += ["", f"Send <b>{need}</b> more point{'s' if need > 1 else ''} to finish field {full + 1}."]
+    if unread:
+        lines.append(f"⚠️ I couldn't find coordinates in {unread} link{'s' if unread > 1 else ''} "
+                     "(short links like maps.app.goo.gl hide them).")
+    rows = [[(f"🧮 Calculate {plural(full, 'field')} now", "mugo")]] if full else []
+    return "\n".join(lines), keyboard(*rows, [("🗑 Start again", "mu"), HOME])
+
+
+def mu_result_screen(results):
+    lines = ["🧮 <b>MU estimate</b>", ""]
+    total = 0
+    for i, r in enumerate(results, 1):
+        title = f"🔺 <b>Field {i}</b>" if len(results) > 1 else "🔺 <b>Field</b>"
+        if r["ok"]:
+            total += r["mu"]
+            area = r["area_km2"] or 0
+            density = f" · {r['mu'] / area:,.0f} MU/km²" if area else ""
+            lines.append(f"{title}: ≈ <b>{r['mu']:,} MU</b>")
+            lines.append(f"📐 {area:,.3f} km²{density}")
+        else:
+            lines.append(f"{title}: ⚠️ {esc(r['error'] or 'could not be calculated')}")
+        lines += [f"📍 {intel_link(p)}" for p in r["points"]]
+        lines.append("")
+    if len(results) > 1:
+        lines += [f"Σ <b>Total: ≈ {total:,} MU</b>", ""]
+    lines.append("<i>Send 3 more points for another field.</i>")
+    return "\n".join(lines), keyboard([("🧮 New calculation", "mu")], [HOME])
+
+
+async def mu_calculate(update: Update, context, points):
+    """Work out every complete field in points and show the result."""
+    fields = [points[i:i + 3] for i in range(0, len(points) // 3 * 3, 3)]
+    context.user_data["mu_points"] = []
+    context.user_data["awaiting"] = {"kind": "mu"}
+    chat = update.effective_chat
+    await chat.send_action("typing")
+    try:
+        results = await asyncio.to_thread(mu_api.calculate, fields)
+    except mu_api.MUAPIError as e:
+        context.user_data["mu_points"] = points
+        await respond(update, f"⚠️ Sorry — {esc(str(e))}",
+                      keyboard([("🔁 Try again", "mugo")], [("🗑 Start again", "mu"), HOME]))
+        return
+    await respond(update, *mu_result_screen(results))
+
+
+async def mu_add_points(update: Update, context, new_points, unread: int = 0):
+    ud = context.user_data
+    if (ud.get("awaiting") or {}).get("kind") != "mu":
+        ud["mu_points"] = []
+    ud["awaiting"] = {"kind": "mu"}
+    points = (ud.get("mu_points") or []) + [list(p) for p in new_points]
+    if not new_points:
+        hint = ("⚠️ I couldn't find coordinates in that link — short links like maps.app.goo.gl hide them. "
+                "Use an Intel portal link or coordinates instead." if unread else
+                "🤔 I couldn't find any points in that. Send Intel portal links, coordinates like "
+                "<code>6.927079, 79.861244</code>, or a 📍 location.")
+        await respond(update, hint, keyboard([("🗑 Start again", "mu"), HOME]))
+        return
+    if len(points) > MU_MAX_POINTS:
+        await respond(update, f"⚠️ That's more than {mu_api.MAX_FIELDS} fields — I can do up to "
+                      f"{MU_MAX_POINTS} points at once.", keyboard([("🗑 Start again", "mu"), HOME]))
+        return
+    ud["mu_points"] = points
+    if len(points) % 3:
+        await respond(update, *mu_partial_screen(points, unread))
+        return
+    await mu_calculate(update, context, points)
+
+
+async def mu_go(update: Update, context):
+    query = update.callback_query
+    points = context.user_data.get("mu_points") or []
+    if len(points) < 3:
+        await query.answer("Send at least 3 points first.")
+        context.user_data["awaiting"] = {"kind": "mu"}
+        return
+    await query.answer("Calculating…")
+    await mu_calculate(update, context, points)
+
+
+async def on_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """A shared 📍 location is a corner for the MU calculator."""
+    loc = update.message.location
+    await mu_add_points(update, context, [(loc.latitude, loc.longitude)])
+
+
+async def mu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/mu opens the calculator; /mu with points after it calculates straight away."""
+    raw = re.sub(r"^/\S+", "", update.message.text).strip()
+    context.user_data["awaiting"] = {"kind": "mu"}
+    context.user_data["mu_points"] = []
+    if raw:
+        await mu_add_points(update, context, *mu_api.parse_points(raw))
+    else:
+        await respond(update, *mu_prompt_screen())
 
 
 async def grid_sync(update: Update, args):
@@ -3278,6 +3946,9 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action, *args = (query.data or "").split(":")
     if action in wiki_bot.BUTTON_ACTIONS:
         await wiki_bot.handle_button(update, context, action, args)
+        return
+    if action == "mugo":
+        await mu_go(update, context)
         return
     if action == "gridgo":
         try:
@@ -3404,12 +4075,56 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Pasted stats are recognised whatever the bot was waiting for.
         if stats.looks_like_stats(text):
             context.user_data.pop("awaiting", None)
-            await respond(update, *stats_saved_screen(conn, uid, text))
+            await save_pasted_stats(update, conn, uid, text)
             return
 
     if kind == "grid_key":
         await grid_save_key(update, context, text)
         return
+
+    if kind in ("donation_donor", "donation_items"):
+        with closing(get_conn()) as conn, conn:
+            if kind == "donation_donor":
+                first, _, rest = text.partition("\n")
+                donor = first.strip().lstrip("@")
+                if not AGENT_NAME_RE.fullmatch(donor):
+                    await respond(update, "🤔 That doesn't look like an agent name. Agent names use "
+                                  "letters, numbers and _ only, e.g. <code>LINKY36</code>.",
+                                  keyboard([("✖️ Cancel", "dons")]))
+                    return
+                if not rest.strip():
+                    context.user_data["awaiting"] = {"kind": "donation_items", "donor": donor}
+                    await respond(update, *donation_ask_items_screen(donor))
+                    return
+                items_text = rest
+            else:
+                donor, items_text = awaiting["donor"], text
+            counts, bad = parse_donation_items(items_text)
+            if not counts:
+                context.user_data["awaiting"] = {"kind": "donation_items", "donor": donor}
+                msg = "🤔 I couldn't read any items in that. Send lines like <code>R8 20</code>."
+                if bad:
+                    msg += "\n\n" + "\n".join(unreadable_line(b) for b in bad[:5])
+                await respond(update, msg, keyboard([("✖️ Cancel", "dons")]))
+                return
+            await respond(update, *donation_saved(conn, uid, context.user_data, donor, counts, bad))
+        return
+
+    if kind == "spy":
+        names, bad = spy_names(text)
+        if names:
+            await respond(update, *spy_result_screen(names, bad))
+        else:
+            await respond(update, "🤔 That doesn't look like an agent name. Agent names use letters, "
+                          "numbers and _ only, e.g. <code>LINKY36</code>.", keyboard([HOME]))
+        return
+
+    # MU calculator: points while it's open, or Intel portal links sent any time.
+    if kind == "mu" or (not kind and mu_api.has_portal_links(text)):
+        points, unread = mu_api.parse_points(text)
+        if points or kind == "mu":
+            await mu_add_points(update, context, points, unread)
+            return
 
     # Typed answers to wiki prompts (/ask, /item, ...) go to the wiki assistant.
     if kind and await wiki_bot.handle_text(update, context, kind, text):
@@ -3463,6 +4178,31 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if moved:
                     note += "\n".join(moved.values()) + "\n"
                 await respond(update, *leaderboard_screen(conn, agent, awaiting["stat"], note))
+                return
+
+        if kind == "agent_medals":
+            agent = stats.get_agent(conn, uid, awaiting["agent_id"])
+            snap = stats.latest_snapshot(conn, agent["id"]) if agent else None
+            if agent is None or snap is None:
+                context.user_data.pop("awaiting", None)
+            else:
+                started = stat_medals_started(snap["values"])
+                n = text.replace(",", "").strip()
+                if not n.isdigit() or not (started <= int(n) <= 2000):
+                    await respond(
+                        update,
+                        f"🤔 Send just the number of medals on your profile, e.g. <code>79</code> "
+                        f"(at least {started}, the medals in your stats). Or tap Cancel.",
+                        keyboard([("✖️ Cancel", f"stats:{agent['id']}")]),
+                    )
+                    return
+                context.user_data.pop("awaiting", None)
+                conn.execute("UPDATE agents SET other_medals = ? WHERE id = ?",
+                             (int(n) - started, agent["id"]))
+                agent = stats.get_agent(conn, uid, agent["id"])
+                rows, extra = divmod(int(n), MEDALS_PER_ROW)
+                note = f"✅ Medal count set to <b>{int(n)}</b> — {rows} full rows.\n"
+                await respond(update, *stats_screen(conn, uid, agent, note))
                 return
 
         if kind == "agent_start":
@@ -3865,7 +4605,8 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ensure_user(conn, uid)
         if raw:
             context.user_data.pop("awaiting", None)
-            text, markup = stats_saved_screen(conn, uid, raw)
+            await save_pasted_stats(update, conn, uid, raw)
+            return
         elif stats.list_agents(conn, uid):
             text, markup = stats_screen(conn, uid)
         else:
@@ -3980,6 +4721,9 @@ BOT_COMMANDS = [
     ("use", "🔄 Switch account"),
     ("newaccount", "➕ Create an account"),
     ("accounts", "⚙️ Manage accounts"),
+    ("mu", "🧮 MU Calculator for a field"),
+    ("spy", "🕵️ Open an agent's profile in Ingress"),
+    ("donations", "🎁 Items agents donated to you"),
     ("items", "📋 Item names & shortcuts"),
     ("help", "❓ How it works"),
     ("cancel", "✖️ Cancel what you're doing"),
@@ -4081,6 +4825,9 @@ def main():
         "use": use_cmd,
         "delaccount": delaccount_cmd,
         "cancel": cancel_cmd,
+        "mu": mu_cmd,
+        "spy": spy_cmd,
+        "donations": donations_cmd,
     }
     assert not set(commands) & set(wiki_bot.COMMANDS), "wiki command clashes with an inventory command"
     commands.update(wiki_bot.COMMANDS)
@@ -4089,6 +4836,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.Document.ALL, on_document))
+    app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.LOCATION, on_location))
     app.add_handler(MessageHandler(filters.COMMAND, unknown_cmd))
     app.add_error_handler(on_error)
 
