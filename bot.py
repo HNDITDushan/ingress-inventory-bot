@@ -105,6 +105,7 @@ CATEGORIES = [
     ("Ops & Keys", ["ITO +", "ITO -", "Keys"]),
     # Keep new categories last: buttons refer to items by their position.
     ("Viruses", ["ADA Refactor", "JARVIS Virus"]),
+    ("Capsules", ["Capsule", "Quantum Capsule", "Kinetic Capsule", "Key Locker"]),
 ]
 
 ITEMS = [item for _, items in CATEGORIES for item in items]
@@ -124,6 +125,7 @@ CATEGORY_EMOJI = {
     "Link Amps": "📡",
     "Ops & Keys": "🔑",
     "Viruses": "🦠",
+    "Capsules": "💊",
 }
 
 # Shorter labels used where the category is already shown (buttons, lists).
@@ -143,6 +145,8 @@ SHORT_NAME = {
     "Soft Bank Ultra Link": "SBUL",
     "ADA Refactor": "ADA",
     "JARVIS Virus": "JARVIS",
+    "Quantum Capsule": "Quantum",
+    "Kinetic Capsule": "Kinetic",
 }
 
 
@@ -186,6 +190,18 @@ ALIASES = {
     "jarvis": "JARVIS Virus",
     "javis": "JARVIS Virus",
     "javisvirus": "JARVIS Virus",
+    "cap": "Capsule",
+    "caps": "Capsule",
+    "capsules": "Capsule",
+    "qc": "Quantum Capsule",
+    "quantum": "Quantum Capsule",
+    "quantumcapsules": "Quantum Capsule",
+    "kc": "Kinetic Capsule",
+    "kinetic": "Kinetic Capsule",
+    "kineticcapsules": "Kinetic Capsule",
+    "kl": "Key Locker",
+    "locker": "Key Locker",
+    "keylockers": "Key Locker",
 }
 for _lvl in range(1, 9):
     for _prefix, _letter in (
@@ -331,6 +347,10 @@ def init_db():
             )
             """
         )
+        donation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(donations)")}
+        if "direction" not in donation_columns:
+            # "in" = an agent gave you items; "out" = you gave items from account_id.
+            conn.execute("ALTER TABLE donations ADD COLUMN direction TEXT NOT NULL DEFAULT 'in'")
         if "full" not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN full INTEGER NOT NULL DEFAULT 0")
         stats.init_stats_db(conn)
@@ -492,7 +512,7 @@ def esc(text) -> str:
 
 
 def plural(n: int, word: str = "item") -> str:
-    return f"{n} {word}{'' if n == 1 else 's'}"
+    return f"{n:,} {word}{'' if n == 1 else 's'}"
 
 
 def keyboard(*rows):
@@ -1082,7 +1102,8 @@ def catalog_screen():
         "CMH · RMH · VRMH (Multi-Hacks)\n"
         "CLA · RLA · SBUL (Link Amps)\n"
         "ITO+ · ITO- · key\n"
-        "ADA · JARVIS\n\n"
+        "ADA · JARVIS\n"
+        "caps · QC · KC · KL (Capsules, Key Locker)\n\n"
         "<i>Upper or lower case doesn't matter.</i>"
     )
     return "\n".join(lines), keyboard([("❓ Help", "help"), HOME])
@@ -3241,7 +3262,15 @@ def btn_donations(conn, uid, ud, args):
 
 def btn_donation_new(conn, uid, ud, args):
     ud["awaiting"] = {"kind": "donation_donor"}
-    return (*donation_ask_donor_screen(), None)
+    return (*donation_ask_donor_screen(conn, uid), None)
+
+
+def btn_donation_pick(conn, uid, ud, args):
+    donor = args[0]
+    if not AGENT_NAME_RE.fullmatch(donor):
+        raise StaleButton
+    ud["awaiting"] = {"kind": "donation_items", "donor": donor}
+    return (*donation_ask_items_screen(donor), None)
 
 
 def btn_donation(conn, uid, ud, args):
@@ -3250,7 +3279,7 @@ def btn_donation(conn, uid, ud, args):
 
 def btn_donation_add(conn, uid, ud, args):
     donation = get_donation(conn, uid, args[0])
-    if donation["account_id"]:
+    if donation["account_id"] or donation["direction"] != "in":
         return (*donation_detail_screen(conn, uid, donation), "Already added to an account")
     account = _owned(conn, uid, args[1])
     for item, qty in donation["items"].items():
@@ -3264,20 +3293,86 @@ def btn_donation_add(conn, uid, ud, args):
 
 def btn_donation_delete(conn, uid, ud, args):
     d = get_donation(conn, uid, args[0])
-    extra = ("\n\nThe items already added to your inventory stay there — remove them yourself "
-             "if you need to.") if d["account_id"] else ""
+    account = get_owned_account(conn, uid, d["account_id"]) if d["account_id"] else None
+    rows = [[("🗑 Yes, delete it", f"dondelok:{d['id']}")]]
+    extra = ""
+    if account and d["direction"] == "out":
+        extra = (f"\n\nThe items were removed from <b>{esc(account['name'])}</b>. Put them back if "
+                 "the donation didn't happen.")
+        rows = [[(f"↩️ Delete and put items back in {account['name']}", f"dondelok:{d['id']}:back")],
+                [("🗑 Delete, keep inventory as it is", f"dondelok:{d['id']}")]]
+    elif account:
+        extra = ("\n\nThe items already added to your inventory stay there — remove them yourself "
+                 "if you need to.")
     return (
-        f"⚠️ Delete the donation from <b>{esc(d['donor'])}</b> on {fmt_day(d['donated_at'])} "
+        f"⚠️ Delete the donation {esc(donation_title(d))} on {fmt_day(d['donated_at'])} "
         f"({plural(sum(d['items'].values()))})?{extra}",
-        keyboard([("🗑 Yes, delete it", f"dondelok:{d['id']}")], [("✖️ No, keep it", f"don:{d['id']}")]),
+        keyboard(*rows, [("✖️ No, keep it", f"don:{d['id']}")]),
         None,
     )
 
 
 def btn_donation_delete_ok(conn, uid, ud, args):
     d = get_donation(conn, uid, args[0])
+    toast = "Donation deleted"
+    if len(args) > 1 and args[1] == "back" and d["direction"] == "out" and d["account_id"]:
+        account = get_owned_account(conn, uid, d["account_id"])
+        if account:
+            for item, qty in d["items"].items():
+                apply_change(conn, account["id"], item, "add", qty)
+            toast = f"Deleted — items back in {account['name']}"
     conn.execute("DELETE FROM donations WHERE id = ?", (d["id"],))
-    return (*donations_screen(conn, uid), "Donation deleted")
+    return (*donations_screen(conn, uid), toast)
+
+
+def btn_donation_flip(conn, uid, ud, args):
+    """Fix a donation recorded the wrong way round (only while it isn't linked to an account)."""
+    d = get_donation(conn, uid, args[0])
+    if d["account_id"]:
+        return (*donation_detail_screen(conn, uid, d), "Linked to an account — can't switch")
+    new = "out" if d["direction"] == "in" else "in"
+    conn.execute("UPDATE donations SET direction = ? WHERE id = ?", (new, d["id"]))
+    d = get_donation(conn, uid, args[0])
+    note = "✅ Marked as given." if new == "out" else "✅ Marked as received."
+    return (*donation_detail_screen(conn, uid, d, note), note[2:])
+
+
+def btn_donate_out(conn, uid, ud, args):
+    ud.pop("pending_donation", None)
+    return (*donate_pick_account_screen(conn, uid), None)
+
+
+def btn_donate_account(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    ud["awaiting"] = {"kind": "donation_out_agent", "account_id": account["id"]}
+    return (*donate_ask_agent_screen(conn, uid, account), None)
+
+
+def btn_donate_pick(conn, uid, ud, args):
+    account = _owned(conn, uid, args[0])
+    agent = args[1]
+    if not AGENT_NAME_RE.fullmatch(agent):
+        raise StaleButton
+    ud["awaiting"] = {"kind": "donation_out_items", "account_id": account["id"], "agent": agent}
+    return (*donate_ask_items_screen(conn, account, agent), None)
+
+
+def btn_donate_ok(conn, uid, ud, args):
+    pending = ud.pop("pending_donation", None)
+    if not pending:
+        raise StaleButton
+    account = _owned(conn, uid, pending["account_id"])
+    counts = pending["counts"]
+    have = get_counts(conn, account["id"])
+    if any(q > have.get(it, 0) for it, q in counts.items()):
+        return (*donate_preview_screen(conn, account, pending["agent"], counts, []),
+                "Not enough items any more")
+    for item, qty in counts.items():
+        apply_change(conn, account["id"], item, "remove", qty)
+    donation_id = save_donation(conn, uid, pending["agent"], counts, datetime.now(), "out", account["id"])
+    d = get_donation(conn, uid, donation_id)
+    note = f"✅ Donated {plural(sum(counts.values()))} to <b>{esc(d['donor'])}</b>."
+    return (*donation_detail_screen(conn, uid, d, note), "Donated")
 
 
 def btn_donation_list(conn, uid, ud, args):
@@ -3347,6 +3442,12 @@ BUTTONS = {
     "spy": btn_spy,
     "dons": btn_donations,
     "donnew": btn_donation_new,
+    "donpick": btn_donation_pick,
+    "donout": btn_donate_out,
+    "donflip": btn_donation_flip,
+    "donoutacct": btn_donate_account,
+    "donoutpick": btn_donate_pick,
+    "donoutok": btn_donate_ok,
     "don": btn_donation,
     "donadd": btn_donation_add,
     "dondel": btn_donation_delete,
@@ -3405,11 +3506,14 @@ _grid_running: set = set()
 
 
 # ---------------------------------------------------------------------------
-# Donations: items other agents gave you
+# Donations: items agents gave you, and items you gave from your accounts
 # ---------------------------------------------------------------------------
 
 DONATION_PAGE = 10
 DONATION_TS = "%Y-%m-%d %H:%M:%S"
+DONOR_COPY_NAMES = 20
+DONOR_PICK_BUTTONS = 6
+DIRECTION_EMOJI = {"in": "📥", "out": "📤"}
 
 
 def parse_donation_items(text: str):
@@ -3433,25 +3537,30 @@ def parse_donation_items(text: str):
     return counts, bad
 
 
-def save_donation(conn, uid: int, donor: str, counts: dict, now: datetime) -> int:
+def save_donation(conn, uid: int, agent: str, counts: dict, now: datetime,
+                  direction: str = "in", account_id: int = None) -> int:
     known = conn.execute(
         "SELECT donor FROM donations WHERE owner_id = ? AND donor = ? COLLATE NOCASE ORDER BY id LIMIT 1",
-        (uid, donor),
+        (uid, agent),
     ).fetchone()
-    donor = known["donor"] if known else donor  # keep the first spelling of the name
+    agent = known["donor"] if known else agent  # keep the first spelling of the name
     cur = conn.execute(
-        "INSERT INTO donations (owner_id, donor, items, donated_at) VALUES (?, ?, ?, ?)",
-        (uid, donor, json.dumps(counts), now.strftime(DONATION_TS)),
+        "INSERT INTO donations (owner_id, donor, items, donated_at, direction, account_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (uid, agent, json.dumps(counts), now.strftime(DONATION_TS), direction, account_id),
     )
     return cur.lastrowid
 
 
-def list_donations(conn, uid: int, donor: str = None):
+def list_donations(conn, uid: int, agent: str = None, direction: str = None):
     sql = "SELECT * FROM donations WHERE owner_id = ?"
     params = [uid]
-    if donor is not None:
+    if agent is not None:
         sql += " AND donor = ? COLLATE NOCASE"
-        params.append(donor)
+        params.append(agent)
+    if direction is not None:
+        sql += " AND direction = ?"
+        params.append(direction)
     rows = conn.execute(sql + " ORDER BY donated_at DESC, id DESC", params).fetchall()
     return [dict(r, items=json.loads(r["items"])) for r in rows]
 
@@ -3473,57 +3582,93 @@ def merged_items(donations) -> dict:
     return total
 
 
-def donor_totals(donations):
-    """[(donor, donations, items)] most items first; names grouped ignoring case."""
+def agent_totals(donations):
+    """[(agent, items received, items given)] most items first; names grouped ignoring case."""
     by = {}
     for d in donations:
         key = d["donor"].lower()
-        name, count, items = by.get(key, (d["donor"], 0, 0))
-        by[key] = (name, count + 1, items + sum(d["items"].values()))
-    return sorted(by.values(), key=lambda t: (-t[2], t[0].lower()))
+        name, got, gave = by.get(key, (d["donor"], 0, 0))
+        n = sum(d["items"].values())
+        by[key] = (name, got + (n if d["direction"] == "in" else 0), gave + (n if d["direction"] == "out" else 0))
+    return sorted(by.values(), key=lambda t: (-(t[1] + t[2]), t[0].lower()))
+
+
+def recent_agents(conn, uid: int, direction: str):
+    """Agent names you got from / gave to, most recent first."""
+    seen = []
+    for d in list_donations(conn, uid, direction=direction):
+        if d["donor"].lower() not in (n.lower() for n in seen):
+            seen.append(d["donor"])
+    return seen
 
 
 def fmt_day(ts: str) -> str:
     return datetime.strptime(ts, DONATION_TS).strftime("%d %b %Y")
 
 
+def donation_title(d) -> str:
+    return f"from {d['donor']}" if d["direction"] == "in" else f"to {d['donor']}"
+
+
 def donation_label(d) -> str:
-    return f"{fmt_day(d['donated_at'])} · {d['donor']} · {sum(d['items'].values())}"
+    return (f"{DIRECTION_EMOJI[d['direction']]} {fmt_day(d['donated_at'])} · "
+            f"{donation_title(d)} · {sum(d['items'].values())}")
 
 
 def donations_screen(conn, uid: int):
     donations = list_donations(conn, uid)
     lines = ["🎁 <b>Donations</b>", ""]
+    buttons = [[("📥 Got a donation", "donnew"), ("📤 Donate items", "donout")]]
     if not donations:
-        lines.append("No donations recorded yet. Tap ➕ Record donation when an agent gives you items.")
-        return "\n".join(lines), keyboard([("➕ Record donation", "donnew")], [HOME])
-    donors = donor_totals(donations)
-    total = sum(sum(d["items"].values()) for d in donations)
-    lines.append(f"📊 {plural(len(donations), 'donation')} · {plural(total)} from "
-                 f"{plural(len(donors), 'agent')}")
-    lines.append("🏆 Top donors: " + " · ".join(f"<b>{esc(n)}</b> ({i:,})" for n, _c, i in donors[:3]))
+        lines.append("Nothing recorded yet.\n\n📥 <b>Got a donation</b> — an agent gave you items.\n"
+                     "📤 <b>Donate items</b> — give items from one of your accounts to an agent.")
+        return "\n".join(lines), keyboard(*buttons, [HOME])
+    got = [d for d in donations if d["direction"] == "in"]
+    gave = [d for d in donations if d["direction"] == "out"]
+    for emoji, label, group, idx in (("📥", "Received", got, 1), ("📤", "Given", gave, 2)):
+        if not group:
+            continue
+        agents = [t for t in agent_totals(group)]
+        lines.append(f"{emoji} <b>{label}</b>: {plural(sum(sum(d['items'].values()) for d in group))} · "
+                     f"{plural(len(group), 'donation')} · {plural(len(agents), 'agent')}")
+        lines.append("   🏆 " + " · ".join(f"<b>{esc(t[0])}</b> ({t[idx]:,})" for t in agents[:3]))
     lines += ["", "🕒 <b>Recent</b>"]
     accounts = {a["id"]: a["name"] for a in list_accounts(conn, uid)}
-    for d in donations[:5]:
-        where = f" → 📥 {esc(accounts[d['account_id']])}" if d["account_id"] in accounts else ""
-        lines.append(f"• {fmt_day(d['donated_at'])} · <b>{esc(d['donor'])}</b> · "
-                     f"{plural(sum(d['items'].values()))}{where}")
+    for d in donations[:6]:
+        where = ""
+        if d["account_id"] in accounts:
+            arrow = "→ 📥" if d["direction"] == "in" else "from 👤"
+            where = f" {arrow} {esc(accounts[d['account_id']])}"
+        lines.append(f"• {DIRECTION_EMOJI[d['direction']]} {fmt_day(d['donated_at'])} · "
+                     f"<b>{esc(donation_title(d))}</b> · {plural(sum(d['items'].values()))}{where}")
     return "\n".join(lines), keyboard(
-        [("➕ Record donation", "donnew")],
+        *buttons,
         [("👥 By agent", "donagents"), ("📦 By item", "donitems")],
         [("📜 All donations", "donlist:0")],
         [HOME],
     )
 
 
-def donation_ask_donor_screen():
-    return (
-        "🎁 <b>Record a donation</b>\n\n"
-        "Who donated? Send the agent name, e.g. <code>LINKY36</code>.\n\n"
-        "<i>Tip: you can send the name and the items together — name on the first line, "
-        "one item per line after it.</i>",
-        keyboard([("✖️ Cancel", "dons")]),
-    )
+def agent_name_prompt(conn, uid: int, direction: str, question: str, pick_action: str, cancel: str):
+    # Agents from this direction first, then everyone else you've swapped items with.
+    names = recent_agents(conn, uid, direction)
+    other = "out" if direction == "in" else "in"
+    names += [n for n in recent_agents(conn, uid, other) if n.lower() not in (m.lower() for m in names)]
+    text = f"{question} Send the agent name, e.g. <code>LINKY36</code>.\n"
+    if names:
+        title = "Agents from your donations"
+        copy = "  ".join(f"<code>{esc(n)}</code>" for n in names[:DONOR_COPY_NAMES])
+        text += f"\n👥 <b>{title}</b> <i>(tap to copy, or tap a button)</i>:\n{copy}\n"
+    buttons = [(f"👤 {n}", f"{pick_action}:{n}") for n in names[:DONOR_PICK_BUTTONS]]
+    return text, [*chunked(buttons, 2), [("✖️ Cancel", cancel)]]
+
+
+def donation_ask_donor_screen(conn, uid: int):
+    text, rows = agent_name_prompt(conn, uid, "in", "📥 <b>Got a donation</b>\n\nWho donated?",
+                                   "donpick", "dons")
+    text += ("\n<i>Tip: you can send the name and the items together — name on the first line, "
+             "one item per line after it.</i>")
+    return text, keyboard(*rows)
 
 
 def donation_ask_items_screen(donor: str):
@@ -3533,6 +3678,55 @@ def donation_ask_items_screen(donor: str):
         "<code>R8 20\nXMP8 30\nVRPS 2</code>",
         keyboard([("✖️ Cancel", "dons")]),
     )
+
+
+def donate_pick_account_screen(conn, uid: int):
+    rows = []
+    for a in list_accounts(conn, uid):
+        total = sum(get_counts(conn, a["id"]).values())
+        if total:
+            rows.append([(f"👤 {a['name']} · {total}", f"donoutacct:{a['id']}")])
+    if not rows:
+        return ("📤 <b>Donate items</b>\n\nYour accounts are empty — add items first.",
+                keyboard([("⬅️ Donations", "dons"), HOME]))
+    return ("📤 <b>Donate items</b>\n\nWhich of your accounts are the items coming from?",
+            keyboard(*rows, [("✖️ Cancel", "dons")]))
+
+
+def donate_ask_agent_screen(conn, uid: int, account):
+    text, rows = agent_name_prompt(
+        conn, uid, "out", f"📤 <b>Donate from {esc(account['name'])}</b>\n\nWho are you giving to?",
+        f"donoutpick:{account['id']}", "dons")
+    text += ("\n<i>Tip: you can send the name and the items together — name on the first line, "
+             "one item per line after it.</i>")
+    return text, keyboard(*rows)
+
+
+def donate_ask_items_screen(conn, account, agent: str):
+    counts = get_counts(conn, account["id"])
+    return (
+        f"📤 What are you giving <b>{esc(agent)}</b> from <b>{esc(account['name'])}</b>?\n\n"
+        "Send the items one per line or split by commas, e.g. <code>R8 20, XMP8 30</code>.\n\n"
+        f"📦 <b>{esc(account['name'])}</b> has:\n" + "\n".join(inventory_lines(counts)),
+        keyboard([("✖️ Cancel", "dons")]),
+    )
+
+
+def donate_preview_screen(conn, account, agent: str, counts: dict, bad):
+    have = get_counts(conn, account["id"])
+    short = {it: (q, have.get(it, 0)) for it, q in counts.items() if q > have.get(it, 0)}
+    lines = [f"📤 <b>Donate to {esc(agent)}</b> from <b>{esc(account['name'])}</b>", ""]
+    lines += inventory_lines(counts)
+    if bad:
+        lines += ["", "⚠️ I couldn't read: " + ", ".join(f"<code>{esc(b)}</code>" for b in bad[:5])]
+    if short:
+        lines += ["", f"⛔ <b>{esc(account['name'])}</b> doesn't have enough:"]
+        lines += [f"• {esc(it)}: giving {q}, has {h}" for it, (q, h) in short.items()]
+        lines.append("\nSend the items again with smaller numbers.")
+        return "\n".join(lines), keyboard([("✖️ Cancel", "dons")])
+    lines += ["", f"These {plural(sum(counts.values()))} will be removed from "
+              f"<b>{esc(account['name'])}</b>."]
+    return "\n".join(lines), keyboard([("✅ Donate", "donoutok")], [("✖️ Cancel", "dons")])
 
 
 def add_to_account_rows(conn, uid: int, donation):
@@ -3545,9 +3739,10 @@ def add_to_account_rows(conn, uid: int, donation):
 
 def donation_detail_screen(conn, uid: int, donation, note: str = ""):
     total = sum(donation["items"].values())
+    out = donation["direction"] == "out"
     lines = [note, ""] if note else []
     lines += [
-        f"🎁 <b>Donation from {esc(donation['donor'])}</b>",
+        f"{DIRECTION_EMOJI[donation['direction']]} <b>Donation {esc(donation_title(donation))}</b>",
         f"📅 {fmt_day(donation['donated_at'])} · 📦 {plural(total)}",
         "",
         *inventory_lines(donation["items"]),
@@ -3555,14 +3750,21 @@ def donation_detail_screen(conn, uid: int, donation, note: str = ""):
     ]
     account = get_owned_account(conn, uid, donation["account_id"]) if donation["account_id"] else None
     rows = []
-    if account:
+    if out and account:
+        lines.append(f"📤 Given from <b>{esc(account['name'])}</b> — removed from that inventory.")
+    elif out:
+        lines.append("📤 Given — not linked to an account, so no inventory was changed.")
+    elif account:
         lines.append(f"✅ Added to <b>{esc(account['name'])}</b>.")
     else:
         lines.append("Add these items to one of your inventory accounts?")
         rows = add_to_account_rows(conn, uid, donation)
+    if not donation["account_id"]:
+        flip = "📥 It was received, not given" if out else "📤 It was given, not received"
+        rows.append([(flip, f"donflip:{donation['id']}")])
     return "\n".join(lines), keyboard(
         *rows,
-        [(f"👤 All from {donation['donor']}", f"donagent:{donation['donor']}")],
+        [(f"👤 All with {donation['donor']}", f"donagent:{donation['donor']}")],
         [("🗑 Delete", f"dondel:{donation['id']}"), ("⬅️ Donations", "dons")],
     )
 
@@ -3572,39 +3774,42 @@ def donation_list_screen(conn, uid: int, page: int):
     pages = max(1, math.ceil(len(donations) / DONATION_PAGE))
     page = min(max(page, 0), pages - 1)
     shown = donations[page * DONATION_PAGE:(page + 1) * DONATION_PAGE]
-    rows = [[(("✅ " if d["account_id"] else "🎁 ") + donation_label(d), f"don:{d['id']}")] for d in shown]
+    rows = [[(donation_label(d), f"don:{d['id']}")] for d in shown]
     nav = []
     if page > 0:
         nav.append(("⬅️ Newer", f"donlist:{page - 1}"))
     if page < pages - 1:
         nav.append(("Older ➡️", f"donlist:{page + 1}"))
     text = (f"📜 <b>All donations</b> · page {page + 1}/{pages}\n\n"
-            "Tap one to see its items, add it to an account or delete it.\n✅ = added to an account.")
+            "📥 = you received · 📤 = you gave\nTap one to see its items or delete it.")
     return text, keyboard(*rows, nav, [("⬅️ Donations", "dons"), HOME])
 
 
 def donation_agents_screen(conn, uid: int):
-    donors = donor_totals(list_donations(conn, uid))
-    lines = ["👥 <b>Donations by agent</b>", ""]
-    for i, (name, count, items) in enumerate(donors, 1):
-        lines.append(f"{i}. <b>{esc(name)}</b> · {plural(items)} in {plural(count, 'donation')}")
-    rows = [[(f"👤 {name}", f"donagent:{name}")] for name, _c, _i in donors[:30]]
+    agents = agent_totals(list_donations(conn, uid))
+    lines = ["👥 <b>Donations by agent</b>", "📥 received from them · 📤 given to them", ""]
+    for i, (name, got, gave) in enumerate(agents, 1):
+        parts = ([f"📥 {got:,}"] if got else []) + ([f"📤 {gave:,}"] if gave else [])
+        lines.append(f"{i}. <b>{esc(name)}</b> · " + " · ".join(parts))
+    rows = [[(f"👤 {name}", f"donagent:{name}")] for name, _g, _v in agents[:30]]
     return "\n".join(lines), keyboard(*rows, [("⬅️ Donations", "dons"), HOME])
 
 
-def donation_agent_screen(conn, uid: int, donor: str):
-    donations = list_donations(conn, uid, donor)
+def donation_agent_screen(conn, uid: int, agent: str):
+    donations = list_donations(conn, uid, agent)
     if not donations:
         raise StaleButton
     name = donations[0]["donor"]
-    items = merged_items(donations)
     lines = [
         f"👤 <b>{esc(name)}</b>",
-        f"🎁 {plural(len(donations), 'donation')} · 📦 {plural(sum(items.values()))}",
-        f"📅 First {fmt_day(donations[-1]['donated_at'])} · last {fmt_day(donations[0]['donated_at'])}",
-        "",
-        *inventory_lines(items),
+        f"🎁 {plural(len(donations), 'donation')} · 📅 first {fmt_day(donations[-1]['donated_at'])}"
+        f" · last {fmt_day(donations[0]['donated_at'])}",
     ]
+    for direction, title in (("in", "📥 <b>Received from them</b>"), ("out", "📤 <b>Given to them</b>")):
+        group = [d for d in donations if d["direction"] == direction]
+        if group:
+            items = merged_items(group)
+            lines += ["", f"{title} · {plural(sum(items.values()))}", *inventory_lines(items)]
     rows = [[(donation_label(d), f"don:{d['id']}")] for d in donations[:10]]
     return "\n".join(lines), keyboard(
         *rows,
@@ -3614,10 +3819,13 @@ def donation_agent_screen(conn, uid: int, donor: str):
 
 
 def donation_items_screen(conn, uid: int):
-    donations = list_donations(conn, uid)
-    items = merged_items(donations)
-    lines = ["📦 <b>All donated items</b>", f"{plural(sum(items.values()))} in "
-             f"{plural(len(donations), 'donation')}", "", *inventory_lines(items)]
+    lines = ["📦 <b>Donated items</b>"]
+    for direction, title in (("in", "📥 <b>Received</b>"), ("out", "📤 <b>Given</b>")):
+        group = list_donations(conn, uid, direction=direction)
+        if group:
+            items = merged_items(group)
+            lines += ["", f"{title} · {plural(sum(items.values()))} in {plural(len(group), 'donation')}",
+                      *inventory_lines(items)]
     return "\n".join(lines), keyboard([("⬅️ Donations", "dons"), HOME])
 
 
@@ -4080,6 +4288,43 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if kind == "grid_key":
         await grid_save_key(update, context, text)
+        return
+
+    if kind in ("donation_out_agent", "donation_out_items"):
+        with closing(get_conn()) as conn, conn:
+            account = get_owned_account(conn, uid, awaiting["account_id"])
+            if account is None:
+                context.user_data.pop("awaiting", None)
+                await respond(update, *donations_screen(conn, uid))
+                return
+            if kind == "donation_out_agent":
+                first, _, rest = text.partition("\n")
+                agent = first.strip().lstrip("@")
+                if not AGENT_NAME_RE.fullmatch(agent):
+                    await respond(update, "🤔 That doesn't look like an agent name. Agent names use "
+                                  "letters, numbers and _ only, e.g. <code>LINKY36</code>.",
+                                  keyboard([("✖️ Cancel", "dons")]))
+                    return
+                if not rest.strip():
+                    context.user_data["awaiting"] = {"kind": "donation_out_items",
+                                                     "account_id": account["id"], "agent": agent}
+                    await respond(update, *donate_ask_items_screen(conn, account, agent))
+                    return
+                items_text = rest
+            else:
+                agent, items_text = awaiting["agent"], text
+            counts, bad = parse_donation_items(items_text)
+            context.user_data["awaiting"] = {"kind": "donation_out_items",
+                                             "account_id": account["id"], "agent": agent}
+            if not counts:
+                msg = "🤔 I couldn't read any items in that. Send lines like <code>R8 20</code>."
+                if bad:
+                    msg += "\n\n" + "\n".join(unreadable_line(b) for b in bad[:5])
+                await respond(update, msg, keyboard([("✖️ Cancel", "dons")]))
+                return
+            context.user_data["pending_donation"] = {"account_id": account["id"], "agent": agent,
+                                                     "counts": counts}
+            await respond(update, *donate_preview_screen(conn, account, agent, counts, bad))
         return
 
     if kind in ("donation_donor", "donation_items"):

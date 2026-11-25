@@ -47,6 +47,7 @@ Items are a fixed whitelist (not free text), grouped into categories:
 - **Link Amps**: Common / Rare / Soft Bank Ultra Link
 - **Ops & Keys**: ITO +, ITO -, Keys
 - **Viruses**: ADA Refactor, JARVIS Virus
+- **Capsules**: Capsule, Quantum Capsule, Kinetic Capsule, Key Locker (shortcuts: `caps`, `QC`, `KC`, `KL`)
 
 Send `/items` any time to see the full list from the bot itself.
 
@@ -171,16 +172,22 @@ Sending just an item name (e.g. `R8`) opens its +/− screen.
 
 ## 🎁 Donations
 
-Keep a record of items other agents donate to you. Tap **🎁 Donations** on the
-menu (or `/donations`) → **➕ Record donation**, send the agent name, then the
-items in the usual format (`R8 20`, one per line or split by commas). The name
-and items can also go in one message, name on the first line.
+Keep a record of items you get from other agents and items you give them.
+Tap **🎁 Donations** on the menu (or `/donations`).
 
-After saving, tap **📥 Add to …** to put the items into one of your inventory
-accounts (once per donation), or leave it as a record only. The Donations page
-shows totals and top donors; **👥 By agent**, **📦 By item** and
-**📜 All donations** break it down, and any donation can be opened or deleted.
-Deleting a donation doesn't remove items already added to an inventory.
+- **📥 Got a donation**: send the agent name (past donors are listed tap-to-copy,
+  with quick buttons), then the items in the usual format (`R8 20`, one per line
+  or split by commas). Name and items can also go in one message, name first.
+  Then tap **📥 Add to …** to put the items into one of your accounts, or keep
+  it as a record only.
+- **📤 Donate items**: pick the account the items come from, send the agent's
+  name, then the items. The bot checks the account has enough, shows a preview,
+  and on **✅ Donate** removes the items from that account and records it.
+
+The Donations page shows received and given totals with top agents;
+**👥 By agent**, **📦 By item** and **📜 All donations** break it down. Deleting
+a donation you gave can put the items back in the account; deleting one you
+received doesn't remove items already added.
 
 ## 🕵️ Profile Spy
 
